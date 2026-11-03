@@ -5,7 +5,7 @@ keep_alive()
  
 from telebot import types
 
-# Yahan 'YOUR_BOT_TOKEN_HERE' ki jagah BotFather wala apna token daal dein
+  
 TOKEN = '9094967544:AAFBgUlbYLoZ-q7JItorAZSLCKcmYeEWONg'
 
 bot = telebot.TeleBot(TOKEN)
