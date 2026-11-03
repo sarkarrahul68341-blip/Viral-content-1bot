@@ -1,4 +1,8 @@
-import telebot
+from keep_alive import keep_alive
+keep_alive()
+
+
+ 
 from telebot import types
 
 # Yahan 'YOUR_BOT_TOKEN_HERE' ki jagah BotFather wala apna token daal dein
