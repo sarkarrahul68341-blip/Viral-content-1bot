@@ -1,0 +1,33 @@
+import telebot
+from telebot import types
+
+# Yahan 'YOUR_BOT_TOKEN_HERE' ki jagah BotFather wala apna token daal dein
+TOKEN = 'YOUR_BOT_TOKEN_HERE'
+bot = telebot.TeleBot(TOKEN)
+
+@bot.message_handler(commands=['start', 'menu'])
+def send_menu(message):
+    markup = types.InlineKeyboardMarkup(row_width=2)
+    
+    # UPI aur Razorpay Payment Buttons
+    upi_btn = types.InlineKeyboardButton("💸 Pay ₹199 via UPI", url="upi://pay?pa=yourupi@paytm&pn=MyBotStore&am=199&cu=INR")
+    rzp_btn = types.InlineKeyboardButton("💳 Pay via Razorpay", url="https://razorpay.me/@yourlink")
+    support_btn = types.InlineKeyboardButton("💬 Help & Support", callback_data="help_info")
+    
+    markup.add(upi_btn, rzp_btn)
+    markup.add(support_btn)
+    
+    text = (
+        "🌟 **Welcome to our Digital Store!** 🚀\n\n"
+        "Neeche diye gaye buttons par click karke aap payment kar sakte hain ya service access kar sakte hain:"
+    )
+    
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+
+@bot.callback_query_handler(func=lambda call: call.data == "help_info")
+def callback_support(call):
+    bot.answer_callback_query(call.id, "Support section open ho raha hai...")
+    bot.send_message(call.message.chat.id, "📞 Koi bhi dikkat ho toh admin se contact karein: @YourUsername")
+
+print("Bot is running...")
+bot.infinity_polling()
