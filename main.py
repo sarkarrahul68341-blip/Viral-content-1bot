@@ -1,60 +1,81 @@
 import os
 import telebot
 from telebot import types
-from flask import Flask
-from threading import Thread
 
-# Secure Token Loading from Environment
 TOKEN = os.environ.get('BOT_TOKEN', '9094967544:AAFkhj5QPoiP2clIBU3JyXAmlrql0YzZam4')
 bot = telebot.TeleBot(TOKEN)
 
-# Aapke Render ka live URL (Jab Render live URL de de, toh yahan update kar dena)
-WEB_APP_URL = os.environ.get('WEB_APP_URL', 'https://your-bot-name.onrender.com')
-
-# ----------------- FLASK SERVER (Keep-Alive) -----------------
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "All-in-One Bot is running 24/7!"
-
-def run():
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
-# ----------------- TELEGRAM BOT INTERFACE -----------------
-
+# 1. Main Menu (Root Folder)
 @bot.message_handler(commands=['start'])
-def send_main_menu(message):
-    user_name = message.from_user.first_name if message.from_user.first_name else "User"
+def main_menu(message):
+    markup = types.InlineKeyboardMarkup(row_width=2)
     
-    markup = types.InlineKeyboardMarkup()
+    # Folders / Categories
+    btn_folder1 = types.InlineKeyboardButton("📁 Videos & Demos", callback_data="folder_videos")
+    btn_folder2 = types.InlineKeyboardButton("📁 VIP Plans", callback_data="folder_plans")
+    btn_support = types.InlineKeyboardButton("💬 Support", callback_data="support")
     
-    # All-in-One Mini App Hub Button
-    web_app = types.WebAppInfo(url=WEB_APP_URL)
+    markup.add(btn_folder1, btn_folder2, btn_support)
     
-    markup.add(types.InlineKeyboardButton("🚀 Open All-in-One Hub", web_app=web_app))
-    markup.add(types.InlineKeyboardButton("💬 Support", callback_data="support_menu"))
-    
-    text = (
-        f"Hello {user_name} 🐣\n\n"
-        "Welcome to your **All-in-One VIP Hub**! 💖\n\n"
-        "💎 Yahan aapko sabhi plans, demos aur features ek hi jagah milenge.\n"
-        "🎁 Niche diye gaye button par click karke Hub kholein:"
-    )
-    
+    text = "📂 **Main Menu (Home Folder)**\n\nNiche diye gaye folders mein se koi ek select karein:"
     bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
+# 2. Button Clicks aur Sub-Folders Handling
 @bot.callback_query_handler(func=lambda call: True)
-def handle_callbacks(call):
-    if call.data == "support_menu":
-        bot.answer_callback_query(call.id, text="Support team se connect ho rahe hain...", show_alert=True)
-        bot.send_message(call.message.chat.id, "💬 Kisi bhi sahayata ke liye yahan contact karein: @your_support_username")
+def navigate_folders(call):
+    
+    # Agar user ne "Videos & Demos" folder khola
+    if call.data == "folder_videos":
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            types.InlineKeyboardButton("▶️ Watch Demo 1", callback_data="demo_1"),
+            types.InlineKeyboardButton("▶️ Watch Demo 2", callback_data="demo_2"),
+            types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_home")
+        )
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="📁 **Videos Folder**\n\nApni pasand ki video select karein:",
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
+
+    # Agar user ne "VIP Plans" folder khola
+    elif call.data == "folder_plans":
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(
+            types.InlineKeyboardButton("💎 Monthly Plan - ₹99", callback_data="plan_month"),
+            types.InlineKeyboardButton("👑 Lifetime Plan - ₹499", callback_data="plan_life"),
+            types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="back_home")
+        )
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="📁 **Plans Folder**\n\nAvailable plans yahan hain:",
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
+
+    # Wapas Main Menu (Home) par jaane ke liye
+    elif call.data == "back_home":
+        markup = types.InlineKeyboardMarkup(row_width=2)
+        markup.add(
+            types.InlineKeyboardButton("📁 Videos & Demos", callback_data="folder_videos"),
+            types.InlineKeyboardButton("📁 VIP Plans", callback_data="folder_plans"),
+            types.InlineKeyboardButton("💬 Support", callback_data="support")
+        )
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="📂 **Main Menu (Home Folder)**\n\nNiche diye gaye folders mein se koi ek select karein:",
+            reply_markup=markup,
+            parse_mode="Markdown"
+        )
+
+    # Support button action
+    elif call.data == "support":
+        bot.answer_callback_query(call.id, text="Support section open ho raha hai...")
+        bot.send_message(call.message.chat.id, "💬 Contact for help: @your_username")
 
 if __name__ == '__main__':
-    keep_alive()
     bot.infinity_polling()
