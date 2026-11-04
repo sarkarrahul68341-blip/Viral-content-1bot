@@ -1,80 +1,85 @@
-import os
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Render environment variable se bot token uthayega
-TOKEN = os.getenv('BOT_TOKEN')
+# Bot token
+TOKEN = '7611593361:AAE2J1tqYk06Vd35h4S5h0aTf8v6Q5J7u4k'
 bot = telebot.TeleBot(TOKEN)
 
-# /start command ka handler (Menu buttons ke sath)
+# /start command handler
 @bot.message_handler(commands=['start'])
-def main_menu(message):
-    markup = InlineKeyboardMarkup()
-    markup.row_width = 1
-    
-    # Buttons jo user ko dikhenge
-    markup.add(
-        InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
-        InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
-        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/+T_Rwn6XiNPsyMDg9'),
-    )
-    
+def send_welcome(message):
     welcome_text = (
         "👋 Namaste! Hamare Digital Video Store mein aapka swagat hai.\n\n"
         "Yahan aapko premium videos milengi. Neeche diye gaye button par click karke aage badhein:"
     )
+    
+    # Main menu ke buttons
+    markup = InlineKeyboardMarkup()
+    markup.row_width = 1
+    markup.add(
+        InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
+        InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
+        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/fsipsy')
+    )
+    
     bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
 
-# Button clicks ko handle karne ke liye
+# Callback queries handler (Buttons ke liye)
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if call.data == 'browse_videos':
-        video_markup = InlineKeyboardMarkup()
-        video_markup.add(
+        markup = InlineKeyboardMarkup()
+        markup.add(
             InlineKeyboardButton("🔥 Video 1 (Sample) - ₹99", callback_data='buy_video_1'),
             InlineKeyboardButton("🔙 Main Menu par jayein", callback_data='main_menu')
         )
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="📁 Yeh rahi aapki available videos ki list. Kisi ek ko select karein:",
-            reply_markup=video_markup
-        )
-        
-    elif call.data == 'buy_video_1':
-        payment_text = (
-            "📱 **Video 1 Purchase karne ke liye:**\n\n"
-            "Aap diye gaye UPI ID par ₹99 bhej sakte hain:\n"
-            "`your-upi-id@oksbi`\n\n"
-            "Payment karne ke baad uska screenshot ya transaction ID yahan bhej dein, "
-            "fir aapko turant video mil jayegi!"
-        )
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=payment_text,
-            parse_mode='Markdown'
+            text="📂 Yeh rahi hamari available videos ki list. Kisi ek ko select karein:",
+            reply_markup=markup
         )
         
     elif call.data == 'help_payment':
-        bot.answer_callback_query(call.id, "Payment karne ke liye UPI ya QR code ka use karein.")
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("🔙 Main Menu par jayein", callback_data='main_menu'))
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="💳 **Payment Kaise Karein:**\n\n1. Video select karein.\n2. Diye gaye QR code ya UPI ID par payment karein.\n3. Payment ka screenshot Support par bhejein, aapko video mil jayegi.",
+            reply_markup=markup,
+            parse_mode='Markdown'
+        )
         
     elif call.data == 'main_menu':
+        welcome_text = (
+            "👋 Namaste! Hamare Digital Video Store mein aapka swagat hai.\n\n"
+            "Yahan aapko premium videos milengi. Neeche diye gaye button par click karke aage badhein:"
+        )
         markup = InlineKeyboardMarkup()
         markup.row_width = 1
         markup.add(
             InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
             InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
-            InlineKeyboardButton("📞 Support / Contact", url='https://t.me/your_username')
+            InlineKeyboardButton("📞 Support / Contact", url='https://t.me/fsipsy')
         )
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="👋 Main Menu:",
+            text=welcome_text,
             reply_markup=markup
+        )
+        
+    elif call.data == 'buy_video_1':
+        markup = InlineKeyboardMarkup()
+        markup.add(InlineKeyboardButton("🔙 Back to Catalog", callback_data='browse_videos'))
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text="🎬 **Video 1 (Sample)**\nPrice: ₹99\n\nPayment karne ke liye hamare Support link par contact karein.",
+            reply_markup=markup,
+            parse_mode='Markdown'
         )
 
 # Bot ko chalu rakhne ke liye
-if __name__ == '__main__':
-    print("Bot is running...")
-    bot.infinity_polling()
+bot.infinity_polling()
