@@ -10,4 +10,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Send request to Render URL
-        run: curl -I https://YOUR_RENDER_URL.onrender.com
+        run: curl -I https://viral-content-1bot.onrender.com
