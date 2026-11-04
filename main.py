@@ -24,7 +24,7 @@ app = Flask('')
 
 @app.route('/')
 def home():
-    return "Advanced Bot is fully alive and running!"
+    return "Colorful Bot is fully alive and running!"
 
 def run():
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
@@ -42,21 +42,21 @@ def send_main_menu(message):
 def show_main_menu(chat_id, message_id=None, is_new=False):
     markup = types.InlineKeyboardMarkup()
     
-    # 1. Jo buttons aapne add kiye hain, unki list seedha Home Panel par upar dikegi
+    # Dynamic buttons with colorful emojis
     for btn_name in bot_data["buttons_list"]:
-        markup.add(types.InlineKeyboardButton(f"🔹 {btn_name}", callback_data=f"click_{btn_name}"))
+        markup.add(types.InlineKeyboardButton(f"🟢 {btn_name}", callback_data=f"click_{btn_name}"))
     
-    # 2. Baaki ke Main Control Panel options
-    markup.add(types.InlineKeyboardButton("🎛️ Buttons Editor", callback_data="buttons_editor"))
-    markup.add(types.InlineKeyboardButton("📝 Posts Editor", callback_data="posts_editor"))
-    markup.add(types.InlineKeyboardButton("💵 Balance", callback_data="balance_menu"))
-    markup.add(types.InlineKeyboardButton("🏷️ Advertisement", callback_data="ads_menu"))
-    markup.add(types.InlineKeyboardButton("🧩 Extensions", callback_data="extensions_menu"))
-    markup.add(types.InlineKeyboardButton("👣 Referral System", callback_data="referral_menu"))
-    markup.add(types.InlineKeyboardButton("💸 Autopayments", callback_data="get_qr"))
-    markup.add(types.InlineKeyboardButton("🔐 Admin", callback_data="admin_menu"))
+    # Colorful Main Panel Options
+    markup.add(types.InlineKeyboardButton("🟡 🎛️ Buttons Editor", callback_data="buttons_editor"))
+    markup.add(types.InlineKeyboardButton("🔵 📝 Posts Editor", callback_data="posts_editor"))
+    markup.add(types.InlineKeyboardButton("🟣 💵 Balance", callback_data="balance_menu"))
+    markup.add(types.InlineKeyboardButton("🟠 🏷️ Advertisement", callback_data="ads_menu"))
+    markup.add(types.InlineKeyboardButton("🟤 🧩 Extensions", callback_data="extensions_menu"))
+    markup.add(types.InlineKeyboardButton("🟢 👣 Referral System", callback_data="referral_menu"))
+    markup.add(types.InlineKeyboardButton("🔴 💸 Autopayments", callback_data="get_qr"))
+    markup.add(types.InlineKeyboardButton("⚪ 🔐 Admin Panel", callback_data="admin_menu"))
     
-    text = "👋 **Welcome to your Advanced Control Panel!**"
+    text = "🌟 **✨ Welcome to your Colorful Control Panel! ✨** 🌟"
     
     if is_new:
         bot.send_message(chat_id, text, reply_markup=markup, parse_mode="Markdown")
@@ -70,13 +70,13 @@ def handle_callbacks(call):
     
     if call.data.startswith("click_"):
         clicked_btn = call.data.replace("click_", "")
-        bot.answer_callback_query(call.id, text=f"Aapne '{clicked_btn}' click kiya!", show_alert=True)
+        bot.answer_callback_query(call.id, text=f"Aapne '{clicked_btn}' select kiya!", show_alert=True)
 
     elif call.data == "buttons_editor":
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("➕ Add New Button", callback_data="add_button"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
-        btn_text = "🎛️ **Buttons Editor**\nAap yahan se naye buttons add kar sakte hain:"
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
+        btn_text = "🟡 **🎛️ Buttons Editor**\nAap yahan se naye buttons add kar sakte hain:"
         bot.edit_message_text(btn_text, chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "add_button":
@@ -87,8 +87,8 @@ def handle_callbacks(call):
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("➕ Create New Post", callback_data="create_post"))
         markup.add(types.InlineKeyboardButton("📄 View Posts", callback_data="view_posts"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
-        bot.edit_message_text("📝 **Posts Editor**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
+        bot.edit_message_text("🔵 **📝 Posts Editor**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "create_post":
         msg = bot.send_message(chat_id, "Apne naye post ka text/content yahan bhejein:")
@@ -103,24 +103,24 @@ def handle_callbacks(call):
     elif call.data == "balance_menu":
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("💳 Add Funds via UPI", callback_data="get_qr"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
-        bot.edit_message_text(f"💵 **Your Wallet Balance**\nCurrent Balance: ₹{bot_data['balance']}", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
+        bot.edit_message_text(f"🟣 **💵 Your Wallet Balance**\nCurrent Balance: ₹{bot_data['balance']}", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "ads_menu":
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
-        bot.edit_message_text("🏷️ **Advertisement System**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
+        bot.edit_message_text("🟠 **🏷️ Advertisement System**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "extensions_menu":
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
-        bot.edit_message_text("🧩 **Extensions**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
+        bot.edit_message_text("🟤 **🧩 Extensions**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "referral_menu":
         ref_link = f"https://t.me/{bot.get_me().username}?start=ref_{call.from_user.id}"
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
-        bot.edit_message_text(f"👣 **Referral System**\nTotal Referrals: {bot_data['referral_count']}\n\nAapka Referral Link:\n`{ref_link}`", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
+        bot.edit_message_text(f"🟢 **👣 Referral System**\nTotal Referrals: {bot_data['referral_count']}\n\nAapka Referral Link:\n`{ref_link}`", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "get_qr":
         upi_string = f"upi://pay?pa={bot_data['upi_id']}&pn=Store&cu=INR"
@@ -135,16 +135,16 @@ def handle_callbacks(call):
         bio.seek(0)
         
         markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
         
-        bot.send_photo(chat_id, bio, caption=f"💸 **Autopayments / UPI QR**\nScan karke payment karein.\nUPI ID: `{bot_data['upi_id']}`", parse_mode="Markdown", reply_markup=markup)
+        bot.send_photo(chat_id, bio, caption=f"🔴 **💸 Autopayments / UPI QR**\nScan karke payment karein.\nUPI ID: `{bot_data['upi_id']}`", parse_mode="Markdown", reply_markup=markup)
 
     elif call.data == "admin_menu":
         markup = types.InlineKeyboardMarkup()
         markup.add(types.InlineKeyboardButton("✏️ Change UPI ID", callback_data="set_upi"))
         markup.add(types.InlineKeyboardButton("📢 Broadcast Message", callback_data="broadcast_msg"))
-        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
-        bot.edit_message_text("🔐 **Admin Control Panel**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
+        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu"))
+        bot.edit_message_text("⚪ **🔐 Admin Control Panel**", chat_id=chat_id, message_id=msg_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "set_upi":
         msg = bot.send_message(chat_id, "Kripya apni nayi UPI ID bhejein:")
@@ -160,7 +160,7 @@ def handle_callbacks(call):
 def save_new_button(message):
     btn_name = message.text.strip()
     bot_data["buttons_list"].append(btn_name)
-    bot.send_message(message.chat.id, f"✅ Naya button direct main menu par add ho gaya: `{btn_name}`", parse_mode="Markdown")
+    bot.send_message(message.chat.id, f"✅ Naya colorful button add ho gaya: `{btn_name}`", parse_mode="Markdown")
 
 def save_new_post(message):
     post_text = message.text.strip()
