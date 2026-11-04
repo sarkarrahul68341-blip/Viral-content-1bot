@@ -6,28 +6,27 @@ from io import BytesIO
 from flask import Flask
 from threading import Thread
 
-# Bot Token (Render environment variable se uthayega)
+# Bot Token from Environment
 TOKEN = os.environ.get('BOT_TOKEN', 'YOUR_BOT_TOKEN_HERE')
 bot = telebot.TeleBot(TOKEN)
 
-# Aapki Admin Telegram User ID
-ADMIN_ID = 0  # Aap baad mein apni numeric ID yahan daal sakti hain
-
-# Dynamic Content & Settings (Aapki UPI ID ke sath)
+# User and Bot Data Storage (In-memory for smooth running)
 bot_data = {
     "upi_id": "Puja6489@ptyes",
-    "photo_caption": "📸 Yeh lijiye aapki requested photo!",
+    "balance": 0.0,
+    "referral_count": 0,
+    "photo_caption": "📸 Yeh lijiye aapka content!",
     "photo_url": "https://picsum.photos/400/300",
     "video_url": "https://www.w3schools.com/html/mov_bbb.mp4",
     "audio_url": "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3"
 }
 
-# ----------------- FLASK SERVER (Render ke liye) -----------------
+# ----------------- FLASK SERVER (For Render Keep-Alive) -----------------
 app = Flask('')
 
 @app.route('/')
 def home():
-    return "Bot is alive and running!"
+    return "Advanced Bot is alive and running!"
 
 def run():
     app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 8080)))
@@ -36,46 +35,63 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# ----------------- TELEGRAM BOT LOGIC -----------------
+# ----------------- TELEGRAM BOT INTERFACE -----------------
 
 @bot.message_handler(commands=['start'])
-def send_welcome(message):
+def send_main_menu(message):
     markup = types.InlineKeyboardMarkup(row_width=2)
     
-    # Colorful & Attractive Buttons
-    btn_photo = types.InlineKeyboardButton("📸 View Photo", callback_data="get_photo")
-    btn_video = types.InlineKeyboardButton("🎥 Watch Video", callback_data="get_video")
-    btn_audio = types.InlineKeyboardButton("🎵 Listen Audio", callback_data="get_audio")
-    btn_qr = types.InlineKeyboardButton("💳 Pay via UPI QR", callback_data="get_qr")
+    # Main Dashboard Buttons matching your layout
+    btn_buttons = types.InlineKeyboardButton("🎛️ Buttons Editor", callback_data="buttons_editor")
+    btn_posts = types.InlineKeyboardButton("📝 Posts Editor", callback_data="posts_editor")
+    btn_balance = types.InlineKeyboardButton("💵 Balance", callback_data="balance_menu")
+    btn_ads = types.InlineKeyboardButton("🏷️ Advertisement", callback_data="ads_menu")
+    btn_extensions = types.InlineKeyboardButton("🧩 Extensions", callback_data="extensions_menu")
+    btn_referral = types.InlineKeyboardButton("👣 Referral System", callback_data="referral_menu")
+    btn_autopay = types.InlineKeyboardButton("💸 Autopayments", callback_data="get_qr")
+    btn_admin = types.InlineKeyboardButton("🔐 Admin", callback_data="admin_menu")
     
-    markup.add(btn_photo, btn_video, btn_audio, btn_qr)
+    markup.add(btn_buttons, btn_posts, btn_balance, btn_ads, btn_extensions, btn_referral, btn_autopay, btn_admin)
     
-    # Admin Panel Button
-    btn_admin = types.InlineKeyboardButton("⚙️ Admin Panel", callback_data="admin_panel")
-    markup.add(btn_admin)
-
-    welcome_text = (
-        "👋 **Welcome to the Content Bot!**\n\n"
-        "Neeche diye gaye buttons par click karke content access karein:"
-    )
-    bot.send_message(message.chat.id, welcome_text, reply_markup=markup, parse_mode="Markdown")
+    text = "👋 **Welcome to your Advanced Control Panel!**\n\nNeeche diye gaye options mein se select karein:"
+    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
 
 @bot.callback_query_handler(func=lambda call: True)
-def callback_query(call):
+def handle_callbacks(call):
     chat_id = call.message.chat.id
-    user_id = call.from_user.id
     
-    if call.data == "get_photo":
-        bot.send_photo(chat_id, bot_data["photo_url"], caption=bot_data["photo_caption"])
-        
-    elif call.data == "get_video":
-        bot.send_video(chat_id, bot_data["video_url"], caption="🎥 Yeh lijiye aapka video!")
-        
-    elif call.data == "get_audio":
-        bot.send_audio(chat_id, bot_data["audio_url"], caption="🎵 Yeh lijiye aapka audio!")
-        
+    if call.data == "buttons_editor":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        bot.edit_message_text("🎛️ **Buttons Editor**\nYahan se aap menu buttons ko customize kar sakte hain.", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+
+    elif call.data == "posts_editor":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        bot.edit_message_text("📝 **Posts Editor**\nYahan se aap naye posts aur media manage kar sakte hain.", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+
+    elif call.data == "balance_menu":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        bot.edit_message_text(f"💵 **Your Balance**\nCurrent Balance: ₹{bot_data['balance']}", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+
+    elif call.data == "ads_menu":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        bot.edit_message_text("🏷️ **Advertisement System**\nPromotional banners aur sponsored messages manage karein.", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+
+    elif call.data == "extensions_menu":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        bot.edit_message_text("🧩 **Extensions**\nAdditional plugins aur features yahan available hain.", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+
+    elif call.data == "referral_menu":
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        bot.edit_message_text(f"👣 **Referral System**\nTotal Referrals: {bot_data['referral_count']}\nShare your link to earn bonuses!", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
+
     elif call.data == "get_qr":
-        # Generate UPI QR Code dynamically based on Puja6489@ptyes
+        # Autopayments & UPI QR Generation
         upi_string = f"upi://pay?pa={bot_data['upi_id']}&pn=Store&cu=INR"
         qr = qrcode.QRCode(version=1, box_size=10, border=5)
         qr.add_data(upi_string)
@@ -87,36 +103,41 @@ def callback_query(call):
         img.save(bio, 'PNG')
         bio.seek(0)
         
-        bot.send_photo(chat_id, bio, caption=f"💳 Scan & Pay via UPI\nUPI ID: `{bot_data['upi_id']}`", parse_mode="Markdown")
+        markup = types.InlineKeyboardMarkup()
+        markup.add(types.InlineKeyboardButton("🔙 Back", callback_data="main_menu"))
+        
+        bot.send_photo(chat_id, bio, caption=f"💸 **Autopayments / UPI**\nScan to pay securely.\nUPI ID: `{bot_data['upi_id']}`", parse_mode="Markdown", reply_markup=markup)
 
-    elif call.data == "admin_panel":
-        admin_markup = types.InlineKeyboardMarkup(row_width=1)
-        admin_markup.add(
+    elif call.data == "admin_menu":
+        markup = types.InlineKeyboardMarkup(row_width=1)
+        markup.add(
             types.InlineKeyboardButton("✏️ Change UPI ID", callback_data="set_upi"),
-            types.InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")
+            types.InlineKeyboardButton("🔙 Back", callback_data="main_menu")
         )
-        bot.edit_message_text("⚙️ **Admin Panel**\nAap yahan se bot ki settings change kar sakti hain:", 
-                              chat_id=chat_id, message_id=call.message.message_id, reply_markup=admin_markup, parse_mode="Markdown")
+        bot.edit_message_text("🔐 **Admin Control Panel**\nSelect an action:", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
     elif call.data == "set_upi":
-        msg = bot.send_message(chat_id, "Kripya apni nayi UPI ID bhejein (jaise: `yourname@paytm`):")
+        msg = bot.send_message(chat_id, "Kripya apni nayi UPI ID bhejein:")
         bot.register_next_step_handler(msg, save_new_upi)
 
     elif call.data == "main_menu":
         markup = types.InlineKeyboardMarkup(row_width=2)
         markup.add(
-            types.InlineKeyboardButton("📸 View Photo", callback_data="get_photo"),
-            types.InlineKeyboardButton("🎥 Watch Video", callback_data="get_video"),
-            types.InlineKeyboardButton("🎵 Listen Audio", callback_data="get_audio"),
-            types.InlineKeyboardButton("💳 Pay via UPI QR", callback_data="get_qr"),
-            types.InlineKeyboardButton("⚙️ Admin Panel", callback_data="admin_panel")
+            types.InlineKeyboardButton("🎛️ Buttons Editor", callback_data="buttons_editor"),
+            types.InlineKeyboardButton("📝 Posts Editor", callback_data="posts_editor"),
+            types.InlineKeyboardButton("💵 Balance", callback_data="balance_menu"),
+            types.InlineKeyboardButton("🏷️ Advertisement", callback_data="ads_menu"),
+            types.InlineKeyboardButton("🧩 Extensions", callback_data="extensions_menu"),
+            types.InlineKeyboardButton("👣 Referral System", callback_data="referral_menu"),
+            types.InlineKeyboardButton("💸 Autopayments", callback_data="get_qr"),
+            types.InlineKeyboardButton("🔐 Admin", callback_data="admin_menu")
         )
         bot.edit_message_text("👋 **Main Menu:**", chat_id=chat_id, message_id=call.message.message_id, reply_markup=markup, parse_mode="Markdown")
 
 def save_new_upi(message):
     new_upi = message.text.strip()
     bot_data["upi_id"] = new_upi
-    bot.send_message(message.chat.id, f"✅ UPI ID successfully update ho gayi hai:\n`{new_upi}`", parse_mode="Markdown")
+    bot.send_message(message.chat.id, f"✅ UPI ID successfully updated to:\n`{new_upi}`", parse_mode="Markdown")
 
 if __name__ == '__main__':
     keep_alive()
