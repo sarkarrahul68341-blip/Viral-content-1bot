@@ -8,7 +8,7 @@ bot = telebot.TeleBot(TOKEN)
 
 # /start command ka handler (Menu buttons ke sath)
 @bot.message_handler(commands=['start'])
-main_menu(message):
+def main_menu(message):
     markup = InlineKeyboardMarkup()
     markup.row_width = 1
     
@@ -16,7 +16,7 @@ main_menu(message):
     markup.add(
         InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
         InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
-        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/your_username') # Yahan apna Telegram username daal sakti hain
+        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/your_username')
     )
     
     welcome_text = (
@@ -29,7 +29,6 @@ main_menu(message):
 @bot.callback_query_handler(func=lambda call: True)
 def callback_query(call):
     if call.data == 'browse_videos':
-        # Yahan hum videos ki list ya sample dikhayenge
         video_markup = InlineKeyboardMarkup()
         video_markup.add(
             InlineKeyboardButton("🔥 Video 1 (Sample) - ₹99", callback_data='buy_video_1'),
@@ -43,10 +42,9 @@ def callback_query(call):
         )
         
     elif call.data == 'buy_video_1':
-        # Yahan payment link ya UPI QR code diya jayega
         payment_text = (
-            📱 **Video 1 Purchase karne ke liye:**\n\n"
-            "Aapnee diye gaye UPI ID par ₹99 bhej sakte hain:\n"
+            "📱 **Video 1 Purchase karne ke liye:**\n\n"
+            "Aap diye gaye UPI ID par ₹99 bhej sakte hain:\n"
             "`your-upi-id@oksbi`\n\n"
             "Payment karne ke baad uska screenshot ya transaction ID yahan bhej dein, "
             "fir aapko turant video mil jayegi!"
@@ -62,7 +60,6 @@ def callback_query(call):
         bot.answer_callback_query(call.id, "Payment karne ke liye UPI ya QR code ka use karein.")
         
     elif call.data == 'main_menu':
-        # Wapas main menu dikhane ke liye
         markup = InlineKeyboardMarkup()
         markup.row_width = 1
         markup.add(
