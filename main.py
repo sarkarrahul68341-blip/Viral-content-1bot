@@ -1,8 +1,8 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Bot token
-TOKEN = '7611593361:AAE2J1tqYk06Vd35h4S5h0aTf8v6Q5J7u4k'
+# Naya aur sahi Bot Token
+TOKEN = '9094967544:AAH_S8c-fgMgmm91e7X_KAduto8I4TShKo4'
 bot = telebot.TeleBot(TOKEN)
 
 # /start command handler
@@ -59,27 +59,4 @@ def callback_query(call):
         markup = InlineKeyboardMarkup()
         markup.row_width = 1
         markup.add(
-            InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
-            InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
-            InlineKeyboardButton("📞 Support / Contact", url='https://t.me/fsipsy')
-        )
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text=welcome_text,
-            reply_markup=markup
-        )
-        
-    elif call.data == 'buy_video_1':
-        markup = InlineKeyboardMarkup()
-        markup.add(InlineKeyboardButton("🔙 Back to Catalog", callback_data='browse_videos'))
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="🎬 **Video 1 (Sample)**\nPrice: ₹99\n\nPayment karne ke liye hamare Support link par contact karein.",
-            reply_markup=markup,
-            parse_mode='Markdown'
-        )
-
-# Bot ko chalu rakhne ke liye
-bot.infinity_polling()
+            InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data
