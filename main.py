@@ -1,114 +1,83 @@
 import os
 import telebot
-from telebot import types
-from flask import Flask
-from threading import Thread
+from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Bot Token from Environment
-TOKEN = os.environ.get('BOT_TOKEN', '9094967544:AAFkhj5QPoiP2clIBU3JyXAmlrql0YzZam4')
+# Render environment variable se bot token uthayega
+TOKEN = os.getenv('BOT_TOKEN')
 bot = telebot.TeleBot(TOKEN)
 
-# ----------------- FLASK SERVER (Keep-Alive for Render) -----------------
-app = Flask('')
-
-@app.route('/')
-def home():
-    return "Bot is running 24/7!"
-
-def run():
-    port = int(os.environ.get('PORT', 8080))
-    app.run(host='0.0.0.0', port=port)
-
-def keep_alive():
-    t = Thread(target=run)
-    t.start()
-
-# ----------------- TELEGRAM BOT HANDLERS -----------------
-
-# 1. Start Command / Main Menu (Folder Style)
+# /start command ka handler (Menu buttons ke sath)
 @bot.message_handler(commands=['start'])
-def send_main_menu(message):
-    user_name = message.from_user.first_name if message.from_user.first_name else "User"
+main_menu(message):
+    markup = InlineKeyboardMarkup()
+    markup.row_width = 1
     
-    markup = types.InlineKeyboardMarkup(row_width=2)
+    # Buttons jo user ko dikhenge
     markup.add(
-        types.InlineKeyboardButton("📁 Videos & Demos", callback_data="folder_videos"),
-        types.InlineKeyboardButton("💎 VIP Plans", callback_data="folder_plans"),
-        types.InlineKeyboardButton("💬 Support", callback_data="support")
+        InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
+        InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
+        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/your_username') # Yahan apna Telegram username daal sakti hain
     )
     
-    text = (
-        f"Hello {user_name} 🐣\n\n"
-        "📂 **Main Menu (Home Folder)**\n"
-        "Niche diye gaye folders mein se koi ek select karein:"
+    welcome_text = (
+        "👋 Namaste! Hamare Digital Video Store mein aapka swagat hai.\n\n"
+        "Yahan aapko premium videos milengi. Neeche diye gaye button par click karke aage badhein:"
     )
-    bot.send_message(message.chat.id, text, reply_markup=markup, parse_mode="Markdown")
+    bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
 
-# 2. Folder Navigation (Button Clicks)
+# Button clicks ko handle karne ke liye
 @bot.callback_query_handler(func=lambda call: True)
-def handle_folders(call):
-    if call.data == "folder_videos":
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home"))
-        bot.edit_message_text(
-            chat_id=call.message.chat.id,
-            message_id=call.message.message_id,
-            text="📁 **Videos Folder**\nAapke demos aur videos yahan available hain.",
-            reply_markup=markup,
-            parse_mode="Markdown"
+def callback_query(call):
+    if call.data == 'browse_videos':
+        # Yahan hum videos ki list ya sample dikhayenge
+        video_markup = InlineKeyboardMarkup()
+        video_markup.add(
+            InlineKeyboardButton("🔥 Video 1 (Sample) - ₹99", callback_data='buy_video_1'),
+            InlineKeyboardButton("🔙 Main Menu par jayein", callback_data='main_menu')
         )
-    
-    elif call.data == "folder_plans":
-        markup = types.InlineKeyboardMarkup()
-        markup.add(types.InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home"))
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="📁 **VIP Plans Folder**\nSabhi plans ki details yahan hain.",
-            reply_markup=markup,
-            parse_mode="Markdown"
+            text="📁 Yeh rahi aapki available videos ki list. Kisi ek ko select karein:",
+            reply_markup=video_markup
         )
         
-    elif call.data == "back_home":
-        markup = types.InlineKeyboardMarkup(row_width=2)
+    elif call.data == 'buy_video_1':
+        # Yahan payment link ya UPI QR code diya jayega
+        payment_text = (
+            📱 **Video 1 Purchase karne ke liye:**\n\n"
+            "Aapnee diye gaye UPI ID par ₹99 bhej sakte hain:\n"
+            "`your-upi-id@oksbi`\n\n"
+            "Payment karne ke baad uska screenshot ya transaction ID yahan bhej dein, "
+            "fir aapko turant video mil jayegi!"
+        )
+        bot.edit_message_text(
+            chat_id=call.message.chat.id,
+            message_id=call.message.message_id,
+            text=payment_text,
+            parse_mode='Markdown'
+        )
+        
+    elif call.data == 'help_payment':
+        bot.answer_callback_query(call.id, "Payment karne ke liye UPI ya QR code ka use karein.")
+        
+    elif call.data == 'main_menu':
+        # Wapas main menu dikhane ke liye
+        markup = InlineKeyboardMarkup()
+        markup.row_width = 1
         markup.add(
-            types.InlineKeyboardButton("📁 Videos & Demos", callback_data="folder_videos"),
-            types.InlineKeyboardButton("💎 VIP Plans", callback_data="folder_plans"),
-            types.InlineKeyboardButton("💬 Support", callback_data="support")
+            InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
+            InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
+            InlineKeyboardButton("📞 Support / Contact", url='https://t.me/your_username')
         )
         bot.edit_message_text(
             chat_id=call.message.chat.id,
             message_id=call.message.message_id,
-            text="📂 **Main Menu (Home Folder)**\nNiche diye gaye folders mein se koi ek select karein:",
-            reply_markup=markup,
-            parse_mode="Markdown"
+            text="👋 Main Menu:",
+            reply_markup=markup
         )
-        
-    elif call.data == "support":
-        bot.answer_callback_query(call.id, text="Opening support...")
-        bot.send_message(call.message.chat.id, "💬 Support ke liye contact karein: @your_support_username")
 
-# 3. Smart Auto-Reply for Normal Text Messages (Including Adult/VIP Queries)
-@bot.message_handler(func=lambda message: True)
-def smart_auto_reply(message):
-    user_text = message.text.lower()
-    
-    # Agar koi adult ya vip content maange
-    if any(word in user_text for word in ["adult", "vip", "private", "hot", "video", "content"]):
-        bot.reply_to(message, "🔥 Haan, exclusive content available hai! Access karne ke liye niche diye gaye menu par click karein: /start")
-    
-    # Agar user hi/hello bole
-    elif "hi" in user_text or "hello" in user_text or "hey" in user_text:
-        bot.reply_to(message, "👋 Hello! Menu kholne ke liye /start type karein.")
-    
-    # Agar user price ya plan puche
-    elif "price" in user_text or "plan" in user_text or "rate" in user_text:
-        bot.reply_to(message, "💎 VIP plans aur details ke liye /start command bhejein.")
-    
-    # Baaki kisi bhi message par default auto-reply
-    else:
-        bot.reply_to(message, "🤖 Dhanyawad! Aapka message mil gaya hai. Menu dekhne ke liye /start dabayein.")
-
+# Bot ko chalu rakhne ke liye
 if __name__ == '__main__':
-    keep_alive()
+    print("Bot is running...")
     bot.infinity_polling()
