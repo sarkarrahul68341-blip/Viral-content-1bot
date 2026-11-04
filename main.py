@@ -16,7 +16,7 @@ def main_menu(message):
     markup.add(
         InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
         InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
-        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/your_username')
+        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/+T_Rwn6XiNPsyMDg9'),
     )
     
     welcome_text = (
