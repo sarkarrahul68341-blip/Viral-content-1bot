@@ -18,7 +18,7 @@ def keep_alive():
     t = Thread(target=run)
     t.start()
 
-# Naya aur sahi Bot Token
+# Bot Token
 TOKEN = '9094967544:AAH_S8c-fgMgmm91e7X_KAduto8I4TShKo4'
 bot = telebot.TeleBot(TOKEN)
 
@@ -30,13 +30,13 @@ def send_welcome(message):
         "Yahan aapko premium videos milengi. Neeche diye gaye button par click karke aage badhein:"
     )
     
-    # Main menu ke buttons
+    # Main menu ke buttons (Nayi invite link ke sath)
     markup = InlineKeyboardMarkup()
     markup.row_width = 1
     markup.add(
         InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
         InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
-        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/fsipsy')
+        InlineKeyboardButton("📞 Support / Contact", url='https://t.me/+T_Rwn6XiNPsyMDg9')
     )
     
     bot.send_message(message.chat.id, welcome_text, reply_markup=markup)
@@ -78,7 +78,7 @@ def callback_query(call):
         markup.add(
             InlineKeyboardButton("🎬 Video Catalog dekhein", callback_data='browse_videos'),
             InlineKeyboardButton("💳 Payment kaise karein?", callback_data='help_payment'),
-            InlineKeyboardButton("📞 Support / Contact", url='https://t.me/fsipsy')
+            InlineKeyboardButton("📞 Support / Contact", url='https://t.me/+T_Rwn6XiNPsyMDg9')
         )
         bot.edit_message_text(
             chat_id=call.message.chat.id,
