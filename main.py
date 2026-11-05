@@ -55,19 +55,19 @@ CONTENT_DATABASE = {
 # --- 4. 4 DEMO BUTTONS WITH INDIVIDUAL TELEGRAM LINKS ---
 DEMO_BUTTONS = {
     "demo_1": {
-        "title": "🎬 Demo Video 1",
+        "title": "🎬 Demo Video 1 (Link A)",
         "url": "https://t.me/+s4Zzmwni59diNjU1",
     },
     "demo_2": {
-        "title": "🎬 Demo Video 2",
+        "title": "🎥 Demo Video 2 (Link B)",
         "url": "https://t.me/+f9i3BlsoUeZiZmY1",
     },
     "demo_3": {
-        "title": "🎬 Demo Video 3",
+        "title": "🚀 Demo Video 3 (Link C)",
         "url": "https://t.me/+w4MJrYfZ2zIyMTQ1",
     },
     "demo_4": {
-        "title": "🎬 Demo Video 4",
+        "title": "⭐ Demo Video 4 (Link D)",
         "url": "https://t.me/+v_jJUbh_U7M3OGQ1",
     },
 }
@@ -92,7 +92,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   for key, data in CONTENT_DATABASE.items():
     keyboard.append([
         InlineKeyboardButton(
-            f"{data['title']} — {data['price']}", callback_data=f"buy_{key}"
+            f"{data['title']} ➔ {data['price']}", callback_data=f"buy_{key}"
         )
     ])
   keyboard.append([
@@ -143,7 +143,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for key, item_data in CONTENT_DATABASE.items():
       keyboard.append([
           InlineKeyboardButton(
-              f"{item_data['title']} — {item_data['price']}",
+              f"{item_data['title']} ➔ {item_data['price']}",
               callback_data=f"buy_{key}",
           )
       ])
