@@ -6,7 +6,7 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 
 # ================= CONFIGURATION & SETTINGS =================
 BOT_TOKEN = "9094967544:AAHiB3IEVow4A5JRl4BIdt4HijZwHYR_qE4"
-ADMIN_ID = 123456789  # ⚠️ Yahan apna Telegram Admin User ID zaroor daal dein
+ADMIN_ID = 8776203848  # Aapki personal Telegram User ID set hai
 
 # Runtime storage for dynamic editing via admin panel
 bot_data = {
@@ -186,4 +186,5 @@ def process_admin_action(call):
 
 if __name__ == "__main__":
     Thread(target=run_flask).start()
+    bot.remove_webhook()
     bot.infinity_polling()
