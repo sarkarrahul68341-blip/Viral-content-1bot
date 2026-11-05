@@ -56,7 +56,7 @@ CONTENT_DATABASE = {
 DEMO_VIDEOS = {
     "demo_1": {
         "title": "🎬 Demo Video 1",
-        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+        "media_url": "https:https://t.me/c/4439050348/34",
     },
     "demo_2": {
         "title": "🎬 Demo Video 2",
