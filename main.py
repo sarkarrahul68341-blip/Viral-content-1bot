@@ -1,27 +1,37 @@
+import os
+import threading
+from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
-from telegram.ext import ApplicationBuilder, CallbackQueryHandler, CommandHandler, ContextTypes
+from telegram.ext import (
+    ApplicationBuilder,
+    CallbackQueryHandler,
+    CommandHandler,
+    ContextTypes,
+)
 
-# --- 1. APNI DETAILS YAHAN SET KAREIN ---
-BOT_TOKEN = "YOUR_TELEGRAM_BOT_TOKEN_FROM_BOTFATHER"
-UPI_ID = "yourname@paytm"  # Apni UPI ID dalein
-SUPPORT_TELEGRAM_LINK = "https://t.me/YourSupportUsername"  # Apna Telegram support link dalein
+# --- 1. APNI DETAILS YAHAN SET HAI ---
+BOT_TOKEN = "9094967544:AAHk7zir2JbhHAQStB6BtcMFai4HbvwHQOQ"
+UPI_ID = "puja6489@ptyes"  #[span_1](start_span)[span_1](end_span)
+SUPPORT_TELEGRAM_LINK = (  # Apna Telegram support username yahan daal sakte hain
+    "https://t.me/YourSupportUsername"
+)
 
 # --- 2. WELCOME BANNER PHOTO AUR TEXT ---
-WELCOME_PHOTO_URL = "https://picsum.photos/800/500"  # Yahan apni banner photo ka direct link dalein
+WELCOME_PHOTO_URL = "https://picsum.photos/800/500"
 WELCOME_HEADING = "hello everyone ❤️❤️❤️\n\nWelcome to my official store! Niche diye gaye menu se content choose karein:"
 
-# --- 3. CONTENT & VIDEO/PHOTO LIST (Aap yahan sab kuch edit kar sakte hain) ---
+# --- 3. CONTENT & VIDEO/PHOTO LIST ---
 CONTENT_DATABASE = {
     "item_1": {
         "title": "🔥 Premium Video Package 1",
         "price": "₹199",
-        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",  # Video Link
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
         "type": "video",
     },
     "item_2": {
         "title": "💎 Exclusive Photo Collection",
         "price": "₹99",
-        "media_url": "https://picsum.photos/600/400",  # Photo Link
+        "media_url": "https://picsum.photos/600/400",
         "type": "photo",
     },
 }
@@ -32,33 +42,37 @@ DEMO_CONTENT = {
     "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
 }
 
+# --- 5. RENDER KEEP-ALIVE SERVER (Flask) ---
+app_web = Flask(__name__)
 
-# Start Command (Fast Welcome Message + Photo Banner + Menu List)
+
+@app_web.route("/")
+def home():
+  return "Bot is running live 24/7!"
+
+
+def run_flask():
+  port = int(os.environ.get("PORT", 10000))
+  app_web.run(host="0.0.0.0", port=port)
+
+
+# Telegram Bot Start Command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  # Dynamic Menu Buttons tayar karna
   keyboard = []
-
-  # Content List Buttons
   for key, data in CONTENT_DATABASE.items():
     keyboard.append([
         InlineKeyboardButton(
             f"{data['title']} — {data['price']}", callback_data=f"buy_{key}"
         )
     ])
-
-  # Demo Button
   keyboard.append([
       InlineKeyboardButton("🎥 Watch Free Demo", callback_data="show_demo")
   ])
-
-  # Help & Support Button (Telegram Link)
   keyboard.append(
       [InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)]
   )
 
   reply_markup = InlineKeyboardMarkup(keyboard)
-
-  # Sabse pehle Photo bhejenge, aur photo ke niche welcome text aur buttons rahenge
   await context.bot.send_photo(
       chat_id=update.message.chat_id,
       photo=WELCOME_PHOTO_URL,
@@ -67,14 +81,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   )
 
 
-# Button Click Handler (Video, Photo, Demo, Payment)
+# Button Click Handler
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.callback_query
   await query.answer()
-
   data = query.data
 
-  # Agar user ne Demo manga
   if data == "show_demo":
     await context.bot.send_video(
         chat_id=query.message.chat_id,
@@ -84,8 +96,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             " menu se purchase karein."
         ),
     )
-
-  # Agar user ne koi paid item select kiya (Payment & UPI)
   elif data.startswith("buy_"):
     item_key = data.replace("buy_", "")
     item = CONTENT_DATABASE[item_key]
@@ -94,7 +104,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🛍 **{item['title']}**\n"
         f"💰 **Price:** {item['price']}\n\n"
         "1️⃣ **Payment Karein:** Is UPI ID par payment bhejein:\n"
-        f"`{UPI_ID}`\n\n"
+        f"`{UPI_ID}`\n\n"  #[span_2](start_span)[span_2](end_span)
         "2️⃣ **Screenshot Bhejein:** Payment karne ke baad screenshot is chat"
         " mein bhej dein. Verification ke baad aapko content mil jayega!"
     )
@@ -106,11 +116,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # Main Runner
-if __name__ == "__main__":
-  app = ApplicationBuilder().token(BOT_TOKEN).build()
+def main():
+  # Start Flask server in background thread for Render
+  t = threading.Thread(target=run_flask)
+  t.start()
 
+  # Start Telegram Bot
+  app = ApplicationBuilder().token(BOT_TOKEN).build()
   app.add_handler(CommandHandler("start", start))
   app.add_handler(CallbackQueryHandler(button_handler))
 
-  print("Business Telegram Bot with Photo Banner is running...")
+  print("Business Telegram Bot with Web Server is running...")
   app.run_polling()
+
+
+if __name__ == "__main__":
+  main()
