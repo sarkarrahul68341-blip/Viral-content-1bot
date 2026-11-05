@@ -52,7 +52,7 @@ CONTENT_DATABASE = {
     },
 }
 
-# --- 4. FREE DEMO VIDEOS ---
+# --- 4. FREE DEMO VIDEOS (Yahan aap apne 10 videos ke naam aur direct URLs set kar sakte hain) ---
 DEMO_VIDEOS = {
     "demo_1": {
         "title": "🎬 Demo Video 1",
@@ -60,6 +60,38 @@ DEMO_VIDEOS = {
     },
     "demo_2": {
         "title": "🎬 Demo Video 2",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_3": {
+        "title": "🎬 Demo Video 3",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_4": {
+        "title": "🎬 Demo Video 4",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_5": {
+        "title": "🎬 Demo Video 5",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_6": {
+        "title": "🎬 Demo Video 6",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_7": {
+        "title": "🎬 Demo Video 7",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_8": {
+        "title": "🎬 Demo Video 8",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_9": {
+        "title": "🎬 Demo Video 9",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
+    },
+    "demo_10": {
+        "title": "🎬 Demo Video 10",
         "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
     },
 }
@@ -109,6 +141,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await query.answer()
   data = query.data
 
+  # Free Demo Menu (List of 10 Videos)
   if data == "demo_menu":
     demo_keyboard = []
     for d_key, d_data in DEMO_VIDEOS.items():
@@ -125,11 +158,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.message.edit_caption(
         caption=(
             "🎬 **Free Demo Section**\n\nNiche di gayi list se koi bhi"
-            " demo video select karein:"
+            " demo video select karein (Total 10 Videos available):"
         ),
         reply_markup=reply_markup,
     )
 
+  # Play Specific Demo Video
   elif data.startswith("play_"):
     d_key = data.replace("play_", "")
     if d_key in DEMO_VIDEOS:
@@ -143,6 +177,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
           ),
       )
 
+  # Back to Home Menu
   elif data == "back_home":
     keyboard = []
     for key, item_data in CONTENT_DATABASE.items():
@@ -163,6 +198,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption=WELCOME_HEADING, reply_markup=reply_markup
     )
 
+  # Paid Item Purchase Handler
   elif data.startswith("buy_"):
     item_key = data.replace("buy_", "")
     item = CONTENT_DATABASE[item_key]
@@ -182,13 +218,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+# Main Runner
 def main():
   try:
-    # Start Flask in background thread
     t = threading.Thread(target=run_flask, daemon=True)
     t.start()
 
-    # Start Telegram Bot
     app = ApplicationBuilder().token(BOT_TOKEN).build()
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
