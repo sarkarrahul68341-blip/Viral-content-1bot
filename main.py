@@ -2,49 +2,23 @@ import os
 from flask import Flask
 from threading import Thread
 import telebot
-from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
+from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMarkup, InlineKeyboardButton, ReplyKeyboardRemove
 
-# =====================================================================
-# 🛠️ MENU & BOT BUILDER PANEL (Yahan aap sab kuch edit kar sakti hain)
-# =====================================================================
-
-# 1. Telegram Bot Token & Admin ID
+# ================= CONFIGURATION & SETTINGS =================
 BOT_TOKEN = "9094967544:AAHiB3IEVow4A5JRl4BIdt4HijZwHYR_qE4"
-ADMIN_ID = 123456789  # ⚠️ Yahan apna Telegram Admin User ID daal dein
+ADMIN_ID = 123456789  # ⚠️ Yahan apna Telegram Admin User ID zaroor daal dein
 
-# 2. Start Message (Jo user /start dabate hi sabse pehle dekhega)
-WELCOME_MESSAGE = (
-    "Hello everyone ❤️\n\n"
-    "✨ **Welcome to Our Official Digital Store!** ✨\n"
-    "Niche diye gaye menu se apna pasandida product ya feature select karein:"
-)
-
-# 3. Aapka Payment UPI ID (Jisme saari payments aayengi)
-UPI_ID = "apka-upi-id@okhdfcbank"
-
-# 4. Menu & Products Builder (Yahan aap apne buttons, price aur delivery link add/edit kar sakti hain)
-# Aap yahan 30 tak ya jitne chahein utne items add kar sakti hain.
-MENU_ITEMS = {
-    "item_1": {
-        "title": "🎬 Premium Video Pack (₹199)",
-        "price": "₹199",
-        "type": "digital", # digital content delivery
-        "file_url": "https://example.com/your-video-link.mp4"
-    },
-    "item_2": {
-        "title": "📸 Exclusive Photo & Audio Bundle (₹299)",
-        "price": "₹299",
-        "type": "digital",
-        "file_url": "https://example.com/your-media-link.zip"
-    },
-    "item_3": {
-        "title": "🚀 VIP Channel Access (₹499)",
-        "price": "₹499",
-        "type": "digital",
-        "file_url": "https://t.me/+your_invite_link"
+# Runtime storage for dynamic editing via admin panel
+bot_data = {
+    "welcome_message": "Hello everyone ❤️\n\nWelcome to our official digital store! Niche diye gaye buttons se select karein:",
+    "upi_id": "apka-upi-id@okhdfcbank",
+    "products": {
+        "item_1": {"title": "🎬 Premium Video Pack", "price": "₹199", "file_url": "https://example.com/video.mp4"}
     }
 }
-# =====================================================================
+
+user_state = {}
+# ============================================================
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -58,64 +32,142 @@ def home():
 def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
-# /start command handler (Menu Builder layout)
+# --- MAIN ADMIN MENU KEYBOARD ---
+def get_main_admin_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("🎛️ Buttons Editor"), KeyboardButton("📝 Posts Editor"),
+        KeyboardButton("💰 Balance"), KeyboardButton("📣 Advertisement"),
+        KeyboardButton("🧩 Extensions"), KeyboardButton("📈 Referral System"),
+        KeyboardButton("💳 Autopayments"), KeyboardButton("🔐 Admin"),
+        KeyboardButton("🔚 Exit Admin")
+    )
+    return markup
+
+# --- INSIDE ADMIN SUB-MENU KEYBOARD ---
+def get_admin_sub_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(
+        KeyboardButton("📥 Mailing"), KeyboardButton("📊 Statistics"),
+        KeyboardButton("📣 Advertisement"), KeyboardButton("🍀 Extensions"),
+        KeyboardButton("📋 Variables"), KeyboardButton("⚙️ Bot Settings"),
+        KeyboardButton("🔠 Pagination"), KeyboardButton("📈 Referral System"),
+        KeyboardButton("💬 Message for START"), KeyboardButton("📢 Channels & Groups"),
+        KeyboardButton("💳 Autopayments"), KeyboardButton("👥 Manage Admins"),
+        KeyboardButton("🤖 Secretary Bot"), KeyboardButton("🛒 Shop"),
+        KeyboardButton("⬅️ Exit Admin")
+    )
+    return markup
+
+# /start command for users
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
-    kb = InlineKeyboardMarkup(row_width=1) # Buttons ek ke niche ek aayenge (Line by line)
-    
-    # Menu builder items ko buttons mein convert karna
-    for key, item in MENU_ITEMS.items():
-        kb.add(InlineKeyboardButton(item["title"], callback_data=f"select_{key}"))
-    
-    # Extra support button
-    kb.add(InlineKeyboardButton("📞 Contact Admin / Support", url=f"t.me/your_username"))
+    if message.chat.id == ADMIN_ID:
+        bot.send_message(message.chat.id, "🛠️ **Admin Panel Opened**", reply_markup=get_main_admin_keyboard(), parse_mode="Markdown")
+        return
 
-    bot.send_message(message.chat.id, WELCOME_MESSAGE, reply_markup=kb, parse_mode="Markdown")
+    kb = InlineKeyboardMarkup(row_width=1)
+    for key, item in bot_data["products"].items():
+        kb.add(InlineKeyboardButton(f"{item['title']} ({item['price']})", callback_data=f"buy_{key}"))
+    kb.add(InlineKeyboardButton("📞 Contact Support", url="https://t.me/your_username"))
 
-# Menu button click hone par UPI aur payment details show karna
-@bot.callback_query_handler(func=lambda call: call.data.startswith("select_"))
-def process_menu_selection(call):
-    item_key = call.data.replace("select_", "")
-    item = MENU_ITEMS.get(item_key)
+    bot.send_message(message.chat.id, bot_data["welcome_message"], reply_markup=kb, parse_mode="Markdown")
+
+# /admin command
+@bot.message_handler(commands=['admin'])
+def admin_panel_cmd(message):
+    if message.chat.id == ADMIN_ID:
+        bot.send_message(message.chat.id, "🔧 **You are in the Administrator menu.**", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
+    else:
+        bot.send_message(message.chat.id, "❌ You are not authorized!")
+
+# --- ADMIN PANEL ACTIONS & SUB-MENU HANDLER ---
+@bot.message_handler(func=lambda message: message.chat.id == ADMIN_ID)
+def admin_menu_actions(message):
+    text = message.text
+    chat_id = message.chat.id
+
+    if text == "🔐 Admin":
+        bot.send_message(chat_id, "🔧 **You are in the Administrator menu.**", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
+
+    elif text == "💬 Message for START" or text == "📝 Posts Editor":
+        user_state[chat_id] = "waiting_for_start_msg"
+        bot.send_message(chat_id, "✍️ Naya Welcome/Start message yahan bhej dein:")
+
+    elif text == "💳 Autopayments":
+        user_state[chat_id] = "waiting_for_upi"
+        bot.send_message(chat_id, f"💳 Apni nayi UPI ID bhejein (Current: `{bot_data['upi_id']}`):", parse_mode="Markdown")
+
+    elif text == "🛒 Shop":
+        shop_info = "🛒 **Current Shop Items:**\n"
+        for k, v in bot_data["products"].items():
+            shop_info += f"- {v['title']} | {v['price']}\n"
+        bot.send_message(chat_id, shop_info, parse_mode="Markdown")
+
+    elif text == "📥 Mailing" or text == "📣 Advertisement":
+        bot.send_message(chat_id, "📣 **Broadcast Feature:** Users ko message bhejne ke liye text type karein.")
+
+    elif text == "📊 Statistics":
+        bot.send_message(chat_id, "📊 **Bot Stats:**\nTotal Users: 1\nActive Subscriptions: 0")
+
+    elif text == "👥 Manage Admins":
+        bot.send_message(chat_id, f"👥 **Admin User ID:** `{ADMIN_ID}`", parse_mode="Markdown")
+
+    elif text == "⬅️ Exit Admin" or text == "🔚 Exit Admin":
+        bot.send_message(chat_id, "Exited Admin Menu.", reply_markup=get_main_admin_keyboard())
+
+    elif chat_id in user_state:
+        state = user_state[chat_id]
+        if state == "waiting_for_start_msg":
+            bot_data["welcome_message"] = message.text
+            user_state.pop(chat_id, None)
+            bot.send_message(chat_id, "✅ Start message update ho gaya!", reply_markup=get_admin_sub_keyboard())
+        elif state == "waiting_for_upi":
+            bot_data["upi_id"] = message.text
+            user_state.pop(chat_id, None)
+            bot.send_message(chat_id, f"✅ UPI ID update ho gayi: `{message.text}`", parse_mode="Markdown", reply_markup=get_admin_sub_keyboard())
+    else:
+        bot.send_message(chat_id, "Kripya menu se koi button select karein.", reply_markup=get_admin_sub_keyboard())
+
+# Product purchase handler
+@bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
+def process_buy(call):
+    item_key = call.data.replace("buy_", "")
+    item = bot_data["products"].get(item_key)
     
     if item:
         payment_text = (
-            f"🛒 **Selected Item:** {item['title']}\n"
+            f"🛒 **Product:** {item['title']}\n"
             f"💰 **Price:** {item['price']}\n\n"
             f"📌 **Payment Instructions:**\n"
             f"1. Is UPI ID par payment karein:\n"
-            f"   `{UPI_ID}`\n"
-            f"2. Payment karne ke baad **UTR/Transaction ID** ya payment ka **Screenshot** isi chat mein bhej dein."
+            f"   `{bot_data['upi_id']}`\n"
+            f"2. Payment ke baad UTR ya screenshot isi chat mein bhej dein."
         )
-        # Store selected item in state via callback data tracking in approval
         bot.send_message(call.message.chat.id, payment_text, parse_mode="Markdown")
 
-# User dwara bheje gaye payment proof (Screenshot ya UTR text) ko handle karna
+# Payment proof handler
 @bot.message_handler(content_types=['photo', 'text'])
 def handle_payment_proof(message):
     if message.chat.id == ADMIN_ID:
         return
 
     user_info = f"👤 **User:** @{message.from_user.username} (ID: `{message.chat.id}`)"
-    
-    # Admin ke liye approval buttons (Approve / Reject)
     kb = InlineKeyboardMarkup()
     kb.add(
         InlineKeyboardButton("✅ Approve & Send Content", callback_data=f"approve_{message.chat.id}_item_1"),
         InlineKeyboardButton("❌ Reject", callback_data=f"reject_{message.chat.id}")
     )
 
-    bot.send_message(ADMIN_ID, f"📩 **New Payment Proof Received!**\n{user_info}")
-    
+    bot.send_message(ADMIN_ID, f"📩 **New Payment Proof!**\n{user_info}")
     if message.content_type == 'photo':
         bot.forward_message(ADMIN_ID, message.chat.id, message.message_id)
     else:
-        bot.send_message(ADMIN_ID, f"Transaction Note/UTR: {message.text}")
-        
+        bot.send_message(ADMIN_ID, f"UTR/Note: {message.text}")
     bot.send_message(ADMIN_ID, "Action lein:", reply_markup=kb)
-    bot.reply_to(message, "✅ Aapka payment proof successfully receive ho gaya hai! Verification ke baad aapko content mil jayega.")
+    bot.reply_to(message, "✅ Payment proof mil gaya hai! Verification ke baad content mil jayega.")
 
-# Admin action handler (Approve/Reject)
+# Admin approval handler
 @bot.callback_query_handler(func=lambda call: call.data.startswith(("approve_", "reject_")))
 def process_admin_action(call):
     data = call.data.split("_")
@@ -123,19 +175,14 @@ def process_admin_action(call):
     user_id = int(data[1])
 
     if action == "approve":
-        item_key = data[2] if len(data) > 2 else "item_1"
-        item = MENU_ITEMS.get(item_key, MENU_ITEMS["item_1"])
-        
-        delivery_msg = f"🎉 **Payment Verified Successfully!**\n\nYeh raha aapka digital content:\n{item['file_url']}"
-        bot.send_message(user_id, delivery_msg, parse_mode="Markdown")
-        
-        bot.answer_callback_query(call.id, "Content Delivered!")
-        bot.edit_message_text(f"✅ Approved & Delivered to ID: {user_id}", call.message.chat.id, call.message.message_id)
-
+        item = bot_data["products"]["item_1"]
+        bot.send_message(user_id, f"🎉 **Payment Verified!**\n\nContent:\n{item['file_url']}", parse_mode="Markdown")
+        bot.answer_callback_query(call.id, "Delivered!")
+        bot.edit_message_text(f"✅ Approved & Delivered to {user_id}", call.message.chat.id, call.message.message_id)
     elif action == "reject":
-        bot.send_message(user_id, "❌ Aapka payment verify nahi ho paya. Kripya sahi UTR ya clear screenshot dobara bhej dein.")
+        bot.send_message(user_id, "❌ Payment verify nahi ho paya. Sahi UTR bhejein.")
         bot.answer_callback_query(call.id, "Rejected.")
-        bot.edit_message_text(f"❌ Rejected for ID: {user_id}", call.message.chat.id, call.message.message_id)
+        bot.edit_message_text(f"❌ Rejected for {user_id}", call.message.chat.id, call.message.message_id)
 
 if __name__ == "__main__":
     Thread(target=run_flask).start()
