@@ -1,4 +1,21 @@
 import os
+import subprocess
+import sys
+
+# Automatic check: Agar server par python-telegram-bot ya flask nahi hai, toh yeh khud install kar lega!
+try:
+  import telegram
+  import flask
+except ImportError:
+  subprocess.check_call([
+      sys.executable,
+      "-m",
+      "pip",
+      "install",
+      "python-telegram-bot",
+      "flask",
+  ])
+
 import threading
 from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
@@ -11,10 +28,8 @@ from telegram.ext import (
 
 # --- 1. APNI DETAILS YAHAN SET HAI ---
 BOT_TOKEN = "9094967544:AAHk7zir2JbhHAQStB6BtcMFai4HbvwHQOQ"
-UPI_ID = "puja6489@ptyes"  #[span_1](start_span)[span_1](end_span)
-SUPPORT_TELEGRAM_LINK = (  # Apna Telegram support username yahan daal sakte hain
-    "https://t.me/YourSupportUsername"
-)
+UPI_ID = "puja6489@ptyes"  #[span_2](start_span)[span_2](end_span)
+SUPPORT_TELEGRAM_LINK = "https://t.me/YourSupportUsername"
 
 # --- 2. WELCOME BANNER PHOTO AUR TEXT ---
 WELCOME_PHOTO_URL = "https://picsum.photos/800/500"
@@ -104,7 +119,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🛍 **{item['title']}**\n"
         f"💰 **Price:** {item['price']}\n\n"
         "1️⃣ **Payment Karein:** Is UPI ID par payment bhejein:\n"
-        f"`{UPI_ID}`\n\n"  #[span_2](start_span)[span_2](end_span)
+        f"`{UPI_ID}`\n\n"  #[span_3](start_span)[span_3](end_span)
         "2️⃣ **Screenshot Bhejein:** Payment karne ke baad screenshot is chat"
         " mein bhej dein. Verification ke baad aapko content mil jayega!"
     )
