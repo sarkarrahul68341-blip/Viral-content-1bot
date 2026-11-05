@@ -3,7 +3,6 @@ import subprocess
 import sys
 import traceback
 
-# Automatic library installation check
 try:
   import telegram
   import flask
@@ -27,16 +26,13 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# --- 1. APNI DETAILS YAHAN SET HAI ---
 BOT_TOKEN = "9094967544:AAHk7zir2JbhHAQStB6BtcMFai4HbvwHQOQ"
 UPI_ID = "puja6489@ptyes"
 SUPPORT_TELEGRAM_LINK = "https://t.me/YourSupportUsername"
 
-# --- 2. WELCOME BANNER PHOTO AUR TEXT ---
 WELCOME_PHOTO_URL = "https://picsum.photos/800/500"
 WELCOME_HEADING = "hello everyone ❤️❤️❤️\n\nWelcome to my official store! Niche diye gaye menu se content choose karein:"
 
-# --- 3. PAID CONTENT DATABASE ---
 CONTENT_DATABASE = {
     "item_1": {
         "title": "🔥 Premium Video Package 1",
@@ -52,27 +48,25 @@ CONTENT_DATABASE = {
     },
 }
 
-# --- 4. 4 DEMO BUTTONS WITH INDIVIDUAL TELEGRAM LINKS ---
 DEMO_BUTTONS = {
     "demo_1": {
-        "title": "🎬 Demo Video 1 (Link A)",
+        "title": "🎬 Demo Video 1",
         "url": "https://t.me/+s4Zzmwni59diNjU1",
     },
     "demo_2": {
-        "title": "🎥 Demo Video 2 (Link B)",
+        "title": "🎥 Demo Video 2",
         "url": "https://t.me/+f9i3BlsoUeZiZmY1",
     },
     "demo_3": {
-        "title": "🚀 Demo Video 3 (Link C)",
+        "title": "🚀 Demo Video 3",
         "url": "https://t.me/+w4MJrYfZ2zIyMTQ1",
     },
     "demo_4": {
-        "title": "⭐ Demo Video 4 (Link D)",
+        "title": "⭐ Demo Video 4",
         "url": "https://t.me/+v_jJUbh_U7M3OGQ1",
     },
 }
 
-# --- 5. RENDER KEEP-ALIVE SERVER (Flask) ---
 app_web = Flask(__name__)
 
 
@@ -86,7 +80,6 @@ def run_flask():
   app_web.run(host="0.0.0.0", port=port)
 
 
-# Telegram Bot Start Command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   keyboard = []
   for key, data in CONTENT_DATABASE.items():
@@ -111,13 +104,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   )
 
 
-# Button Click Handler
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.callback_query
   await query.answer()
   data = query.data
 
-  # Free Demo Menu (List of 4 Buttons with Separate Telegram Links)
   if data == "demo_menu":
     demo_keyboard = []
     for d_key, d_data in DEMO_BUTTONS.items():
@@ -137,7 +128,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup,
     )
 
-  # Back to Home Menu
   elif data == "back_home":
     keyboard = []
     for key, item_data in CONTENT_DATABASE.items():
@@ -158,7 +148,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         caption=WELCOME_HEADING, reply_markup=reply_markup
     )
 
-  # Paid Item Purchase Handler
   elif data.startswith("buy_"):
     item_key = data.replace("buy_", "")
     item = CONTENT_DATABASE[item_key]
@@ -178,7 +167,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-# Main Runner
 def main():
   try:
     t = threading.Thread(target=run_flask, daemon=True)
