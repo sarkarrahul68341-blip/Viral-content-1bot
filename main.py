@@ -29,15 +29,15 @@ from telegram.ext import (
 # --- CONFIGURATIONS ---
 BOT_TOKEN = "9094967544:AAHk7zir2JbhHAQStB6BtcMFai4HbvwHQOQ"
 UPI_ID = "puja6489@ptyes"
-SUPPORT_TELEGRAM_LINK = "https://t.me/YourSupportUsername"
+SUPPORT_TELEGRAM_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 
 WELCOME_PHOTO_URL = "https://picsum.photos/800/500"
 WELCOME_HEADING = (
     "❤️ **Welcome to Viral Desi MMS Content Bot** ❤️\n\nNiche diye gaye menu se"
-    " apna pasandida package select karein:"
+    " apna pasandida package ya demo select karein:"
 )
 
-# --- 8 CONTENT PACKAGES DATABASE ---
+# --- 8 PAID CONTENT PACKAGES DATABASE ---
 CONTENT_DATABASE = {
     "item_1": {
         "title": "🔑 01 CP Video and File",
@@ -73,6 +73,26 @@ CONTENT_DATABASE = {
     },
 }
 
+# --- 4 DEMO OPTIONS (Aapke real links set kar diye gaye hain) ---
+DEMO_DATABASE = {
+    "demo_1": {
+        "title": "🎥 Watch Free Demo 1",
+        "url": "https://t.me/+f9i3BlsoUeZiZmY1",
+    },
+    "demo_2": {
+        "title": "🎥 Watch Free Demo 2",
+        "url": "https://t.me/+w4MJrYfZ2zIyMTQ1",
+    },
+    "demo_3": {
+        "title": "🎥 Watch Free Demo 3",
+        "url": "https://t.me/+v_jJUbh_U7M3OGQ1",
+    },
+    "demo_4": {
+        "title": "🎥 Watch Free Demo 4",
+        "url": "https://t.me/+s4Zzmwni59diNjU1",
+    },
+}
+
 # --- RENDER KEEP-ALIVE SERVER ---
 app_web = Flask(__name__)
 
@@ -87,9 +107,10 @@ def run_flask():
   app_web.run(host="0.0.0.0", port=port)
 
 
-# --- TELEGRAM BOT LOGIC ---
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+# --- BUILD MAIN MENU FUNCTION ---
+def get_main_menu_keyboard():
   keyboard = []
+  # 1. 8 Paid Packages
   for key, data in CONTENT_DATABASE.items():
     keyboard.append([
         InlineKeyboardButton(
@@ -97,11 +118,23 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             callback_data=f"buy_{key}",
         )
     ])
+
+  # 2. 4 Demo Options (Real Links)
+  for key, data in DEMO_DATABASE.items():
+    keyboard.append([
+        InlineKeyboardButton(f"{data['title']}", url=data["url"])
+    ])
+
+  # 3. Support Button
   keyboard.append([
       InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)
   ])
+  return InlineKeyboardMarkup(keyboard)
 
-  reply_markup = InlineKeyboardMarkup(keyboard)
+
+# --- TELEGRAM BOT LOGIC ---
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  reply_markup = get_main_menu_keyboard()
   await context.bot.send_photo(
       chat_id=update.message.chat_id,
       photo=WELCOME_PHOTO_URL,
@@ -116,7 +149,18 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await query.answer()
   data = query.data
 
-  if data.startswith("buy_"):
+  if data == "back_home":
+    reply_markup = get_main_menu_keyboard()
+    try:
+      await query.message.edit_caption(
+          caption=WELCOME_HEADING, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+    except Exception:
+      await query.message.reply_text(
+          text=WELCOME_HEADING, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+
+  elif data.startswith("buy_"):
     item_key = data.replace("buy_", "")
     item = CONTENT_DATABASE[item_key]
 
@@ -128,10 +172,16 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "2️⃣ **Screenshot Bhejein:** Payment karne ke baad screenshot is chat"
         " mein bhej dein. Verification ke baad aapko channel link mil jayega!"
     )
+
+    back_keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")]]
+    )
+
     await context.bot.send_message(
         chat_id=query.message.chat_id,
         text=payment_text,
-        parse_mode="Markdown",
+        reply_markup=back_keyboard,
+        parse_Mode="Markdown",
     )
 
 
