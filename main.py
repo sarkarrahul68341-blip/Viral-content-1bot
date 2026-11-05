@@ -6,7 +6,7 @@ from telebot.types import ReplyKeyboardMarkup, KeyboardButton, InlineKeyboardMar
 
 # ================= CONFIGURATION & SETTINGS =================
 BOT_TOKEN = "9094967544:AAHiB3IEVow4A5JRl4BIdt4HijZwHYR_qE4"
-ADMIN_ID = 8776203848  # Aapki personal Telegram User ID set hai
+ADMIN_ID = 8776203848  # Aapki personal Telegram User ID
 
 # Runtime storage for dynamic editing via admin panel
 bot_data = {
@@ -32,7 +32,7 @@ def home():
 def run_flask():
     app.run(host='0.0.0.0', port=8080)
 
-# --- MAIN ADMIN MENU KEYBOARD ---
+# --- KEYBOARDS ---
 def get_main_admin_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -44,7 +44,6 @@ def get_main_admin_keyboard():
     )
     return markup
 
-# --- INSIDE ADMIN SUB-MENU KEYBOARD ---
 def get_admin_sub_keyboard():
     markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
     markup.add(
@@ -59,7 +58,13 @@ def get_admin_sub_keyboard():
     )
     return markup
 
-# /start command for users
+def get_buttons_editor_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=2)
+    markup.add(KeyboardButton("➕ Add Button"))
+    markup.add(KeyboardButton("🛑 Stop Editor"), KeyboardButton("📝 Posts Editor"))
+    return markup
+
+# /start command
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
     if message.chat.id == ADMIN_ID:
@@ -89,6 +94,22 @@ def admin_menu_actions(message):
 
     if text == "🔐 Admin":
         bot.send_message(chat_id, "🔧 **You are in the Administrator menu.**", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
+
+    elif text == "🎛️ Buttons Editor":
+        bot.send_message(chat_id, "🎛️ **Buttons Editor Mode Active:**", reply_markup=get_buttons_editor_keyboard(), parse_mode="Markdown")
+
+    elif text == "➕ Add Button":
+        # Options Panel under + Add Button
+        kb = InlineKeyboardMarkup(row_width=1)
+        kb.add(
+            InlineKeyboardButton("🌐 URL Link Button", callback_data="add_type_url"),
+            InlineKeyboardButton("💬 Text/Message Button", callback_data="add_type_text"),
+            InlineKeyboardButton("🛒 Product Buy Button", callback_data="add_type_product")
+        )
+        bot.send_message(chat_id, "📌 **Select Button Type (Add Panel):**", reply_markup=kb, parse_mode="Markdown")
+
+    elif text == "🛑 Stop Editor":
+        bot.send_message(chat_id, "🛑 Editor stopped. Back to Admin Menu:", reply_markup=get_admin_sub_keyboard())
 
     elif text == "💬 Message for START" or text == "📝 Posts Editor":
         user_state[chat_id] = "waiting_for_start_msg"
@@ -128,6 +149,20 @@ def admin_menu_actions(message):
             bot.send_message(chat_id, f"✅ UPI ID update ho gayi: `{message.text}`", parse_mode="Markdown", reply_markup=get_admin_sub_keyboard())
     else:
         bot.send_message(chat_id, "Kripya menu se koi button select karein.", reply_markup=get_admin_sub_keyboard())
+
+# Add Button Type Callback Handler
+@bot.callback_query_handler(func=lambda call: call.data.startswith("add_type_"))
+def process_add_button_type(call):
+    b_type = call.data.replace("add_type_", "")
+    if b_type == "url":
+        bot.answer_callback_query(call.id, "URL Button Selected")
+        bot.send_message(call.message.chat.id, "🌐 URL Button ke liye format bhejein:\n`Button Name - https://link.com`", parse_mode="Markdown")
+    elif b_type == "text":
+        bot.answer_callback_query(call.id, "Text Button Selected")
+        bot.send_message(call.message.chat.id, "💬 Text Button ke liye format bhejein:\n`Button Name - Yahan message aayega`", parse_mode="Markdown")
+    elif b_type == "product":
+        bot.answer_callback_query(call.id, "Product Button Selected")
+        bot.send_message(call.message.chat.id, "🛒 Product Button ke liye details bhejein:\n`Item Name | Price | File URL`", parse_mode="Markdown")
 
 # Product purchase handler
 @bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
