@@ -4,8 +4,8 @@ from threading import Thread
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton
 
-# Telegram Bot Token & Admin ID Setup
-BOT_TOKEN = os.environ.get("BOT_TOKEN", "9094967544:AAH_S8c-fgMgmm91e7X_KAduto8I4TShKo4")
+# Telegram Bot Token & Admin ID Setup (Updated with new token)
+BOT_TOKEN = os.environ.get("BOT_TOKEN", "9094967544:AAHiB3IEVow4A5JRl4BIdt4HijZwHYR_qE4")
 ADMIN_ID = int(os.environ.get("ADMIN_ID", "123456789"))
 
 bot = telebot.TeleBot(BOT_TOKEN)
@@ -95,7 +95,7 @@ def process_admin_action(call):
         bot.edit_message_text(f"✅ Approved & Delivered to ID: {user_id}", call.message.chat.id, call.message.message_id)
 
     elif action == "reject":
-        bot.send_message(user_id, "❌ Aapka payment verify nahi ho paya. Kripya sahi UTR ya clear screenshot dobara bhej dein.")
+        bot.send_number = bot.send_message(user_id, "❌ Aapka payment verify nahi ho paya. Kripya sahi UTR ya clear screenshot dobara bhej dein.")
         bot.answer_callback_query(call.id, "Rejected.")
         bot.edit_message_text(f"❌ Rejected for ID: {user_id}", call.message.chat.id, call.message.message_id)
 
