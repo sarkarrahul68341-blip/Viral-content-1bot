@@ -26,47 +26,54 @@ from telegram.ext import (
     ContextTypes,
 )
 
+# --- CONFIGURATIONS ---
 BOT_TOKEN = "9094967544:AAHk7zir2JbhHAQStB6BtcMFai4HbvwHQOQ"
 UPI_ID = "puja6489@ptyes"
 SUPPORT_TELEGRAM_LINK = "https://t.me/YourSupportUsername"
 
 WELCOME_PHOTO_URL = "https://picsum.photos/800/500"
-WELCOME_HEADING = "hello everyone ❤️❤️❤️\n\nWelcome to my official store! Niche diye gaye menu se content choose karein:"
+WELCOME_HEADING = (
+    "❤️ **Welcome to Viral Desi MMS Content Bot** ❤️\n\nNiche diye gaye menu se"
+    " apna pasandida package select karein:"
+)
 
+# --- 8 CONTENT PACKAGES DATABASE ---
 CONTENT_DATABASE = {
     "item_1": {
-        "title": "🔥 Premium Video Package 1",
-        "price": "₹199",
-        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
-        "type": "video",
+        "title": "🔑 01 CP Video and File",
+        "price": "Rs.249",
     },
     "item_2": {
-        "title": "💎 Exclusive Photo Collection",
-        "price": "₹99",
-        "media_url": "https://picsum.photos/600/400",
-        "type": "photo",
+        "title": "🔑 02 Rap & CP & Big File VD",
+        "price": "Rs.89",
+    },
+    "item_3": {
+        "title": "🔑 03 Mom and son Real sex",
+        "price": "Rs.45",
+    },
+    "item_4": {
+        "title": "🔞 04 Insta viral reels and sex",
+        "price": "Rs.30",
+    },
+    "item_5": {
+        "title": "🔥 05 Ganga bath group join",
+        "price": "Rs.199",
+    },
+    "item_6": {
+        "title": "🔥 06 CP Bath camera hidden",
+        "price": "Rs.55",
+    },
+    "item_7": {
+        "title": "🔥 07 pakistani girl real fuke",
+        "price": "Rs.49",
+    },
+    "item_8": {
+        "title": "❤️ 08 sister and brother sex",
+        "price": "Rs.30",
     },
 }
 
-DEMO_BUTTONS = {
-    "demo_1": {
-        "title": "🎬 Demo Video 1",
-        "url": "https://t.me/+s4Zzmwni59diNjU1",
-    },
-    "demo_2": {
-        "title": "🎥 Demo Video 2",
-        "url": "https://t.me/+f9i3BlsoUeZiZmY1",
-    },
-    "demo_3": {
-        "title": "🚀 Demo Video 3",
-        "url": "https://t.me/+w4MJrYfZ2zIyMTQ1",
-    },
-    "demo_4": {
-        "title": "⭐ Demo Video 4",
-        "url": "https://t.me/+v_jJUbh_U7M3OGQ1",
-    },
-}
-
+# --- RENDER KEEP-ALIVE SERVER ---
 app_web = Flask(__name__)
 
 
@@ -80,20 +87,19 @@ def run_flask():
   app_web.run(host="0.0.0.0", port=port)
 
 
+# --- TELEGRAM BOT LOGIC ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   keyboard = []
   for key, data in CONTENT_DATABASE.items():
     keyboard.append([
         InlineKeyboardButton(
-            f"{data['title']} ➔ {data['price']}", callback_data=f"buy_{key}"
+            f"{data['title']} -------- {data['price']}",
+            callback_data=f"buy_{key}",
         )
     ])
   keyboard.append([
-      InlineKeyboardButton("🎥 Watch Free Demo", callback_data="demo_menu")
+      InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)
   ])
-  keyboard.append(
-      [InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)]
-  )
 
   reply_markup = InlineKeyboardMarkup(keyboard)
   await context.bot.send_photo(
@@ -101,6 +107,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
       photo=WELCOME_PHOTO_URL,
       caption=WELCOME_HEADING,
       reply_markup=reply_markup,
+      parse_mode="Markdown",
   )
 
 
@@ -109,46 +116,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await query.answer()
   data = query.data
 
-  if data == "demo_menu":
-    demo_keyboard = []
-    for d_key, d_data in DEMO_BUTTONS.items():
-      demo_keyboard.append(
-          [InlineKeyboardButton(d_data["title"], url=d_data["url"])]
-      )
-    demo_keyboard.append(
-        [InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")]
-    )
-
-    reply_markup = InlineKeyboardMarkup(demo_keyboard)
-    await query.message.edit_caption(
-        caption=(
-            "🎬 **Free Demo Section**\n\nNiche di gayi list se kisi bhi"
-            " demo par click karke channel/group join karein:"
-        ),
-        reply_markup=reply_markup,
-    )
-
-  elif data == "back_home":
-    keyboard = []
-    for key, item_data in CONTENT_DATABASE.items():
-      keyboard.append([
-          InlineKeyboardButton(
-              f"{item_data['title']} ➔ {item_data['price']}",
-              callback_data=f"buy_{key}",
-          )
-      ])
-    keyboard.append([
-        InlineKeyboardButton("🎥 Watch Free Demo", callback_data="demo_menu")
-    ])
-    keyboard.append(
-        [InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)]
-    )
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await query.message.edit_caption(
-        caption=WELCOME_HEADING, reply_markup=reply_markup
-    )
-
-  elif data.startswith("buy_"):
+  if data.startswith("buy_"):
     item_key = data.replace("buy_", "")
     item = CONTENT_DATABASE[item_key]
 
@@ -158,7 +126,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "1️⃣ **Payment Karein:** Is UPI ID par payment bhejein:\n"
         f"`{UPI_ID}`\n\n"
         "2️⃣ **Screenshot Bhejein:** Payment karne ke baad screenshot is chat"
-        " mein bhej dein. Verification ke baad aapko content mil jayega!"
+        " mein bhej dein. Verification ke baad aapko channel link mil jayega!"
     )
     await context.bot.send_message(
         chat_id=query.message.chat_id,
