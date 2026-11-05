@@ -64,6 +64,11 @@ def get_buttons_editor_keyboard():
     markup.add(KeyboardButton("🛑 Stop Editor"), KeyboardButton("📝 Posts Editor"))
     return markup
 
+def get_cancel_keyboard():
+    markup = ReplyKeyboardMarkup(resize_keyboard=True, row_width=1)
+    markup.add(KeyboardButton("🚫 Cancel"))
+    return markup
+
 # /start command
 @bot.message_handler(commands=['start'])
 def start_cmd(message):
@@ -92,32 +97,35 @@ def admin_menu_actions(message):
     text = message.text
     chat_id = message.chat.id
 
-    if text == "🔐 Admin":
+    if text == "🚫 Cancel":
+        user_state.pop(chat_id, None)
+        bot.send_message(chat_id, "❌ Cancelled. Back to Buttons Editor:", reply_markup=get_buttons_editor_keyboard())
+
+    elif text == "🔐 Admin":
         bot.send_message(chat_id, "🔧 **You are in the Administrator menu.**", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
 
     elif text == "🎛️ Buttons Editor":
-        bot.send_message(chat_id, "🎛️ **Buttons Editor Mode Active:**", reply_markup=get_buttons_editor_keyboard(), parse_mode="Markdown")
+        bot.send_message(chat_id, "🎛️ **You are in Button Editing mode.**", reply_markup=get_buttons_editor_keyboard(), parse_mode="Markdown")
 
     elif text == "➕ Add Button":
-        # Options Panel under + Add Button
-        kb = InlineKeyboardMarkup(row_width=1)
-        kb.add(
-            InlineKeyboardButton("🌐 URL Link Button", callback_data="add_type_url"),
-            InlineKeyboardButton("💬 Text/Message Button", callback_data="add_type_text"),
-            InlineKeyboardButton("🛒 Product Buy Button", callback_data="add_type_product")
+        user_state[chat_id] = "waiting_for_button_name"
+        msg = (
+            "➕ **Adding new button.**\n\n"
+            "✨ Enter a Name for the new button.\n\n"
+            "Press «🚫 Cancel» if you change your mind."
         )
-        bot.send_message(chat_id, "📌 **Select Button Type (Add Panel):**", reply_markup=kb, parse_mode="Markdown")
+        bot.send_message(chat_id, msg, reply_markup=get_cancel_keyboard(), parse_mode="Markdown")
 
     elif text == "🛑 Stop Editor":
         bot.send_message(chat_id, "🛑 Editor stopped. Back to Admin Menu:", reply_markup=get_admin_sub_keyboard())
 
     elif text == "💬 Message for START" or text == "📝 Posts Editor":
         user_state[chat_id] = "waiting_for_start_msg"
-        bot.send_message(chat_id, "✍️ Naya Welcome/Start message yahan bhej dein:")
+        bot.send_message(chat_id, "✍️ Naya Welcome/Start message yahan bhej dein:", reply_markup=get_cancel_keyboard())
 
     elif text == "💳 Autopayments":
         user_state[chat_id] = "waiting_for_upi"
-        bot.send_message(chat_id, f"💳 Apni nayi UPI ID bhejein (Current: `{bot_data['upi_id']}`):", parse_mode="Markdown")
+        bot.send_message(chat_id, f"💳 Apni nayi UPI ID bhejein (Current: `{bot_data['upi_id']}`):", parse_mode="Markdown", reply_markup=get_cancel_keyboard())
 
     elif text == "🛒 Shop":
         shop_info = "🛒 **Current Shop Items:**\n"
@@ -139,30 +147,19 @@ def admin_menu_actions(message):
 
     elif chat_id in user_state:
         state = user_state[chat_id]
-        if state == "waiting_for_start_msg":
-            bot_data["welcome_message"] = message.text
+        if state == "waiting_for_button_name":
+            user_state.pop(chat_id, None)
+            bot.send_message(chat_id, f"✅ Button name saved: **{text}**\n\nAb is button ka link ya action URL bhejein:", reply_markup=get_cancel_keyboard(), parse_mode="Markdown")
+        elif state == "waiting_for_start_msg":
+            bot_data["welcome_message"] = text
             user_state.pop(chat_id, None)
             bot.send_message(chat_id, "✅ Start message update ho gaya!", reply_markup=get_admin_sub_keyboard())
         elif state == "waiting_for_upi":
-            bot_data["upi_id"] = message.text
+            bot_data["upi_id"] = text
             user_state.pop(chat_id, None)
-            bot.send_message(chat_id, f"✅ UPI ID update ho gayi: `{message.text}`", parse_mode="Markdown", reply_markup=get_admin_sub_keyboard())
+            bot.send_message(chat_id, f"✅ UPI ID update ho gayi: `{text}`", parse_mode="Markdown", reply_markup=get_admin_sub_keyboard())
     else:
         bot.send_message(chat_id, "Kripya menu se koi button select karein.", reply_markup=get_admin_sub_keyboard())
-
-# Add Button Type Callback Handler
-@bot.callback_query_handler(func=lambda call: call.data.startswith("add_type_"))
-def process_add_button_type(call):
-    b_type = call.data.replace("add_type_", "")
-    if b_type == "url":
-        bot.answer_callback_query(call.id, "URL Button Selected")
-        bot.send_message(call.message.chat.id, "🌐 URL Button ke liye format bhejein:\n`Button Name - https://link.com`", parse_mode="Markdown")
-    elif b_type == "text":
-        bot.answer_callback_query(call.id, "Text Button Selected")
-        bot.send_message(call.message.chat.id, "💬 Text Button ke liye format bhejein:\n`Button Name - Yahan message aayega`", parse_mode="Markdown")
-    elif b_type == "product":
-        bot.answer_callback_query(call.id, "Product Button Selected")
-        bot.send_message(call.message.chat.id, "🛒 Product Button ke liye details bhejein:\n`Item Name | Price | File URL`", parse_mode="Markdown")
 
 # Product purchase handler
 @bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
