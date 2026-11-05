@@ -73,7 +73,7 @@ CONTENT_DATABASE = {
     },
 }
 
-# --- 4 DEMO OPTIONS (Aapke real links set kar diye gaye hain) ---
+# --- 4 DEMO LINKS (Sub-menu ke andar khulenge) ---
 DEMO_DATABASE = {
     "demo_1": {
         "title": "🎥 Watch Free Demo 1",
@@ -107,7 +107,7 @@ def run_flask():
   app_web.run(host="0.0.0.0", port=port)
 
 
-# --- BUILD MAIN MENU FUNCTION ---
+# --- MAIN MENU KEYBOARD ---
 def get_main_menu_keyboard():
   keyboard = []
   # 1. 8 Paid Packages
@@ -119,16 +119,30 @@ def get_main_menu_keyboard():
         )
     ])
 
-  # 2. 4 Demo Options (Real Links)
-  for key, data in DEMO_DATABASE.items():
-    keyboard.append([
-        InlineKeyboardButton(f"{data['title']}", url=data["url"])
-    ])
+  # 2. Ek Big Demo Button (Click karne par sub-menu khulega)
+  keyboard.append(
+      [InlineKeyboardButton("🎬 Watch Big Free Demos", callback_data="open_demos")]
+  )
 
   # 3. Support Button
   keyboard.append([
       InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)
   ])
+  return InlineKeyboardMarkup(keyboard)
+
+
+# --- DEMO SUB-MENU KEYBOARD ---
+def get_demo_menu_keyboard():
+  keyboard = []
+  for key, data in DEMO_DATABASE.items():
+    keyboard.append([
+        InlineKeyboardButton(f"{data['title']}", url=data["url"])
+    ])
+
+  # Back to Menu button
+  keyboard.append(
+      [InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")]
+  )
   return InlineKeyboardMarkup(keyboard)
 
 
@@ -160,6 +174,21 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
           text=WELCOME_HEADING, reply_markup=reply_markup, parse_mode="Markdown"
       )
 
+  elif data == "open_demos":
+    demo_heading = (
+        "🎬 **Free Demo Videos Collection**\n\nNiche diye gaye demo links par"
+        " click karke aap videos dekh sakte hain:"
+    )
+    reply_markup = get_demo_menu_keyboard()
+    try:
+      await query.message.edit_caption(
+          caption=demo_heading, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+    except Exception:
+      await query.message.reply_text(
+          text=demo_heading, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+
   elif data.startswith("buy_"):
     item_key = data.replace("buy_", "")
     item = CONTENT_DATABASE[item_key]
@@ -181,7 +210,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=query.message.chat_id,
         text=payment_text,
         reply_markup=back_keyboard,
-        parse_Mode="Markdown",
+        parse_mode="Markdown",
     )
 
 
