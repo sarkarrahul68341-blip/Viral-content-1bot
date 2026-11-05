@@ -39,8 +39,7 @@ def get_main_admin_keyboard():
         KeyboardButton("🎛️ Buttons Editor"), KeyboardButton("📝 Posts Editor"),
         KeyboardButton("💰 Balance"), KeyboardButton("📣 Advertisement"),
         KeyboardButton("🧩 Extensions"), KeyboardButton("📈 Referral System"),
-        KeyboardButton("💳 Autopayments"), KeyboardButton("🔐 Admin"),
-        KeyboardButton("🔚 Exit Admin")
+        KeyboardButton("💳 Autopayments"), KeyboardButton("🔐 Admin")
     )
     return markup
 
@@ -87,7 +86,7 @@ def start_cmd(message):
 @bot.message_handler(commands=['admin'])
 def admin_panel_cmd(message):
     if message.chat.id == ADMIN_ID:
-        bot.send_message(message.chat.id, "🔧 **You are in the Administrator menu.**", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
+        bot.send_message(message.chat.id, "🔧 **You are in the Administrator menu.**", reply_markup=get_main_admin_keyboard(), parse_mode="Markdown")
     else:
         bot.send_message(message.chat.id, "❌ You are not authorized!")
 
@@ -99,10 +98,7 @@ def admin_menu_actions(message):
 
     if text == "🚫 Cancel":
         user_state.pop(chat_id, None)
-        bot.send_message(chat_id, "❌ Cancelled. Back to Buttons Editor:", reply_markup=get_buttons_editor_keyboard())
-
-    elif text == "🔐 Admin":
-        bot.send_message(chat_id, "🔧 **You are in the Administrator menu.**", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
+        bot.send_message(chat_id, "❌ Cancelled. Back to Main Admin Menu:", reply_markup=get_main_admin_keyboard())
 
     elif text == "🎛️ Buttons Editor":
         bot.send_message(chat_id, "🎛️ **You are in Button Editing mode.**", reply_markup=get_buttons_editor_keyboard(), parse_mode="Markdown")
@@ -117,30 +113,42 @@ def admin_menu_actions(message):
         bot.send_message(chat_id, msg, reply_markup=get_cancel_keyboard(), parse_mode="Markdown")
 
     elif text == "🛑 Stop Editor":
-        bot.send_message(chat_id, "🛑 Editor stopped. Back to Admin Menu:", reply_markup=get_admin_sub_keyboard())
+        bot.send_message(chat_id, "🛑 Editor stopped. Back to Admin Menu:", reply_markup=get_main_admin_keyboard())
 
-    elif text == "💬 Message for START" or text == "📝 Posts Editor":
+    elif text == "📝 Posts Editor" or text == "💬 Message for START":
         user_state[chat_id] = "waiting_for_start_msg"
         bot.send_message(chat_id, "✍️ Naya Welcome/Start message yahan bhej dein:", reply_markup=get_cancel_keyboard())
+
+    elif text == "💰 Balance":
+        bot.send_message(chat_id, "💰 **Bot Balance Overview:**\nCurrent Wallet Balance: ₹0.00\nTotal Revenue: ₹0.00", reply_markup=get_main_admin_keyboard(), parse_mode="Markdown")
+
+    elif text == "📣 Advertisement":
+        bot.send_message(chat_id, "📣 **Broadcast & Advertisement:** Users ko promotional message bhejne ke liye text type karein.", reply_markup=get_main_admin_keyboard())
+
+    elif text == "🧩 Extensions" or text == "🍀 Extensions":
+        bot.send_message(chat_id, "🧩 **Extensions Panel:** Additional bot plugins aur features yahan manage hote hain.", reply_markup=get_main_admin_keyboard(), parse_mode="Markdown")
+
+    elif text == "📈 Referral System" or text == "👥 Ref. System":
+        bot.send_message(chat_id, "📈 **Referral System:** Total referred users: 0", reply_markup=get_main_admin_keyboard(), parse_mode="Markdown")
 
     elif text == "💳 Autopayments":
         user_state[chat_id] = "waiting_for_upi"
         bot.send_message(chat_id, f"💳 Apni nayi UPI ID bhejein (Current: `{bot_data['upi_id']}`):", parse_mode="Markdown", reply_markup=get_cancel_keyboard())
 
+    elif text == "🔐 Admin":
+        bot.send_message(chat_id, "🔧 **Advanced Administrator Sub-Menu:**", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
+
+    elif text == "📊 Statistics":
+        bot.send_message(chat_id, "📊 **Bot Statistics:**\nTotal Users: 1\nActive Orders: 0", reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
+
     elif text == "🛒 Shop":
         shop_info = "🛒 **Current Shop Items:**\n"
         for k, v in bot_data["products"].items():
             shop_info += f"- {v['title']} | {v['price']}\n"
-        bot.send_message(chat_id, shop_info, parse_mode="Markdown")
-
-    elif text == "📥 Mailing" or text == "📣 Advertisement":
-        bot.send_message(chat_id, "📣 **Broadcast Feature:** Users ko message bhejne ke liye text type karein.")
-
-    elif text == "📊 Statistics":
-        bot.send_message(chat_id, "📊 **Bot Stats:**\nTotal Users: 1\nActive Subscriptions: 0")
+        bot.send_message(chat_id, shop_info, reply_markup=get_admin_sub_keyboard(), parse_mode="Markdown")
 
     elif text == "👥 Manage Admins":
-        bot.send_message(chat_id, f"👥 **Admin User ID:** `{ADMIN_ID}`", parse_mode="Markdown")
+        bot.send_message(chat_id, f"👥 **Admin User ID:** `{ADMIN_ID}`", parse_mode="Markdown", reply_markup=get_admin_sub_keyboard())
 
     elif text == "⬅️ Exit Admin" or text == "🔚 Exit Admin":
         bot.send_message(chat_id, "Exited Admin Menu.", reply_markup=get_main_admin_keyboard())
@@ -153,13 +161,13 @@ def admin_menu_actions(message):
         elif state == "waiting_for_start_msg":
             bot_data["welcome_message"] = text
             user_state.pop(chat_id, None)
-            bot.send_message(chat_id, "✅ Start message update ho gaya!", reply_markup=get_admin_sub_keyboard())
+            bot.send_message(chat_id, "✅ Start message update ho gaya!", reply_markup=get_main_admin_keyboard())
         elif state == "waiting_for_upi":
             bot_data["upi_id"] = text
             user_state.pop(chat_id, None)
-            bot.send_message(chat_id, f"✅ UPI ID update ho gayi: `{text}`", parse_mode="Markdown", reply_markup=get_admin_sub_keyboard())
+            bot.send_message(chat_id, f"✅ UPI ID update ho gayi: `{text}`", parse_mode="Markdown", reply_markup=get_main_admin_keyboard())
     else:
-        bot.send_message(chat_id, "Kripya menu se koi button select karein.", reply_markup=get_admin_sub_keyboard())
+        bot.send_message(chat_id, "Kripya menu se koi button select karein.", reply_markup=get_main_admin_keyboard())
 
 # Product purchase handler
 @bot.callback_query_handler(func=lambda call: call.data.startswith("buy_"))
