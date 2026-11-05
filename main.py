@@ -56,7 +56,7 @@ CONTENT_DATABASE = {
 DEMO_VIDEOS = {
     "demo_1": {
         "title": "🎬 Demo Video 1",
-        "media_url": "https://raw.githubusercontent.com/sarkarrahul/Viral-content-1bot/main/FB_VID_3185228273639306254.mp4",
+        "media_url": "https://www.w3schools.com/html/mov_bbb.mp4",
     },
     "demo_2": {
         "title": "🎬 Demo Video 2",
@@ -177,14 +177,23 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             ),
         )
         return
-      await context.bot.send_video(
-          chat_id=query.message.chat_id,
-          video=video_item["media_url"],
-          caption=(
-              f"▶️ **{video_item['title']}**\n\nAgar pasand aaye toh main"
-              " menu se purchase karein!"
-          ),
-      )
+      try:
+        await context.bot.send_video(
+            chat_id=query.message.chat_id,
+            video=video_item["media_url"],
+            caption=(
+                f"▶️ **{video_item['title']}**\n\nAgar pasand aaye toh main"
+                " menu se purchase karein!"
+            ),
+        )
+      except Exception:
+        await context.bot.send_message(
+            chat_id=query.message.chat_id,
+            text=(
+                f"❌ **{video_item['title']}** load karne mein error aaya."
+                " Shayad video ka size bada hai ya link compatible nahi hai."
+            ),
+        )
 
   # Back to Home Menu
   elif data == "back_home":
@@ -216,7 +225,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🛍 **{item['title']}**\n"
         f"💰 **Price:** {item['price']}\n\n"
         "1️⃣ **Payment Karein:** Is UPI ID par payment bhejein:\n"
-        f"`{UPI_ID}`\n\n"
+        f"`{URI_ID if 'URI_ID' in globals() else UPI_ID}`\n\n"
         "2️⃣ **Screenshot Bhejein:** Payment karne ke baad screenshot is chat"
         " mein bhej dein. Verification ke baad aapko content mil jayega!"
     )
