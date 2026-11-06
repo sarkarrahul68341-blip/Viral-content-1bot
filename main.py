@@ -1,9 +1,8 @@
 import os
 import razorpay
-import threading
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # Credentials
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
@@ -14,7 +13,9 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = Flask(__name__)
 
-# Package Details
+# Initialize Telegram Application
+telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89},
@@ -83,28 +84,35 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             await query.message.reply_text(f"Error creating payment link: {str(e)}")
 
+# Add Handlers
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+
 @app.route('/')
 def home():
-    return "Telegram Bot & Razorpay Server is Running!"
+    return "Telegram Bot Webhook Server is Running!"
 
-@app.route('/razorpay-webhook', methods=['POST'])
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
-    data = request.json
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, telegram_app.bot)
+    
+    # Run async process in sync flask route
+    import asyncio
+    async def process():
+        await telegram_app.initialize()
+        await telegram_app.process_update(update)
+    
+    asyncio.run(process())
     return "OK", 200
 
-def run_telegram_bot():
-    try:
-        telegram_app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-        telegram_app.add_handler(CommandHandler("start", start))
-        telegram_app.add_handler(CallbackQueryHandler(button_handler))
-        
-        telegram_app.run_polling(drop_pending_updates=True)
-    except Exception as e:
-        print(f"Bot Error: {e}")
-
 if __name__ == '__main__':
-    bot_thread = threading.Thread(target=run_telegram_bot, daemon=True)
-    bot_thread.start()
+    # Automatically set webhook using Render's public URL
+    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        import urllib.request
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
+        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
 
     app.run(host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
-        
+    
