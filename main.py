@@ -75,13 +75,14 @@ async def button_handler(update: Update, context):
             keyboard = [[InlineKeyboardButton(f"Pay ₹{pkg['price']} Now", url=payment_url)]]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            await query.message.reply_text(
+            # edit_text ka use karne se purana message hi update ho jayega aur naye messages spam nahi honge
+            await query.message.edit_text(
                 f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:",
                 reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
         except Exception as e:
-            await query.message.reply_text(f"Error creating payment link: {str(e)}")
+            await query.message.edit_text(f"Error creating payment link: {str(e)}")
 
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
@@ -112,3 +113,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+                
