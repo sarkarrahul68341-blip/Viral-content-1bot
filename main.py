@@ -32,8 +32,8 @@ SUPPORT_TELEGRAM_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 WELCOME_PHOTO_URL = "https://raw.githubusercontent.com/sarkarrahul/Viral-content-1bot/main/Indian-GF-Videos-porn-site.jpg"
 
 WELCOME_HEADING = (
-    "❤️ Welcome to Viral Desi MMS Content Bot ❤️\n\nNiche diye gaye menu se"
-    " apna pasandida package ya demo select karein:"
+    "❤️ Welcome to Viral Desi MMS Content Bot ❤️\n\n"
+    "Niche diye gaye menu se apna pasandida package ya demo select karein:"
 )
 
 CONTENT_DATABASE = {
@@ -82,30 +82,35 @@ def run_flask():
 def get_main_menu_keyboard():
   keyboard = []
   for key, data in CONTENT_DATABASE.items():
-    keyboard.append([
-        InlineKeyboardButton(
-            f"{data['title']} -------- {data['price']}",
-            callback_data=f"buy_{key}",
-        )
-    ])
-  keyboard.append(
-      [InlineKeyboardButton("🎥 Watch Free Demo", callback_data="open_demos")]
+    t_label = data["title"] + " -------- " + data["price"]
+    c_data = "buy_" + key
+    btn = InlineKeyboardButton(t_label, callback_data=c_data)
+    keyboard.append([btn])
+
+  demo_btn = InlineKeyboardButton(
+      "🎥 Watch Free Demo", callback_data="open_demos"
   )
-  keyboard.append([
-      InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)
-  ])
+  keyboard.append([demo_btn])
+
+  supp_btn = InlineKeyboardButton(
+      "💬 Help & Support", url=SUPPORT_TELEGRAM_LINK
+  )
+  keyboard.append([supp_btn])
+
   return InlineKeyboardMarkup(keyboard)
 
 
 def get_demo_menu_keyboard():
   keyboard = []
   for key, data in DEMO_DATABASE.items():
-    keyboard.append([
-        InlineKeyboardButton(f"{data['title']}", url=data["url"])
-    ])
-  keyboard.append(
-      [InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")]
-  )
+    d_label = data["title"]
+    d_url = data["url"]
+    btn = InlineKeyboardButton(d_label, url=d_url)
+    keyboard.append([btn])
+
+  back_btn = InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")
+  keyboard.append([back_btn])
+
   return InlineKeyboardMarkup(keyboard)
 
 
@@ -129,26 +134,34 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = get_main_menu_keyboard()
     try:
       await query.message.edit_caption(
-          caption=WELCOME_HEADING, reply_markup=reply_markup, parse_mode="Markdown"
+          caption=WELCOME_HEADING,
+          reply_markup=reply_markup,
+          parse_mode="Markdown",
       )
     except Exception:
       await query.message.reply_text(
-          text=WELCOME_HEADING, reply_markup=reply_markup, parse_mode="Markdown"
+          text=WELCOME_HEADING,
+          reply_markup=reply_markup,
+          parse_mode="Markdown",
       )
 
   elif data == "open_demos":
     demo_heading = (
-        "🎬 **Free Demo Videos Collection**\n\nNiche diye gaye demo links par"
-        " click karke aap videos dekh sakte hain:"
+        "🎬 **Free Demo Videos Collection**\n\n"
+        "Niche diye gaye demo links par click karke aap videos dekh sakte hain:"
     )
     reply_markup = get_demo_menu_keyboard()
     try:
       await query.message.edit_caption(
-          caption=demo_heading, reply_markup=reply_markup, parse_mode="Markdown"
+          caption=demo_heading,
+          reply_markup=reply_markup,
+          parse_mode="Markdown",
       )
     except Exception:
       await query.message.reply_text(
-          text=demo_heading, reply_markup=reply_markup, parse_mode="Markdown"
+          text=demo_heading,
+          reply_markup=reply_markup,
+          parse_mode="Markdown",
       )
 
   elif data.startswith("buy_"):
@@ -185,10 +198,10 @@ def main():
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CallbackQueryHandler(button_handler))
 
-    print("Business Telegram Bot with Web Server is running...")
+    print("OK")
     app.run_polling()
   except Exception as e:
-    print("CRITICAL ERROR DURING STARTUP:")
+    print("ERROR:")
     traceback.print_exc()
 
 
