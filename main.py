@@ -1,4 +1,5 @@
 import os
+import requests
 import razorpay
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -15,7 +16,6 @@ app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
 
 PACKAGES = {
-    # Test ke liye price 1 kar diya hai
     "pkg_1": {"name": "01 CP Video and File", "price": 1, "link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "link": ""},
     "pkg_3": {"name": "03 Mom and Son Real Sex", "price": 45, "link": ""},
@@ -121,7 +121,17 @@ def webhook():
         await telegram_app.initialize()
         await telegram_app.process_update(update)
     
-    asyncio.run(process())
+    try:
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as pool:
+                pool.submit(asyncio.run, process()).result()
+        else:
+            asyncio.run(process())
+    except Exception as e:
+        print(f"Webhook error: {e}")
+        
     return "OK", 200
 
 @app.route('/razorpay-webhook', methods=['POST'])
@@ -139,9 +149,28 @@ def razorpay_webhook():
             channel_link = pkg["link"]
             
             if channel_link:
-                import asyncio
-                async def send_content():
-                    await telegram_app.initialize()
-                    await telegram_app.bot.send_message(
-                        chat_id=telegram_id,
-                        text=f"✅ **Payment Successful!**\n\nAap
+                # Direct HTTP request to Telegram API to avoid event loop crash
+                msg_text = f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}"
+                url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
+                payload = {
+                    "chat_id": telegram_id,
+                    "text": msg_text,
+                    "parse_mode": "Markdown"
+                }
+                try:
+                    requests.post(url, json=payload)
+                except Exception as e:
+                    print(f"Error sending message via API: {e}")
+            
+    return "OK", 200
+
+if __name__ == '__main__':
+    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        import urllib.request
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
+        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+                    
