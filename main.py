@@ -60,7 +60,10 @@ def home():
 
 def run_flask():
   port = int(os.environ.get("PORT", 10000))
-  app_web.run(host="0.0.0.0", port=port)def get_main_menu_keyboard():
+  app_web.run(host="0.0.0.0", port=port)
+
+
+def get_main_menu_keyboard():
   keyboard = []
   for key, data in CONTENT_DATABASE.items():
     t_label = data["title"] + " -------- " + data["price"]
@@ -196,3 +199,4 @@ def main():
 
 if __name__ == "__main__":
   main()
+      
