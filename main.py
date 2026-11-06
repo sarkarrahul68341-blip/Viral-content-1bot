@@ -26,7 +26,7 @@ from telegram.ext import (
     ContextTypes,
 )
 
-BOT_TOKEN = "9094967544:AAHk7zir2JbhHAQStB6BtcMFai4HbvwHQOQ"
+BOT_TOKEN = "9094967544:AAGeMcK8UZoYlaCQOqnR7PuXA2msFmJn-9Q"
 UPI_ID = "puja6489@ptyes"
 SUPPORT_TELEGRAM_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 WELCOME_PHOTO_URL = "https://raw.githubusercontent.com/sarkarrahul/Viral-content-1bot/main/Indian-GF-Videos-porn-site.jpg"
@@ -76,10 +76,7 @@ def home():
 
 def run_flask():
   port = int(os.environ.get("PORT", 10000))
-  app_web.run(host="0.0.0.0", port=port)
-
-
-def get_main_menu_keyboard():
+  app_web.run(host="0.0.0.0", port=port)def get_main_menu_keyboard():
   keyboard = []
   for key, data in CONTENT_DATABASE.items():
     t_label = data["title"] + " -------- " + data["price"]
@@ -125,7 +122,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
     )
   except Exception:
-    # Agar photo load hone mein koi error aaye toh seedha text message bhej dega taaki bot chale
     await context.bot.send_message(
         chat_id=update.message.chat_id,
         text=WELCOME_HEADING,
