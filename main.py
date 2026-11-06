@@ -24,10 +24,9 @@ BOT_TOKEN = "9094967544:AAF5DabOpMI3x88twq0Kl3rWl-0MBl94vVs"
 UPI_ID = "puja6489@ptyes"
 MERCHANT_NAME = "Viral Desi Content"
 
-# Yahan aap apne UPI QR Code ki photo ka file_id dal sakte hain (optional)
-QR_CODE_PHOTO_ID = None  # Jaise: "AgACAgUAAxkBAAPIZ..."
-
+# Global variables
 CURRENT_WELCOME_PHOTO = None
+QR_CODE_PHOTO_ID = None  # Yahan apne QR code ka file_id daal sakte hain
 
 WELCOME_HEADING = (
     "❤️ Welcome to Viral Desi MMS Content Bot ❤️\n\nNiche diye gaye menu se apna"
@@ -119,7 +118,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
       return
     except Exception as e:
-      logger.error(f"Saved photo error: {e}")
+      logger.error(f"Welcome photo error: {e}")
 
   await context.bot.send_message(
       chat_id=chat_id, text=WELCOME_HEADING, reply_markup=reply_markup
@@ -152,35 +151,55 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   data = query.data
   chat_id = query.message.chat_id
 
-  try:
-    await query.message.delete()
-  except:
-    pass
+  # Agar 'Back to Menu' dabaya hai
+  if data == "back_home":
+    try:
+      await query.message.delete()
+    except:
+      pass
+
+    reply_markup = get_main_menu_keyboard()
+    if CURRENT_WELCOME_PHOTO:
+      try:
+        await context.bot.send_photo(
+            chat_id=chat_id,
+            photo=CURRENT_WELCOME_PHOTO,
+            caption=WELCOME_HEADING,
+            reply_markup=reply_markup,
+        )
+        return
+      except:
+        pass
+
+    await context.bot.send_message(
+        chat_id=chat_id, text=WELCOME_HEADING, reply_markup=reply_markup
+    )
+    return
+
+  # Prices and details setup
+  prices_num = {
+      "1": "249.00",
+      "2": "89.00",
+      "3": "45.00",
+      "4": "30.00",
+      "5": "199.00",
+      "6": "55.00",
+      "7": "49.00",
+      "8": "30.00",
+  }
+  price_display = {
+      "1": "Rs.249",
+      "2": "Rs.89",
+      "3": "Rs.45",
+      "4": "Rs.30",
+      "5": "Rs.199",
+      "6": "Rs.55",
+      "7": "Rs.49",
+      "8": "Rs.30",
+  }
 
   if data.startswith("buy_"):
     package_id = data.split("_")[1]
-
-    prices_num = {
-        "1": "249.00",
-        "2": "89.00",
-        "3": "45.00",
-        "4": "30.00",
-        "5": "199.00",
-        "6": "55.00",
-        "7": "49.00",
-        "8": "30.00",
-    }
-    price_display = {
-        "1": "Rs.249",
-        "2": "Rs.89",
-        "3": "Rs.45",
-        "4": "Rs.30",
-        "5": "Rs.199",
-        "6": "Rs.55",
-        "7": "Rs.49",
-        "8": "Rs.30",
-    }
-
     amount = prices_num.get(package_id, "30.00")
     price_text = price_display.get(package_id, "Rs.30")
 
@@ -201,23 +220,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton("« Back to Menu", callback_data="back_home")],
     ]
 
-    # Agar aapke paas QR code ka photo file_id hai, toh aap yahan send_photo use kar sakte hain:
-    if QR_CODE_PHOTO_ID:
-      try:
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=QR_CODE_PHOTO_ID,
-            caption=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-        )
-        return
-      except:
-        pass
-
-    await context.bot.send_message(
-        chat_id=chat_id, text=text, reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
   elif data == "open_demos":
     text = (
         "🎬 Free Demos:\nAap hamare free demos yahan dekh sakte"
@@ -226,9 +228,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("« Back to Menu", callback_data="back_home")]
     ]
-    await context.bot.send_message(
-        chat_id=chat_id, text=text, reply_markup=InlineKeyboardMarkup(keyboard)
-    )
 
   elif data == "help_support":
     text = (
@@ -239,27 +238,32 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("« Back to Menu", callback_data="back_home")]
     ]
-    await context.bot.send_message(
-        chat_id=chat_id, text=text, reply_markup=InlineKeyboardMarkup(keyboard)
-    )
+  else:
+    return
 
-  elif data == "back_home":
-    reply_markup = get_main_menu_keyboard()
-    if CURRENT_WELCOME_PHOTO:
-      try:
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=CURRENT_WELCOME_PHOTO,
-            caption=WELCOME_HEADING,
-            reply_markup=reply_markup,
-        )
-        return
-      except:
-        pass
+  # Purana message delete karke naya message safely bhejna
+  try:
+    await query.message.delete()
+  except:
+    pass
 
-    await context.bot.send_message(
-        chat_id=chat_id, text=WELCOME_HEADING, reply_markup=reply_markup
-    )
+  # Agar package select kiya hai aur QR photo ID di hai toh photo ke sath bhejo
+  if data.startswith("buy_") and QR_CODE_PHOTO_ID:
+    try:
+      await context.bot.send_photo(
+          chat_id=chat_id,
+          photo=QR_CODE_PHOTO_ID,
+          caption=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+      )
+      return
+    except:
+      pass
+
+  # Normal text message send karo
+  await context.bot.send_message(
+      chat_id=chat_id, text=text, reply_markup=InlineKeyboardMarkup(keyboard)
+  )
 
 
 def main():
@@ -271,9 +275,7 @@ def main():
 
   application.add_handler(CommandHandler("start", start))
   application.add_handler(CommandHandler("setphoto", set_welcome_photo))
-  application.add_handler(
-      CommandHandler("getid", get_file_id)
-  )  # QR photo ka ID nikalne ke liye
+  application.add_handler(CommandHandler("getid", get_file_id))
   application.add_handler(
       MessageHandler(filters.PHOTO & ~filters.Command(), set_welcome_photo)
   )
@@ -285,4 +287,4 @@ def main():
 
 if __name__ == "__main__":
   main()
-    
+          
