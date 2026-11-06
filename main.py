@@ -116,13 +116,22 @@ def get_demo_menu_keyboard():
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   reply_markup = get_main_menu_keyboard()
-  await context.bot.send_photo(
-      chat_id=update.message.chat_id,
-      photo=WELCOME_PHOTO_URL,
-      caption=WELCOME_HEADING,
-      reply_markup=reply_markup,
-      parse_mode="Markdown",
-  )
+  try:
+    await context.bot.send_photo(
+        chat_id=update.message.chat_id,
+        photo=WELCOME_PHOTO_URL,
+        caption=WELCOME_HEADING,
+        reply_markup=reply_markup,
+        parse_mode="Markdown",
+    )
+  except Exception:
+    # Agar photo load hone mein koi error aaye toh seedha text message bhej dega taaki bot chale
+    await context.bot.send_message(
+        chat_id=update.message.chat_id,
+        text=WELCOME_HEADING,
+        reply_markup=reply_markup,
+        parse_mode="Markdown",
+    )
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
