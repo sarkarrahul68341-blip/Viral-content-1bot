@@ -26,12 +26,9 @@ from telegram.ext import (
     ContextTypes,
 )
 
-# --- CONFIGURATIONS ---
 BOT_TOKEN = "9094967544:AAHk7zir2JbhHAQStB6BtcMFai4HbvwHQOQ"
 UPI_ID = "puja6489@ptyes"
 SUPPORT_TELEGRAM_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-
-# Yahan aapki nayi photo ka GitHub raw link set kar diya gaya hai
 WELCOME_PHOTO_URL = "https://raw.githubusercontent.com/sarkarrahul/Viral-content-1bot/main/Indian-GF-Videos-porn-site.jpg"
 
 WELCOME_HEADING = (
@@ -39,43 +36,17 @@ WELCOME_HEADING = (
     " apna pasandida package ya demo select karein:"
 )
 
-# --- 8 PAID CONTENT PACKAGES DATABASE ---
 CONTENT_DATABASE = {
-    "item_1": {
-        "title": "🔑 01 CP Video and File",
-        "price": "Rs.249",
-    },
-    "item_2": {
-        "title": "🔑 02 Rap & CP & Big File VD",
-        "price": "Rs.89",
-    },
-    "item_3": {
-        "title": "🔑 03 Mom and son Real sex",
-        "price": "Rs.45",
-    },
-    "item_4": {
-        "title": "🔞 04 Insta viral reels and sex",
-        "price": "Rs.30",
-    },
-    "item_5": {
-        "title": "🔥 05 Ganga bath group join",
-        "price": "Rs.199",
-    },
-    "item_6": {
-        "title": "🔥 06 CP Bath camera hidden",
-        "price": "Rs.55",
-    },
-    "item_7": {
-        "title": "🔥 07 pakistani girl real fuke",
-        "price": "Rs.49",
-    },
-    "item_8": {
-        "title": "❤️ 08 sister and brother sex",
-        "price": "Rs.30",
-    },
+    "item_1": {"title": "🔑 01 CP Video and File", "price": "Rs.249"},
+    "item_2": {"title": "🔑 02 Rap & CP & Big File VD", "price": "Rs.89"},
+    "item_3": {"title": "🔑 03 Mom and son Real sex", "price": "Rs.45"},
+    "item_4": {"title": "🔞 04 Insta viral reels and sex", "price": "Rs.30"},
+    "item_5": {"title": "🔥 05 Ganga bath group join", "price": "Rs.199"},
+    "item_6": {"title": "🔥 06 CP Bath camera hidden", "price": "Rs.55"},
+    "item_7": {"title": "🔥 07 pakistani girl real fuke", "price": "Rs.49"},
+    "item_8": {"title": "❤️ 08 sister and brother sex", "price": "Rs.30"},
 }
 
-# --- 4 DEMO LINKS (Watch Free Demo ke andar khulenge) ---
 DEMO_DATABASE = {
     "demo_1": {
         "title": "🎥 Watch Free Demo 1",
@@ -95,8 +66,131 @@ DEMO_DATABASE = {
     },
 }
 
-# --- RENDER KEEP-ALIVE SERVER ---
 app_web = Flask(__name__)
 
 
-@
+@app_web.route("/")
+def home():
+  return "Bot is running live 24/7!"
+
+
+def run_flask():
+  port = int(os.environ.get("PORT", 10000))
+  app_web.run(host="0.0.0.0", port=port)
+
+
+def get_main_menu_keyboard():
+  keyboard = []
+  for key, data in CONTENT_DATABASE.items():
+    keyboard.append([
+        InlineKeyboardButton(
+            f"{data['title']} -------- {data['price']}",
+            callback_data=f"buy_{key}",
+        )
+    ])
+  keyboard.append(
+      [InlineKeyboardButton("🎥 Watch Free Demo", callback_data="open_demos")]
+  )
+  keyboard.append([
+      InlineKeyboardButton("💬 Help & Support", url=SUPPORT_TELEGRAM_LINK)
+  ])
+  return InlineKeyboardMarkup(keyboard)
+
+
+def get_demo_menu_keyboard():
+  keyboard = []
+  for key, data in DEMO_DATABASE.items():
+    keyboard.append([
+        InlineKeyboardButton(f"{data['title']}", url=data["url"])
+    ])
+  keyboard.append(
+      [InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")]
+  )
+  return InlineKeyboardMarkup(keyboard)
+
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  reply_markup = get_main_menu_keyboard()
+  await context.bot.send_photo(
+      chat_id=update.message.chat_id,
+      photo=WELCOME_PHOTO_URL,
+      caption=WELCOME_HEADING,
+      reply_markup=reply_markup,
+      parse_mode="Markdown",
+  )
+
+
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  query = update.callback_query
+  await query.answer()
+  data = query.data
+
+  if data == "back_home":
+    reply_markup = get_main_menu_keyboard()
+    try:
+      await query.message.edit_caption(
+          caption=WELCOME_HEADING, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+    except Exception:
+      await query.message.reply_text(
+          text=WELCOME_HEADING, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+
+  elif data == "open_demos":
+    demo_heading = (
+        "🎬 **Free Demo Videos Collection**\n\nNiche diye gaye demo links par"
+        " click karke aap videos dekh sakte hain:"
+    )
+    reply_markup = get_demo_menu_keyboard()
+    try:
+      await query.message.edit_caption(
+          caption=demo_heading, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+    except Exception:
+      await query.message.reply_text(
+          text=demo_heading, reply_markup=reply_markup, parse_mode="Markdown"
+      )
+
+  elif data.startswith("buy_"):
+    item_key = data.replace("buy_", "")
+    item = CONTENT_DATABASE[item_key]
+
+    payment_text = (
+        f"🛍 **{item['title']}**\n"
+        f"💰 **Price:** {item['price']}\n\n"
+        "1️⃣ **Payment Karein:** Is UPI ID par payment bhejein:\n"
+        f"`{UPI_ID}`\n\n"
+        "2️⃣ **Screenshot Bhejein:** Payment karne ke baad screenshot is chat"
+        " mein bhej dein. Verification ke baad aapko channel link mil jayega!"
+    )
+
+    back_keyboard = InlineKeyboardMarkup(
+        [[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")]]
+    )
+
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=payment_text,
+        reply_markup=back_keyboard,
+        parse_mode="Markdown",
+    )
+
+
+def main():
+  try:
+    t = threading.Thread(target=run_flask, daemon=True)
+    t.start()
+
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(CallbackQueryHandler(button_handler))
+
+    print("Business Telegram Bot with Web Server is running...")
+    app.run_polling()
+  except Exception as e:
+    print("CRITICAL ERROR DURING STARTUP:")
+    traceback.print_exc()
+
+
+if __name__ == "__main__":
+  main()
