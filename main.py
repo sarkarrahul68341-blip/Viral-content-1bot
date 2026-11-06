@@ -20,14 +20,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-BOT_TOKEN = "7547900890:AAHKgD87x21u_5D9pM3R_g2YJ_w8Qe7c6x4"
+BOT_TOKEN = "9094967544:AAGqnym5ojn1Q9Sm6jIKqoUfWh6-cFxR9rw"
 UPI_ID = "puja6489@ptyes"
-
-# Yahan aap apna Telegram User ID daal sakte hain taaki sirf aap hi photo set kar sakein
-# (Agar sabhi ke liye khula rakhna hai toh ise khali chhor sakte hain)
-ADMIN_USER_ID = (
-    None  # Yahan apni Telegram numeric ID daal sakte hain agar chahein toh
-)
 
 # Global variable to store current welcome photo file_id dynamically
 CURRENT_WELCOME_PHOTO = None
@@ -268,9 +262,7 @@ def main():
   application = ApplicationBuilder().token(BOT_TOKEN).build()
 
   application.add_handler(CommandHandler("start", start))
-  application.add_handler(
-      CommandHandler("setphoto", set_welcome_photo)
-  )  # Naya command handler photo set karne ke liye
+  application.add_handler(CommandHandler("setphoto", set_welcome_photo))
   application.add_handler(CallbackQueryHandler(button_handler))
 
   logger.info("Bot is starting...")
