@@ -1,22 +1,6 @@
 import os
-import subprocess
-import sys
-import traceback
-
-try:
-  import telegram
-  import flask
-except ImportError:
-  subprocess.check_call([
-      sys.executable,
-      "-m",
-      "pip",
-      "install",
-      "python-telegram-bot",
-      "flask",
-  ])
-
 import threading
+import traceback
 from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
