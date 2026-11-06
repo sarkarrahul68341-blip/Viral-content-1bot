@@ -1,6 +1,7 @@
 import os
 import asyncio
 import razorpay
+import threading
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
@@ -105,11 +106,10 @@ def main():
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
 
-    # Run bot using initialize/start polling in background thread or run Flask
-    # For Render web service, running bot polling via thread or simple polling setup:
-    import threading
-    
+    # Run bot polling in a background thread with its own event loop
     def run_bot():
+        loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
         application.run_polling()
 
     bot_thread = threading.Thread(target=run_bot)
@@ -120,3 +120,4 @@ def main():
 
 if __name__ == '__main__':
     main()
+    
