@@ -6,8 +6,8 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Credentials (Token aur Keys yahan set hain)
-TELEGRAM_BOT_TOKEN = "9094967544:AAF5DabOpMI3x88twqK13rW1-0MB194vVs"
+# Credentials (Naya Token aur Razorpay Keys)
+TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
@@ -116,4 +116,4 @@ def main():
 
 if __name__ == '__main__':
     main()
-    
+                
