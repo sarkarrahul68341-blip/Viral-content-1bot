@@ -15,14 +15,14 @@ app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
 
 PACKAGES = {
-    "pkg_1": {"name": "01 CP Video and File", "price": 249},
-    "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89},
-    "pkg_3": {"name": "03 Mom and Son Real Sex", "price": 45},
-    "pkg_4": {"name": "04 Insta viral reels and sex", "price": 30},
-    "pkg_5": {"name": "05 Ganga bath group join", "price": 199},
-    "pkg_6": {"name": "06 CP Bath camera hidden", "price": 55},
-    "pkg_7": {"name": "07 Pakistani girl real fuke", "price": 49},
-    "pkg_8": {"name": "08 Sister and brother sex", "price": 30},
+    "pkg_1": {"name": "01 CP Video and File", "price": 249, "link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "link": ""},
+    "pkg_3": {"name": "03 Mom and Son Real Sex", "price": 45, "link": ""},
+    "pkg_4": {"name": "04 Insta viral reels and sex", "price": 30, "link": ""},
+    "pkg_5": {"name": "05 Ganga bath group join", "price": 199, "link": ""},
+    "pkg_6": {"name": "06 CP Bath camera hidden", "price": 55, "link": ""},
+    "pkg_7": {"name": "07 Pakistani girl real fuke", "price": 49, "link": ""},
+    "pkg_8": {"name": "08 Sister and brother sex", "price": 30, "link": ""},
 }
 
 def get_main_menu_keyboard():
@@ -77,6 +77,10 @@ async def button_handler(update: Update, context):
                     "email": "customer@example.com",
                     "contact": "9876543210"
                 },
+                "notes": {
+                    "telegram_id": query.message.chat_id,
+                    "package_id": data
+                },
                 "notify": {"sms": False, "email": False},
                 "reminder_enable": False,
                 "callback_url": "https://t.me/",
@@ -119,6 +123,34 @@ def webhook():
     asyncio.run(process())
     return "OK", 200
 
+@app.route('/razorpay-webhook', methods=['POST'])
+def razorpay_webhook():
+    data = request.get_json()
+    
+    if data.get("event") == "payment_link.paid":
+        payment_entity = data["payload"]["payment_link"]["entity"]
+        notes = payment_entity.get("notes", {})
+        telegram_id = notes.get("telegram_id")
+        package_id = notes.get("package_id")
+        
+        if telegram_id and package_id in PACKAGES:
+            pkg = PACKAGES[package_id]
+            channel_link = pkg["link"]
+            
+            if channel_link:
+                import asyncio
+                async def send_content():
+                    await telegram_app.initialize()
+                    await telegram_app.bot.send_message(
+                        chat_id=telegram_id,
+                        text=f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
+                        parse_mode="Markdown"
+                    )
+                
+                asyncio.run(send_content())
+            
+    return "OK", 200
+
 if __name__ == '__main__':
     RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
     if RENDER_EXTERNAL_URL:
@@ -128,3 +160,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+    
