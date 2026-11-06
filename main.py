@@ -262,7 +262,13 @@ def main():
   application = ApplicationBuilder().token(BOT_TOKEN).build()
 
   application.add_handler(CommandHandler("start", start))
-  application.add_handler(CommandHandler("setphoto", set_welcome_photo))
+  # Yeh line change ki hai taaki photo ke sath caption wali command pakad sake
+  application.add_handler(
+      MessageHandler(filters.PHOTO & filters.Caption(""), set_welcome_photo)
+  )
+  application.add_handler(
+      MessageHandler(filters.PHOTO, set_welcome_photo)
+  )  # Bina caption ya direct photo ke liye
   application.add_handler(CallbackQueryHandler(button_handler))
 
   logger.info("Bot is starting...")
@@ -271,4 +277,4 @@ def main():
 
 if __name__ == "__main__":
   main()
-    
+      
