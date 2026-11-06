@@ -263,5 +263,30 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       except:
         pass
 
-    await
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=WELCOME_HEADING,
+        reply_markup=reply_markup,
+        parse_mode="Markdown",
+    )
+
+
+def main():
+  t = threading.Thread(target=run_flask)
+  t.daemon = True
+  t.start()
+
+  application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+  application.add_handler(CommandHandler("start", start))
+  application.add_handler(CommandHandler("setphoto", set_welcome_photo))
+  application.add_handler(MessageHandler(filters.PHOTO, set_welcome_photo))
+  application.add_handler(CallbackQueryHandler(button_handler))
+
+  logger.info("Bot is starting...")
+  application.run_polling()
+
+
+if __name__ == "__main__":
+  main()
       
