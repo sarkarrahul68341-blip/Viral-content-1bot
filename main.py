@@ -105,11 +105,12 @@ def get_main_menu_keyboard():
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
   global CURRENT_WELCOME_PHOTO
   reply_markup = get_main_menu_keyboard()
+  chat_id = update.message.chat_id
 
   if CURRENT_WELCOME_PHOTO:
     try:
       await context.bot.send_photo(
-          chat_id=update.message.chat_id,
+          chat_id=chat_id,
           photo=CURRENT_WELCOME_PHOTO,
           caption=WELCOME_HEADING,
           reply_markup=reply_markup,
@@ -119,9 +120,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
       logger.error(f"Saved photo error: {e}")
 
   await context.bot.send_message(
-      chat_id=update.message.chat_id,
-      text=WELCOME_HEADING,
-      reply_markup=reply_markup,
+      chat_id=chat_id, text=WELCOME_HEADING, reply_markup=reply_markup
   )
 
 
@@ -143,6 +142,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   query = update.callback_query
   await query.answer()
   data = query.data
+  chat_id = query.message.chat_id
+  message_id = query.message.message_id
 
   if data.startswith("buy_"):
     package_id = data.split("_")[1]
@@ -189,95 +190,30 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     try:
-      await query.message.delete()
-    except:
-      pass
-
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-  elif data == "open_demos":
-    text = (
-        "🎬 Free Demos:\nAap hamare free demos yahan dekh sakte"
-        " hain:\n👉 Click Here for Demo Channel: https://t.me/your_demo_channel"
-    )
-    keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
-
-    try:
-      await query.message.delete()
-    except:
-      pass
-
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-  elif data == "help_support":
-    text = (
-        "💬 Help & Support\n\nAgar aapko payment ya content access karne mein"
-        " koi bhi problem aa rahi hai, toh aap seedhe admin se contact kar"
-        " sakte hain:\n👉 Admin: @your_admin_username"
-    )
-    keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
-
-    try:
-      await query.message.delete()
-    except:
-      pass
-
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-  elif data == "back_home":
-    reply_markup = get_main_menu_keyboard()
-    try:
-      await query.message.delete()
-    except:
-      pass
-
-    if CURRENT_WELCOME_PHOTO:
-      try:
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=CURRENT_WELCOME_PHOTO,
-            caption=WELCOME_HEADING,
-            reply_markup=reply_markup,
+      if query.message.photo:
+        await context.bot.edit_message_caption(
+            chat_id=chat_id,
+            message_id=message_id,
+            caption=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
         )
-        return
+      else:
+        await context.bot.edit_message_text(
+            chat_id=chat_id,
+            message_id=message_id,
+            text=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+        )
+    except Exception as e:
+      logger.error(f"Edit error: {e}")
+      await context.bot.send_message(
+          chat_id=chat_id, text=text, reply_markup=InlineKeyboardMarkup(keyboard)
+      )
+      try:
+        await query.message.delete()
       except:
         pass
 
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=WELCOME_HEADING,
-        reply_markup=reply_markup,
-    )
-
-
-def main():
-  t = threading.Thread(target=run_flask)
-  t.daemon = True
-  t.start()
-
-  application = ApplicationBuilder().token(BOT_TOKEN).build()
-
-  application.add_handler(CommandHandler("start", start))
-  application.add_handler(CommandHandler("setphoto", set_welcome_photo))
-  application.add_handler(MessageHandler(filters.PHOTO, set_welcome_photo))
-  application.add_handler(CallbackQueryHandler(button_handler))
-
-  logger.info("Bot is starting...")
-  application.run_polling()
-
-
-if __name__ == "__main__":
-  main()
-    
+  elif data == "open_demos":
+    text = (
+        "🎬 Free Demos:\nAap hamare
