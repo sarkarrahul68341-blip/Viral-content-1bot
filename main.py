@@ -113,7 +113,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
           photo=CURRENT_WELCOME_PHOTO,
           caption=WELCOME_HEADING,
           reply_markup=reply_markup,
-          parse_mode="Markdown",
       )
       return
     except Exception as e:
@@ -123,7 +122,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
       chat_id=update.message.chat_id,
       text=WELCOME_HEADING,
       reply_markup=reply_markup,
-      parse_mode="Markdown",
   )
 
 
@@ -137,7 +135,7 @@ async def set_welcome_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
   CURRENT_WELCOME_PHOTO = update.message.photo[-1].file_id
   await update.message.reply_text(
-      "✅ **Success!** Naya welcome photo successfully set ho gaya hai."
+      "✅ Success! Naya welcome photo successfully set ho gaya hai."
   )
 
 
@@ -179,11 +177,10 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     text = (
-        f"✨ **Package {package_id} Selected** ✨\n\nPrice:"
-        f" **{price_text}**\n\nPayment karne ke liye niche diye gaye **'Pay Now'"
-        f" button par click karein:**\n📌 UPI ID: `{UPI_ID}`\n\nPayment karne ke"
-        " baad screenshot ya UTR number yahan bhej dein taaki content turant"
-        " mil sake!"
+        f"✨ Package {package_id} Selected ✨\n\nPrice: {price_text}\n\nPayment"
+        " karne ke liye niche diye gaye 'Pay Now' button par click"
+        f" karein:\n📌 UPI ID: {UPI_ID}\n\nPayment karne ke baad screenshot ya"
+        " UTR number yahan bhej dein taaki content turant mil sake!"
     )
 
     keyboard = [
@@ -192,56 +189,52 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
 
     try:
-      await query.edit_message_caption(
-          caption=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      await query.message.delete()
     except:
-      await query.edit_message_text(
-          text=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      pass
+
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
   elif data == "open_demos":
     text = (
-        "🎬 **Free Demos:**\nAap hamare free demos yahan dekh sakte"
-        " hain:\n👉 [Click Here for Demo Channel](https://t.me/your_demo_channel)"
+        "🎬 Free Demos:\nAap hamare free demos yahan dekh sakte"
+        " hain:\n👉 Click Here for Demo Channel: https://t.me/your_demo_channel"
     )
     keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
+
     try:
-      await query.edit_message_caption(
-          caption=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      await query.message.delete()
     except:
-      await query.edit_message_text(
-          text=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      pass
+
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
   elif data == "help_support":
     text = (
-        "💬 **Help & Support**\n\nAgar aapko payment ya content access karne"
-        " mein koi bhi problem aa rahi hai, toh aap seedhe admin se contact"
-        " kar sakte hain:\n👉 Admin: @your_admin_username"
+        "💬 Help & Support\n\nAgar aapko payment ya content access karne mein"
+        " koi bhi problem aa rahi hai, toh aap seedhe admin se contact kar"
+        " sakte hain:\n👉 Admin: @your_admin_username"
     )
     keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
+
     try:
-      await query.edit_message_caption(
-          caption=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      await query.message.delete()
     except:
-      await query.edit_message_text(
-          text=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      pass
+
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+    )
 
   elif data == "back_home":
     reply_markup = get_main_menu_keyboard()
@@ -257,7 +250,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             photo=CURRENT_WELCOME_PHOTO,
             caption=WELCOME_HEADING,
             reply_markup=reply_markup,
-            parse_mode="Markdown",
         )
         return
       except:
@@ -267,7 +259,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=query.message.chat_id,
         text=WELCOME_HEADING,
         reply_markup=reply_markup,
-        parse_mode="Markdown",
     )
 
 
@@ -289,4 +280,4 @@ def main():
 
 if __name__ == "__main__":
   main()
-      
+    
