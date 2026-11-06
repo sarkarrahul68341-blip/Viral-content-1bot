@@ -62,7 +62,7 @@ async def button_handler(update: Update, context):
                 "customer": {
                     "name": "Customer",
                     "email": "customer@example.com",
-                    "contact": "9999999999"
+                    "contact": "9876543210"
                 },
                 "notify": {"sms": False, "email": False},
                 "reminder_enable": False,
@@ -112,4 +112,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
