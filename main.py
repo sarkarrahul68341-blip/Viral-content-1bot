@@ -61,7 +61,8 @@ def get_main_menu_keyboard():
       ],
       [
           InlineKeyboardButton(
-              "🔑 03 Mom and Son Real Sex --------- Rs.45", callback_data="pkg_3"
+              "🔑 03 Mom and Son Real Sex --------- Rs.45",
+              callback_data="pkg_3",
           )
       ],
       [
@@ -143,7 +144,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   data = query.data
   chat_id = query.message.chat_id
 
-  # Har package ke alag-alag amounts aur display prices
+  # Har package ka fix price aur display setup
   prices_num = {
       "1": "249.00",
       "2": "89.00",
@@ -166,25 +167,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   }
 
   if data == "main_menu":
-    try:
-      await query.message.delete()
-    except:
-      pass
     reply_markup = get_main_menu_keyboard()
-    if CURRENT_WELCOME_PHOTO:
+    try:
+      await query.edit_message_text(
+          text=WELCOME_HEADING, reply_markup=reply_markup
+      )
+    except:
       try:
-        await context.bot.send_photo(
-            chat_id=chat_id,
-            photo=CURRENT_WELCOME_PHOTO,
-            caption=WELCOME_HEADING,
-            reply_markup=reply_markup,
-        )
-        return
+        await query.message.delete()
       except:
         pass
-    await context.bot.send_message(
-        chat_id=chat_id, text=WELCOME_HEADING, reply_markup=reply_markup
-    )
+      await context.bot.send_message(
+          chat_id=chat_id, text=WELCOME_HEADING, reply_markup=reply_markup
+      )
     return
 
   if data.startswith("pkg_"):
@@ -192,7 +187,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount = prices_num.get(pkg_id, "30.00")
     price_text = price_display.get(pkg_id, "Rs.30")
 
-    # Har package ke hisab se exact amount wali UPI link
+    # Exact UPI deep-link with dynamic amount and UPI ID
     upi_url = (
         f"upi://pay?pa={UPI_ID}&pn={MERCHANT_NAME}&am={amount}&cu=INR&tn=Package"
         f" {pkg_id}"
@@ -231,14 +226,20 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   else:
     return
 
+  # Safe message editing to avoid blank screen
   try:
-    await query.message.delete()
-  except:
-    pass
-
-  await context.bot.send_message(
-      chat_id=chat_id, text=text, reply_markup=InlineKeyboardMarkup(keyboard)
-  )
+    await query.edit_message_text(
+        text=text, reply_markup=InlineKeyboardMarkup(keyboard)
+    )
+  except Exception as e:
+    logger.error(f"Edit error: {e}")
+    try:
+      await query.message.delete()
+    except:
+      pass
+    await context.bot.send_message(
+        chat_id=chat_id, text=text, reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 
 def main():
@@ -261,3 +262,4 @@ def main():
 
 if __name__ == "__main__":
   main()
+          
