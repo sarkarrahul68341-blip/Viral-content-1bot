@@ -4,7 +4,7 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Credentials
+# Hardcoded Credentials (No missing token error)
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
@@ -13,7 +13,6 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = Flask(__name__)
 
-# Initialize Telegram Application
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
 PACKAGES = {
@@ -84,7 +83,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         except Exception as e:
             await query.message.reply_text(f"Error creating payment link: {str(e)}")
 
-# Add Handlers
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 
@@ -97,7 +95,6 @@ def webhook():
     json_data = request.get_json(force=True)
     update = Update.de_json(json_data, telegram_app.bot)
     
-    # Run async process in sync flask route
     import asyncio
     async def process():
         await telegram_app.initialize()
@@ -107,7 +104,6 @@ def webhook():
     return "OK", 200
 
 if __name__ == '__main__':
-    # Automatically set webhook using Render's public URL
     RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
     if RENDER_EXTERNAL_URL:
         import urllib.request
