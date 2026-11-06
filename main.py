@@ -12,7 +12,6 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = Flask(__name__)
 
-# Build Telegram Application without runner/updater conflict
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
 
 PACKAGES = {
@@ -26,8 +25,8 @@ PACKAGES = {
     "pkg_8": {"name": "08 Sister and brother sex", "price": 30},
 }
 
-async def start(update: Update, context):
-    keyboard = [
+def get_main_menu_keyboard():
+    return InlineKeyboardMarkup([
         [InlineKeyboardButton("🔑 01 CP Video and File --------- Rs.249", callback_data="pkg_1")],
         [InlineKeyboardButton("🔑 02 Rap & CP & Big File VD --------- Rs.89", callback_data="pkg_2")],
         [InlineKeyboardButton("🔑 03 Mom and Son Real Sex --------- Rs.45", callback_data="pkg_3")],
@@ -36,19 +35,33 @@ async def start(update: Update, context):
         [InlineKeyboardButton("🔥 06 CP Bath camera hidden --------- Rs.55", callback_data="pkg_6")],
         [InlineKeyboardButton("🔥 07 Pakistani girl real fuke --------- Rs.49", callback_data="pkg_7")],
         [InlineKeyboardButton("❤️ 08 Sister and brother sex --------- Rs.30", callback_data="pkg_8")],
-    ]
-    reply_markup = InlineKeyboardMarkup(keyboard)
-    await update.message.reply_text(
-        "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
-        reply_markup=reply_markup,
-        parse_mode="Markdown"
-    )
+    ])
+
+async def start(update: Update, context):
+    reply_markup = get_main_menu_keyboard()
+    if update.callback_query:
+        await update.callback_query.message.edit_text(
+            "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+    else:
+        await update.message.reply_text(
+            "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
 
 async def button_handler(update: Update, context):
     query = update.callback_query
     await query.answer()
 
     data = query.data
+
+    if data == "main_menu":
+        await start(update, context)
+        return
+
     if data in PACKAGES:
         pkg = PACKAGES[data]
         amount_in_paise = pkg["price"] * 100
@@ -72,10 +85,12 @@ async def button_handler(update: Update, context):
 
             payment_url = payment_link.get("short_url")
             
-            keyboard = [[InlineKeyboardButton(f"Pay ₹{pkg['price']} Now", url=payment_url)]]
+            keyboard = [
+                [InlineKeyboardButton(f"Pay ₹{pkg['price']} Now", url=payment_url)],
+                [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+            ]
             reply_markup = InlineKeyboardMarkup(keyboard)
             
-            # edit_text ka use karne se purana message hi update ho jayega aur naye messages spam nahi honge
             await query.message.edit_text(
                 f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:",
                 reply_markup=reply_markup,
@@ -113,4 +128,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-                
