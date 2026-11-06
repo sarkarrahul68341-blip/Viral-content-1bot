@@ -6,10 +6,10 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Aapki Razorpay Test Keys
+# Credentials (Token aur Keys yahan set hain)
+TELEGRAM_BOT_TOKEN = "9094967544:AAF5DabOpMI3x88twqK13rW1-0MB194vVs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Initialize Razorpay Client
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
@@ -98,10 +98,6 @@ def webhook():
 
 # Setup Telegram Bot Application
 def main():
-    if not TELEGRAM_BOT_TOKEN:
-        print("Error: TELEGRAM_BOT_TOKEN is missing!")
-        return
-
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
