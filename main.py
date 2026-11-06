@@ -1,6 +1,6 @@
+import logging
 import os
 import threading
-import traceback
 from flask import Flask
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
 from telegram.ext import (
@@ -8,113 +8,147 @@ from telegram.ext import (
     CallbackQueryHandler,
     CommandHandler,
     ContextTypes,
+    MessageHandler,
+    filters,
 )
 
-BOT_TOKEN = "9094967544:AAGeMcK8UZoYlaCQOqnR7PuXA2msFmJn-9Q"
+# Enable logging
+logging.basicConfig(
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    level=logging.INFO,
+)
+logger = logging.getLogger(__name__)
+
+# --- CONFIGURATION ---
+BOT_TOKEN = "7547900890:AAHKgD87x21u_5D9pM3R_g2YJ_w8Qe7c6x4"
 UPI_ID = "puja6489@ptyes"
-SUPPORT_TELEGRAM_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-WELCOME_PHOTO_URL = "https://raw.githubusercontent.com/sarkarrahul/Viral-content-1bot/main/Indian-GF-Videos-porn-site.jpg"
+
+# Yahan aap apna Telegram User ID daal sakte hain taaki sirf aap hi photo set kar sakein
+# (Agar sabhi ke liye khula rakhna hai toh ise khali chhor sakte hain)
+ADMIN_USER_ID = (
+    None  # Yahan apni Telegram numeric ID daal sakte hain agar chahein toh
+)
+
+# Global variable to store current welcome photo file_id dynamically
+CURRENT_WELCOME_PHOTO = None
 
 WELCOME_HEADING = (
-    "❤️ Welcome to Viral Desi MMS Content Bot ❤️\n\n"
-    "Niche diye gaye menu se apna pasandida package ya demo select karein:"
+    "❤️ Welcome to Viral Desi MMS Content Bot ❤️\n\nNiche diye gaye menu se apna"
+    " pasandida package ya demo select karein:"
 )
 
-CONTENT_DATABASE = {
-    "item_1": {"title": "🔑 01 CP Video and File", "price": "Rs.249"},
-    "item_2": {"title": "🔑 02 Rap & CP & Big File VD", "price": "Rs.89"},
-    "item_3": {"title": "🔑 03 Mom and son Real sex", "price": "Rs.45"},
-    "item_4": {"title": "🔞 04 Insta viral reels and sex", "price": "Rs.30"},
-    "item_5": {"title": "🔥 05 Ganga bath group join", "price": "Rs.199"},
-    "item_6": {"title": "🔥 06 CP Bath camera hidden", "price": "Rs.55"},
-    "item_7": {"title": "🔥 07 pakistani girl real fuke", "price": "Rs.49"},
-    "item_8": {"title": "❤️ 08 sister and brother sex", "price": "Rs.30"},
-}
-
-DEMO_DATABASE = {
-    "demo_1": {
-        "title": "🎥 Watch Free Demo 1",
-        "url": "https://t.me/+f9i3BlsoUeZiZmY1",
-    },
-    "demo_2": {
-        "title": "🎥 Watch Free Demo 2",
-        "url": "https://t.me/+w4MJrYfZ2zIyMTQ1",
-    },
-    "demo_3": {
-        "title": "🎥 Watch Free Demo 3",
-        "url": "https://t.me/+v_jJUbh_U7M3OGQ1",
-    },
-    "demo_4": {
-        "title": "🎥 Watch Free Demo 4",
-        "url": "https://t.me/+s4Zzmwni59diNjU1",
-    },
-}
-
-app_web = Flask(__name__)
+# --- FLASK SERVER FOR RENDER KEEP-ALIVE ---
+app = Flask(__name__)
 
 
-@app_web.route("/")
+@app.route("/")
 def home():
-  return "Bot is running live 24/7!"
+  return "Bot is active and running 24/7!"
 
 
 def run_flask():
-  port = int(os.environ.get("PORT", 10000))
-  app_web.run(host="0.0.0.0", port=port)
+  port = int(os.environ.get("PORT", 8080))
+  app.run(host="0.0.0.0", port=port)
 
 
+# --- KEYBOARDS ---
 def get_main_menu_keyboard():
-  keyboard = []
-  for key, data in CONTENT_DATABASE.items():
-    t_label = data["title"] + " -------- " + data["price"]
-    c_data = "buy_" + key
-    btn = InlineKeyboardButton(t_label, callback_data=c_data)
-    keyboard.append([btn])
-
-  demo_btn = InlineKeyboardButton(
-      "🎥 Watch Free Demo", callback_data="open_demos"
-  )
-  keyboard.append([demo_btn])
-
-  supp_btn = InlineKeyboardButton(
-      "💬 Help & Support", url=SUPPORT_TELEGRAM_LINK
-  )
-  keyboard.append([supp_btn])
-
+  keyboard = [
+      [
+          InlineKeyboardButton(
+              "🔑 01 CP Video and File --------- Rs.249", callback_data="buy_1"
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🔑 02 Rap & CP & Big File VD --------- Rs.89",
+              callback_data="buy_2",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🔑 03 Mom and Son Real Sex --------- Rs.45", callback_data="buy_3"
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🔞 04 Insta viral reels and sex --------- Rs.30",
+              callback_data="buy_4",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🔥 05 Ganga bath group join --------- Rs.199",
+              callback_data="buy_5",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🔥 06 CP Bath camera hidden --------- Rs.55", callback_data="buy_6"
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "🔥 07 Pakistani girl real fuke --------- Rs.49",
+              callback_data="buy_7",
+          )
+      ],
+      [
+          InlineKeyboardButton(
+              "❤️ 08 Sister and brother sex --------- Rs.30",
+              callback_data="buy_8",
+          )
+      ],
+      [InlineKeyboardButton("🎬 Watch Free Demo", callback_data="open_demos")],
+      [InlineKeyboardButton("💬 Help & Support", callback_data="help_support")],
+  ]
   return InlineKeyboardMarkup(keyboard)
 
 
-def get_demo_menu_keyboard():
-  keyboard = []
-  for key, data in DEMO_DATABASE.items():
-    d_label = data["title"]
-    d_url = data["url"]
-    btn = InlineKeyboardButton(d_label, url=d_url)
-    keyboard.append([btn])
-
-  back_btn = InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")
-  keyboard.append([back_btn])
-
-  return InlineKeyboardMarkup(keyboard)
-
-
+# --- HANDLERS ---
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  global CURRENT_WELCOME_PHOTO
   reply_markup = get_main_menu_keyboard()
-  try:
-    await context.bot.send_photo(
-        chat_id=update.message.chat_id,
-        photo=WELCOME_PHOTO_URL,
-        caption=WELCOME_HEADING,
-        reply_markup=reply_markup,
-        parse_mode="Markdown",
+
+  if CURRENT_WELCOME_PHOTO:
+    try:
+      await context.bot.send_photo(
+          chat_id=update.message.chat_id,
+          photo=CURRENT_WELCOME_PHOTO,
+          caption=WELCOME_HEADING,
+          reply_markup=reply_markup,
+          parse_mode="Markdown",
+      )
+      return
+    except Exception as e:
+      logger.error(f"Saved photo error: {e}")
+
+  # Fallback to text if no photo is set yet
+  await context.bot.send_message(
+      chat_id=update.message.chat_id,
+      text=WELCOME_HEADING,
+      reply_markup=reply_markup,
+      parse_mode="Markdown",
+  )
+
+
+async def set_welcome_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  global CURRENT_WELCOME_PHOTO
+
+  if not update.message.photo:
+    await update.message.reply_text(
+        "❌ Kripya kisi photo ke sath `/setphoto` likh kar bhejein!"
     )
-  except Exception:
-    await context.bot.send_message(
-        chat_id=update.message.chat_id,
-        text=WELCOME_HEADING,
-        reply_markup=reply_markup,
-        parse_mode="Markdown",
-    )
+    return
+
+  # Get the highest resolution photo file_id
+  photo_file_id = update.message.photo[-1].file_id
+  CURRENT_WELCOME_PHOTO = photo_file_id
+
+  await update.message.reply_text(
+      "✅ **Success!** Naya welcome photo successfully set ho gaya hai.\nAb koi"
+      " bhi `/start` karega toh yeh photo dikhegi."
+  )
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -122,81 +156,127 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   await query.answer()
   data = query.data
 
-  if data == "back_home":
-    reply_markup = get_main_menu_keyboard()
+  if data.startswith("buy_"):
+    package_id = data.split("_")[1]
+    prices = {
+        "1": "Rs.249",
+        "2": "Rs.89",
+        "3": "Rs.45",
+        "4": "Rs.30",
+        "5": "Rs.199",
+        "6": "Rs.55",
+        "7": "Rs.49",
+        "8": "Rs.30",
+    }
+    price = prices.get(package_id, "Rs.0")
+
+    text = (
+        f"✨ **Package {package_id} Selected** ✨\n\nPrice: **{price}**\n\nPayment"
+        f" karne ke liye niche diye gaye UPI ID par payment karein:\n📌 UPI ID:"
+        f" `{UPI_ID}`\n\nPayment karne ke baad screenshot ya UTR number yahan"
+        " bhej dein taaki aapko content turant mil sake!"
+    )
+    keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
     try:
-      await query.message.edit_caption(
+      await query.edit_message_caption(
+          caption=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+    except:
+      await query.edit_message_text(
+          text=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+
+  elif data == "open_demos":
+    text = (
+        "🎬 **Free Demos:**\nAap hamare free demos yahan dekh sakte"
+        " hain:\n👉 [Click Here for Demo Channel](https://t.me/your_demo_channel)"
+    )
+    keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
+    try:
+      await query.edit_message_caption(
+          caption=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+    except:
+      await query.edit_message_text(
+          text=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+
+  elif data == "help_support":
+    text = (
+        "💬 **Help & Support**\n\nAgar aapko payment ya content access karne"
+        " mein koi bhi problem aa rahi hai, toh aap seedhe admin se contact"
+        " kar sakte hain:\n👉 Admin: @your_admin_username"
+    )
+    keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
+    try:
+      await query.edit_message_caption(
+          caption=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+    except:
+      await query.edit_message_text(
+          text=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
+
+  elif data == "back_home":
+    global CURRENT_WELCOME_PHOTO
+    reply_markup = get_main_menu_keyboard()
+    if CURRENT_WELCOME_PHOTO:
+      try:
+        await query.message.delete()
+        await context.bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=CURRENT_WELCOME_PHOTO,
+            caption=WELCOME_HEADING,
+            reply_markup=reply_markup,
+            parse_mode="Markdown",
+        )
+        return
+      except:
+        pass
+
+    try:
+      await query.edit_message_caption(
           caption=WELCOME_HEADING,
           reply_markup=reply_markup,
           parse_mode="Markdown",
       )
-    except Exception:
-      await query.message.reply_text(
+    except:
+      await query.edit_message_text(
           text=WELCOME_HEADING,
           reply_markup=reply_markup,
           parse_mode="Markdown",
       )
 
-  elif data == "open_demos":
-    demo_heading = (
-        "🎬 **Free Demo Videos Collection**\n\n"
-        "Niche diye gaye demo links par click karke aap videos dekh sakte hain:"
-    )
-    reply_markup = get_demo_menu_keyboard()
-    try:
-      await query.message.edit_caption(
-          caption=demo_heading,
-          reply_markup=reply_markup,
-          parse_mode="Markdown",
-      )
-    except Exception:
-      await query.message.reply_text(
-          text=demo_heading,
-          reply_markup=reply_markup,
-          parse_mode="Markdown",
-      )
-
-  elif data.startswith("buy_"):
-    item_key = data.replace("buy_", "")
-    item = CONTENT_DATABASE[item_key]
-
-    payment_text = (
-        f"🛍 **{item['title']}**\n"
-        f"💰 **Price:** {item['price']}\n\n"
-        "1️⃣ **Payment Karein:** Is UPI ID par payment bhejein:\n"
-        f"`{UPI_ID}`\n\n"
-        "2️⃣ **Screenshot Bhejein:** Payment karne ke baad screenshot is chat"
-        " mein bhej dein. Verification ke baad aapko channel link mil jayega!"
-    )
-
-    back_keyboard = InlineKeyboardMarkup(
-        [[InlineKeyboardButton("🔙 Back to Menu", callback_data="back_home")]]
-    )
-
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=payment_text,
-        reply_markup=back_keyboard,
-        parse_mode="Markdown",
-    )
-
 
 def main():
-  try:
-    t = threading.Thread(target=run_flask, daemon=True)
-    t.start()
+  t = threading.Thread(target=run_flask)
+  t.daemon = True
+  t.start()
 
-    app = ApplicationBuilder().token(BOT_TOKEN).build()
-    app.add_handler(CommandHandler("start", start))
-    app.add_handler(CallbackQueryHandler(button_handler))
+  application = ApplicationBuilder().token(BOT_TOKEN).build()
 
-    print("OK")
-    app.run_polling()
-  except Exception as e:
-    print("ERROR:")
-    traceback.print_exc()
+  application.add_handler(CommandHandler("start", start))
+  application.add_handler(
+      CommandHandler("setphoto", set_welcome_photo)
+  )  # Naya command handler photo set karne ke liye
+  application.add_handler(CallbackQueryHandler(button_handler))
+
+  logger.info("Bot is starting...")
+  application.run_polling()
 
 
 if __name__ == "__main__":
   main()
-      
+    
