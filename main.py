@@ -22,10 +22,10 @@ logger = logging.getLogger(__name__)
 # --- CONFIGURATION ---
 BOT_TOKEN = "9094967544:AAGqnym5ojn1Q9Sm6jIKqoUfWh6-cFxR9rw"
 UPI_ID = "puja6489@ptyes"
+MERCHANT_NAME = "Viral Desi Content"  # Aapka business/channel naam
 
-# Global variables to store dynamic photos
+# Global variable for welcome photo
 CURRENT_WELCOME_PHOTO = None
-CURRENT_QR_PHOTO = None
 
 WELCOME_HEADING = (
     "❤️ Welcome to Viral Desi MMS Content Bot ❤️\n\nNiche diye gaye menu se apna"
@@ -141,30 +141,27 @@ async def set_welcome_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
   )
 
 
-async def set_qr_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  global CURRENT_QR_PHOTO
-  if not update.message.photo:
-    await update.message.reply_text(
-        "❌ Kripya apna QR code photo ke sath `/setqr` likh kar bhejein!"
-    )
-    return
-
-  CURRENT_QR_PHOTO = update.message.photo[-1].file_id
-  await update.message.reply_text(
-      "✅ **Success!** Payment QR Code successfully set ho gaya hai. Ab sabhi"
-      " packages ke sath yeh QR dikhega."
-  )
-
-
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  global CURRENT_QR_PHOTO, CURRENT_WELCOME_PHOTO
+  global CURRENT_WELCOME_PHOTO
   query = update.callback_query
   await query.answer()
   data = query.data
 
   if data.startswith("buy_"):
     package_id = data.split("_")[1]
-    prices = {
+
+    # Package-wise exact price mapping
+    prices_num = {
+        "1": "249.00",
+        "2": "89.00",
+        "3": "45.00",
+        "4": "30.00",
+        "5": "199.00",
+        "6": "55.00",
+        "7": "49.00",
+        "8": "30.00",
+    }
+    price_display = {
         "1": "Rs.249",
         "2": "Rs.89",
         "3": "Rs.45",
@@ -174,41 +171,41 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "7": "Rs.49",
         "8": "Rs.30",
     }
-    price = prices.get(package_id, "Rs.0")
+
+    amount = prices_num.get(package_id, "30.00")
+    price_text = price_display.get(package_id, "Rs.30")
+
+    # UPI Intent URL for direct app opening (Paytm, PhonePe, GPay, etc.)
+    upi_url = (
+        f"upi://pay?pa={UPI_ID}&pn={MERCHANT_NAME}&am={amount}&cu=INR&tn=Package"
+        f" {package_id}"
+    )
 
     text = (
-        f"✨ **Package {package_id} Selected** ✨\n\nPrice: **{price}**\n\nPayment"
-        f" karne ke liye niche diye gaye QR code ko scan karein ya UPI ID par"
-        f" payment karein:\n📌 UPI ID: `{UPI_ID}`\n\nPayment karne ke baad"
-        " screenshot ya UTR number yahan bhej dein!"
+        f"✨ **Package {package_id} Selected** ✨\n\nPrice:"
+        f" **{price_text}**\n\nPayment karne ke liye niche diye gaye **'Pay Now'"
+        f" button par click karein:**\n📌 UPI ID: `{UPI_ID}`\n\nPayment karne ke"
+        " baad screenshot ya UTR number yahan bhej dein taaki content turant"
+        " mil sake!"
     )
-    keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
+
+    keyboard = [
+        [InlineKeyboardButton(f"💳 Pay {price_text} Now", url=upi_url)],
+        [InlineKeyboardButton("« Back to Menu", callback_data="back_home")],
+    ]
 
     try:
-      await query.message.delete()
+      await query.edit_message_caption(
+          caption=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
     except:
-      pass
-
-    if CURRENT_QR_PHOTO:
-      try:
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=CURRENT_QR_PHOTO,
-            caption=text,
-            reply_markup=InlineKeyboardMarkup(keyboard),
-            parse_mode="Markdown",
-        )
-        return
-      except Exception as e:
-        logger.error(f"QR photo send error: {e}")
-
-    # Fallback to text if QR photo is not set yet
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=text,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-        parse_mode="Markdown",
-    )
+      await query.edit_message_text(
+          text=text,
+          reply_markup=InlineKeyboardMarkup(keyboard),
+          parse_mode="Markdown",
+      )
 
   elif data == "open_demos":
     text = (
@@ -286,9 +283,7 @@ def main():
 
   application.add_handler(CommandHandler("start", start))
   application.add_handler(CommandHandler("setphoto", set_welcome_photo))
-  application.add_handler(CommandHandler("setqr", set_qr_photo))
 
-  # Handlers for photos with captions
   application.add_handler(
       MessageHandler(filters.PHOTO & filters.Caption(""), set_welcome_photo)
   )
@@ -302,4 +297,4 @@ def main():
 
 if __name__ == "__main__":
   main()
-    
+      
