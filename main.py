@@ -23,8 +23,9 @@ logger = logging.getLogger(__name__)
 BOT_TOKEN = "9094967544:AAGqnym5ojn1Q9Sm6jIKqoUfWh6-cFxR9rw"
 UPI_ID = "puja6489@ptyes"
 
-# Global variable to store current welcome photo file_id dynamically
+# Global variables to store dynamic photos
 CURRENT_WELCOME_PHOTO = None
+CURRENT_QR_PHOTO = None
 
 WELCOME_HEADING = (
     "❤️ Welcome to Viral Desi MMS Content Bot ❤️\n\nNiche diye gaye menu se apna"
@@ -78,7 +79,8 @@ def get_main_menu_keyboard():
       ],
       [
           InlineKeyboardButton(
-              "🔥 06 CP Bath camera hidden --------- Rs.55", callback_data="buy_6"
+              "🔥 06 CP Bath camera hidden --------- Rs.55",
+              callback_data="buy_6",
           )
       ],
       [
@@ -117,7 +119,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
       logger.error(f"Saved photo error: {e}")
 
-  # Fallback to text if no photo is set yet
   await context.bot.send_message(
       chat_id=update.message.chat_id,
       text=WELCOME_HEADING,
@@ -128,24 +129,35 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def set_welcome_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
   global CURRENT_WELCOME_PHOTO
-
   if not update.message.photo:
     await update.message.reply_text(
         "❌ Kripya kisi photo ke sath `/setphoto` likh kar bhejein!"
     )
     return
 
-  # Get the highest resolution photo file_id
-  photo_file_id = update.message.photo[-1].file_id
-  CURRENT_WELCOME_PHOTO = photo_file_id
-
+  CURRENT_WELCOME_PHOTO = update.message.photo[-1].file_id
   await update.message.reply_text(
-      "✅ **Success!** Naya welcome photo successfully set ho gaya hai.\nAb koi"
-      " bhi `/start` karega toh yeh photo dikhegi."
+      "✅ **Success!** Naya welcome photo successfully set ho gaya hai."
+  )
+
+
+async def set_qr_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  global CURRENT_QR_PHOTO
+  if not update.message.photo:
+    await update.message.reply_text(
+        "❌ Kripya apna QR code photo ke sath `/setqr` likh kar bhejein!"
+    )
+    return
+
+  CURRENT_QR_PHOTO = update.message.photo[-1].file_id
+  await update.message.reply_text(
+      "✅ **Success!** Payment QR Code successfully set ho gaya hai. Ab sabhi"
+      " packages ke sath yeh QR dikhega."
   )
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+  global CURRENT_QR_PHOTO, CURRENT_WELCOME_PHOTO
   query = update.callback_query
   await query.answer()
   data = query.data
@@ -166,23 +178,37 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         f"✨ **Package {package_id} Selected** ✨\n\nPrice: **{price}**\n\nPayment"
-        f" karne ke liye niche diye gaye UPI ID par payment karein:\n📌 UPI ID:"
-        f" `{UPI_ID}`\n\nPayment karne ke baad screenshot ya UTR number yahan"
-        " bhej dein taaki aapko content turant mil sake!"
+        f" karne ke liye niche diye gaye QR code ko scan karein ya UPI ID par"
+        f" payment karein:\n📌 UPI ID: `{UPI_ID}`\n\nPayment karne ke baad"
+        " screenshot ya UTR number yahan bhej dein!"
     )
     keyboard = [[InlineKeyboardButton("« Back to Menu", callback_data="back_home")]]
+
     try:
-      await query.edit_message_caption(
-          caption=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      await query.message.delete()
     except:
-      await query.edit_message_text(
-          text=text,
-          reply_markup=InlineKeyboardMarkup(keyboard),
-          parse_mode="Markdown",
-      )
+      pass
+
+    if CURRENT_QR_PHOTO:
+      try:
+        await context.bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=CURRENT_QR_PHOTO,
+            caption=text,
+            reply_markup=InlineKeyboardMarkup(keyboard),
+            parse_mode="Markdown",
+        )
+        return
+      except Exception as e:
+        logger.error(f"QR photo send error: {e}")
+
+    # Fallback to text if QR photo is not set yet
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=text,
+        reply_markup=InlineKeyboardMarkup(keyboard),
+        parse_mode="Markdown",
+    )
 
   elif data == "open_demos":
     text = (
@@ -224,11 +250,14 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       )
 
   elif data == "back_home":
-    global CURRENT_WELCOME_PHOTO
     reply_markup = get_main_menu_keyboard()
+    try:
+      await query.message.delete()
+    except:
+      pass
+
     if CURRENT_WELCOME_PHOTO:
       try:
-        await query.message.delete()
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
             photo=CURRENT_WELCOME_PHOTO,
@@ -240,18 +269,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       except:
         pass
 
-    try:
-      await query.edit_message_caption(
-          caption=WELCOME_HEADING,
-          reply_markup=reply_markup,
-          parse_mode="Markdown",
-      )
-    except:
-      await query.edit_message_text(
-          text=WELCOME_HEADING,
-          reply_markup=reply_markup,
-          parse_mode="Markdown",
-      )
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text=WELCOME_HEADING,
+        reply_markup=reply_markup,
+        parse_mode="Markdown",
+    )
 
 
 def main():
@@ -262,13 +285,15 @@ def main():
   application = ApplicationBuilder().token(BOT_TOKEN).build()
 
   application.add_handler(CommandHandler("start", start))
-  # Yeh line change ki hai taaki photo ke sath caption wali command pakad sake
+  application.add_handler(CommandHandler("setphoto", set_welcome_photo))
+  application.add_handler(CommandHandler("setqr", set_qr_photo))
+
+  # Handlers for photos with captions
   application.add_handler(
       MessageHandler(filters.PHOTO & filters.Caption(""), set_welcome_photo)
   )
-  application.add_handler(
-      MessageHandler(filters.PHOTO, set_welcome_photo)
-  )  # Bina caption ya direct photo ke liye
+  application.add_handler(MessageHandler(filters.PHOTO, set_welcome_photo))
+
   application.add_handler(CallbackQueryHandler(button_handler))
 
   logger.info("Bot is starting...")
@@ -277,4 +302,4 @@ def main():
 
 if __name__ == "__main__":
   main()
-      
+    
