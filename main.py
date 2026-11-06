@@ -1,19 +1,21 @@
 import os
+import asyncio
 import razorpay
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 
 # Aapki Razorpay Test Keys
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 # Initialize Razorpay Client
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = Flask(__name__)
 
-# Package Details (Name, Price in Rupees)
+# Package Details
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89},
@@ -25,7 +27,7 @@ PACKAGES = {
     "pkg_8": {"name": "08 Sister and brother sex", "price": 30},
 }
 
-# Start Command - Show Menu
+# Telegram Start Command
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = [
         [InlineKeyboardButton("🔑 01 CP Video and File --------- Rs.249", callback_data="pkg_1")],
@@ -52,10 +54,9 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = query.data
     if data in PACKAGES:
         pkg = PACKAGES[data]
-        amount_in_paise = pkg["price"] * 100  # Razorpay takes amount in paise
+        amount_in_paise = pkg["price"] * 100
 
         try:
-            # Create a Razorpay Payment Link
             payment_link = client.payment_link.create({
                 "amount": amount_in_paise,
                 "currency": "INR",
@@ -89,13 +90,33 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 def home():
     return "Telegram Bot & Razorpay Server is Running!"
 
-# Webhook to receive payment success from Razorpay
 @app.route('/razorpay-webhook', methods=['POST'])
 def webhook():
     data = request.json
-    # Payment success hone par yahan se file deliver karne ka logic aayega
     return "OK", 200
 
-if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
+# Setup Telegram Bot Application
+def main():
+    if not TELEGRAM_BOT_TOKEN:
+        print("Error: TELEGRAM_BOT_TOKEN is missing!")
+        return
+
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button_handler))
+
+    # Run bot using initialize/start polling in background thread or run Flask
+    # For Render web service, running bot polling via thread or simple polling setup:
+    import threading
     
+    def run_bot():
+        application.run_polling()
+
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.start()
+
+    # Run Flask server
+    app.run(host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
+
+if __name__ == '__main__':
+    main()
