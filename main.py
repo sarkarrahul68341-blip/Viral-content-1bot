@@ -22,7 +22,7 @@ logger = logging.getLogger(__name__)
 # --- CONFIGURATION ---
 BOT_TOKEN = "9094967544:AAGqnym5ojn1Q9Sm6jIKqoUfWh6-cFxR9rw"
 UPI_ID = "puja6489@ptyes"
-MERCHANT_NAME = "Viral Desi Content"  # Aapka business/channel naam
+MERCHANT_NAME = "Viral Desi Content"
 
 # Global variable for welcome photo
 CURRENT_WELCOME_PHOTO = None
@@ -142,7 +142,6 @@ async def set_welcome_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-  global CURRENT_WELCOME_PHOTO
   query = update.callback_query
   await query.answer()
   data = query.data
@@ -150,7 +149,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
   if data.startswith("buy_"):
     package_id = data.split("_")[1]
 
-    # Package-wise exact price mapping
     prices_num = {
         "1": "249.00",
         "2": "89.00",
@@ -175,7 +173,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     amount = prices_num.get(package_id, "30.00")
     price_text = price_display.get(package_id, "Rs.30")
 
-    # UPI Intent URL for direct app opening (Paytm, PhonePe, GPay, etc.)
     upi_url = (
         f"upi://pay?pa={UPI_ID}&pn={MERCHANT_NAME}&am={amount}&cu=INR&tn=Package"
         f" {package_id}"
@@ -283,12 +280,7 @@ def main():
 
   application.add_handler(CommandHandler("start", start))
   application.add_handler(CommandHandler("setphoto", set_welcome_photo))
-
-  application.add_handler(
-      MessageHandler(filters.PHOTO & filters.Caption(""), set_welcome_photo)
-  )
   application.add_handler(MessageHandler(filters.PHOTO, set_welcome_photo))
-
   application.add_handler(CallbackQueryHandler(button_handler))
 
   logger.info("Bot is starting...")
@@ -297,4 +289,4 @@ def main():
 
 if __name__ == "__main__":
   main()
-      
+    
