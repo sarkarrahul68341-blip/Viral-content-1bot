@@ -20,7 +20,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # --- CONFIGURATION ---
-BOT_TOKEN = "9094967544:AAGqnym5ojn1Q9Sm6jIKqoUfWh6-cFxR9rw"
+BOT_TOKEN = "9094967544:AAF5DabOpMI3x88twq0Kl3rWl-0MBl94vVs"
 UPI_ID = "puja6489@ptyes"
 MERCHANT_NAME = "Viral Desi Content"
 
@@ -263,30 +263,5 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
       except:
         pass
 
-    await context.bot.send_message(
-        chat_id=query.message.chat_id,
-        text=WELCOME_HEADING,
-        reply_markup=reply_markup,
-        parse_mode="Markdown",
-    )
-
-
-def main():
-  t = threading.Thread(target=run_flask)
-  t.daemon = True
-  t.start()
-
-  application = ApplicationBuilder().token(BOT_TOKEN).build()
-
-  application.add_handler(CommandHandler("start", start))
-  application.add_handler(CommandHandler("setphoto", set_welcome_photo))
-  application.add_handler(MessageHandler(filters.PHOTO, set_welcome_photo))
-  application.add_handler(CallbackQueryHandler(button_handler))
-
-  logger.info("Bot is starting...")
-  application.run_polling()
-
-
-if __name__ == "__main__":
-  main()
-    
+    await
+      
