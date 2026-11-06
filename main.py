@@ -15,7 +15,8 @@ app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
 
 PACKAGES = {
-    "pkg_1": {"name": "01 CP Video and File", "price": 249, "link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    # Test ke liye price 1 kar diya hai
+    "pkg_1": {"name": "01 CP Video and File", "price": 1, "link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "link": ""},
     "pkg_3": {"name": "03 Mom and Son Real Sex", "price": 45, "link": ""},
     "pkg_4": {"name": "04 Insta viral reels and sex", "price": 30, "link": ""},
@@ -27,7 +28,7 @@ PACKAGES = {
 
 def get_main_menu_keyboard():
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔑 01 CP Video and File --------- Rs.249", callback_data="pkg_1")],
+        [InlineKeyboardButton("🔑 01 CP Video and File --------- Rs.1 (Test)", callback_data="pkg_1")],
         [InlineKeyboardButton("🔑 02 Rap & CP & Big File VD --------- Rs.89", callback_data="pkg_2")],
         [InlineKeyboardButton("🔑 03 Mom and Son Real Sex --------- Rs.45", callback_data="pkg_3")],
         [InlineKeyboardButton("🔞 04 Insta viral reels and sex --------- Rs.30", callback_data="pkg_4")],
@@ -143,21 +144,4 @@ def razorpay_webhook():
                     await telegram_app.initialize()
                     await telegram_app.bot.send_message(
                         chat_id=telegram_id,
-                        text=f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
-                        parse_mode="Markdown"
-                    )
-                
-                asyncio.run(send_content())
-            
-    return "OK", 200
-
-if __name__ == '__main__':
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    if RENDER_EXTERNAL_URL:
-        import urllib.request
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-    
+                        text=f"✅ **Payment Successful!**\n\nAap
