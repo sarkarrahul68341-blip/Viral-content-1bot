@@ -5,7 +5,7 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, ContextTypes
 
-# Credentials
+# Credentials (Hardcoded taaki token miss na ho)
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
@@ -14,7 +14,7 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = Flask(__name__)
 
-# Package Details
+# 8 Digital Content Packages
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89},
@@ -92,25 +92,20 @@ def webhook():
     data = request.json
     return "OK", 200
 
-# Global application instance for background polling
-telegram_app = None
-
+# Background Telegram Polling Thread
 def run_telegram_bot():
-    global telegram_app
     try:
         telegram_app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
         telegram_app.add_handler(CommandHandler("start", start))
         telegram_app.add_handler(CallbackQueryHandler(button_handler))
         
-        # Run polling without creating separate event loop conflicts
         telegram_app.run_polling(drop_pending_updates=True)
     except Exception as e:
         print(f"Bot Error: {e}")
 
 if __name__ == '__main__':
-    # Start Telegram Bot in a separate daemon thread
     bot_thread = threading.Thread(target=run_telegram_bot, daemon=True)
     bot_thread.start()
 
-    # Start Flask server
     app.run(host='0.0.0.0', port=int(os.getenv("PORT", 5000)))
+        
