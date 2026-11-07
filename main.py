@@ -60,18 +60,17 @@ async def start(update: Update, context):
     reply_markup = get_main_menu_keyboard()
     reply_kb = get_reply_keyboard()
     
-    # Pehle niche wale keyboard bhejo
-    await update.message.reply_text("👇 Neeche diye gaye buttons ka bhi use kar sakte hain:", reply_markup=reply_kb)
-    
-    # Phir main packages menu bhejo
-    if update.callback_query:
-        await update.callback_query.message.edit_text(
+    # Pehle reply keyboard bhej do taaki niche buttons active rahein
+    if update.message:
+        await update.message.reply_text("👇 Menu options:", reply_markup=reply_kb)
+        await update.message.reply_text(
             "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
-    else:
-        await update.message.reply_text(
+    elif update.callback_query:
+        # Back button dabane par naya message bhejenge taaki click fass na ho
+        await update.callback_query.message.reply_text(
             "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
             reply_markup=reply_markup,
             parse_mode="Markdown"
@@ -93,7 +92,12 @@ async def button_handler(update: Update, context):
     data = query.data
 
     if data == "main_menu":
-        await start(update, context)
+        reply_markup = get_main_menu_keyboard()
+        await query.message.edit_text(
+            "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
         return
 
     if data in PACKAGES:
@@ -167,4 +171,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-            
+                              
