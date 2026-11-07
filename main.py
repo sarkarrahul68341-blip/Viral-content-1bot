@@ -6,6 +6,10 @@ TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
+# Yahan apne links badal sakte hain
+SUPPORT_CHANNEL_LINK = "https://t.me/yoursupportusername"  
+DEMO_CHANNEL_LINK = "https://t.me/+iLoNw5R4Qwk5MGI1"       
+
 PHOTO_FILE = "welcome_photo.txt"
 
 def get_saved_photo():
@@ -63,9 +67,10 @@ def get_main_menu_keyboard():
             [{"text": "🔥 06 CP Bath Hidden - ₹55", "callback_data": "pkg_6"}],
             [{"text": "🔥 07 Pakistani Girl - ₹49", "callback_data": "pkg_7"}],
             [{"text": "❤️ 08 Sister & Brother - ₹30", "callback_data": "pkg_8"}],
+            # Dono niche wale buttons ab direct URL kholenge
             [
-                {"text": "🎬 WATCH BIG FREE DEMOS", "callback_data": "btn_demo"},
-                {"text": "💬 HELP & SUPPORT", "callback_data": "btn_support"}
+                {"text": "🎬 WATCH BIG FREE DEMOS", "url": DEMO_CHANNEL_LINK},
+                {"text": "💬 HELP & SUPPORT", "url": SUPPORT_CHANNEL_LINK}
             ]
         ]
     }
@@ -126,14 +131,6 @@ def webhook():
             edit_message_text(chat_id, message_id, welcome_text, reply_markup)
             return "OK", 200
 
-        if data_val == "btn_demo":
-            send_telegram_message(chat_id, "🎬 Yeh raha aapka demo content link:\n\n🔗 https://t.me/+iLoNw5R4Qwk5MGI1")
-            return "OK", 200
-
-        if data_val == "btn_support":
-            send_telegram_message(chat_id, "🛠 Kisi bhi madad ke liye yahan contact karein:\n\n🔗 https://t.me/your_support_username")
-            return "OK", 200
-
         if data_val in PACKAGES:
             pkg = PACKAGES[data_val]
             payment_text = f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:"
@@ -176,4 +173,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-            
+        
