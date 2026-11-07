@@ -4,7 +4,7 @@ from flask import Flask, request
 
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 
-# Aapki Razorpay API Credentials (Live ya Test keys yahan dalein)
+# Aapki Razorpay API Credentials
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
@@ -27,7 +27,7 @@ app = Flask(__name__)
 
 # Har package ka fix price aur uska apna private content link yahan set hai
 PACKAGES = {
-    "pkg_1": {"name": "01 CP Video and File", "price": 1, "content_link": "https://t.me/+s4Zzmwni59diNjU1"}, # Testing ke liye ₹1
+    "pkg_1": {"name": "01 CP Video and File", "price": 1, "content_link": "https://t.me/+s4Zzmwni59diNjU1"}, 
     "pkg_2": {"name": "02 Rap & Big File", "price": 89, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
     "pkg_3": {"name": "03 Mom & Son", "price": 45, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
     "pkg_4": {"name": "04 Insta Viral", "price": 30, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
@@ -51,13 +51,16 @@ def send_telegram_photo(chat_id, photo_id, caption, reply_markup=None):
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload).json()
 
-def delete_telegram_message(chat_id, message_id):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
-    requests.post(url, json={"chat_id": chat_id, "message_id": message_id})
+def edit_message_reply_markup(chat_id, message_id, reply_markup=None):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup"
+    payload = {"chat_id": chat_id, "message_id": message_id}
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+    requests.post(url, json=payload)
 
 def create_razorpay_payment_link(amount_in_rs, package_name, telegram_id, package_id):
     url = "https://api.razorpay.com/v1/payment_links"
-    amount_in_paise = int(amount_in_rs * 100) # Razorpay paise mein amount leta hai
+    amount_in_paise = int(amount_in_rs * 100)
     
     payload = {
         "amount": amount_in_paise,
@@ -100,7 +103,7 @@ def get_main_menu_keyboard():
 
 @app.route('/')
 def home():
-    return "Telegram Bot Server is Running with Automatic Payment Links!"
+    return "Telegram Bot Server is Running with Clean UI & Automatic Payment Links!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -149,7 +152,9 @@ def webhook():
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={"callback_query_id": query["id"]})
 
         if data_val == "main_menu":
-            delete_telegram_message(chat_id, message_id)
+            # Purane message ke buttons hata kar clean kar rahe hain
+            edit_message_reply_markup(chat_id, message_id, reply_markup={"inline_keyboard": []})
+            
             welcome_text = f"💖💖💖 Hello **{user_name}** ji! ✨\n\nWelcome to **All Max Content Bot** 🚀🔥\n\n👇 **Select any package below to purchase instantly:**"
             reply_markup = get_main_menu_keyboard()
             saved_photo = get_saved_photo()
@@ -160,6 +165,9 @@ def webhook():
             return "OK", 200
 
         if data_val == "btn_demo":
+            # Purane buttons ko turant hide kar rahe hain taaki stacking na ho
+            edit_message_reply_markup(chat_id, message_id, reply_markup={"inline_keyboard": []})
+            
             demo_text = (
                 "🎬 **Welcome to Free Demos Hub!** 🔥✨\n\n"
                 "Yahan aapko hamare saare latest aur trending collections ke **100% Real High-Quality Demos** dekhne ko milenge:\n\n"
@@ -181,13 +189,14 @@ def webhook():
 
         if data_val in PACKAGES:
             pkg = PACKAGES[data_val]
-            delete_telegram_message(chat_id, message_id)
+            # Purane buttons ko hata rahe hain taaki upar list jam na ho
+            edit_message_reply_markup(chat_id, message_id, reply_markup={"inline_keyboard": []})
             
             # Automatic unique payment link generate hoga fixed price ke sath
             payment_link = create_razorpay_payment_link(pkg['price'], pkg['name'], chat_id, data_val)
             
             if not payment_link:
-                payment_link = "https://razorpay.me/@subratasarkar2132" # Fallback link agar API fail ho
+                payment_link = "https://razorpay.me/@subratasarkar2132" 
                 
             payment_text = f"📦 **Package:** {pkg['name']}\n💰 **Price:** Rs. **{pkg['price']}**\n\n✨ **Secure Payment Link Generated:**\nClick the button below to pay exact amount:"
             payment_keyboard = {
@@ -204,7 +213,6 @@ def webhook():
 @app.route('/razorpay-webhook', methods=['POST'])
 def razorpay_webhook():
     data = request.get_json()
-    # Jab payment link successfully paid ho jayega
     if data.get("event") == "payment_link.paid":
         payment_entity = data["payload"]["payment_link"]["entity"]
         notes = payment_entity.get("notes", {})
@@ -215,7 +223,6 @@ def razorpay_webhook():
             pkg = PACKAGES[package_id]
             channel_link = pkg["content_link"]
             if channel_link:
-                # Bot turant automatic user ko private link bhej dega
                 send_telegram_message(
                     telegram_id,
                     f"🎉 **Payment Successful!** ✅\n\nAapne successfully **{pkg['name']}** purchase kar liya hai! 🚀\n\n👇 **Niche diye gaye private link se apna content turant access karein:**\n\n🔗 {channel_link}"
@@ -231,4 +238,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
