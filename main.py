@@ -1,167 +1,190 @@
-
-
-
-
 import os
-import razorpay
+import threading
+import requests
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
-client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+PHOTO_FILE = "welcome_photo.txt"
 
+def get_saved_photo():
+    if os.path.exists(PHOTO_FILE):
+        with open(PHOTO_FILE, "r") as f:
+            return f.read().strip()
+    return None
+
+def save_photo_id(file_id):
+    with open(PHOTO_FILE, "w") as f:
+        f.write(file_id)
+
+# Flask App for Render Health Check & Razorpay Webhook
 app = Flask(__name__)
-
-telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
-
-PACKAGES = {
-    "pkg_1": {"name": "01 CP Video and File", "price": 249, "link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
-    "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "link": ""},
-    "pkg_3": {"name": "03 Mom and Son Real Sex", "price": 45, "link": ""},
-    "pkg_4": {"name": "04 Insta viral reels and sex", "price": 30, "link": ""},
-    "pkg_5": {"name": "05 Ganga bath group join", "price": 199, "link": ""},
-    "pkg_6": {"name": "06 CP Bath camera hidden", "price": 55, "link": ""},
-    "pkg_7": {"name": "07 Pakistani girl real fuke", "price": 49, "link": ""},
-    "pkg_8": {"name": "08 Sister and brother sex", "price": 30, "link": ""},
-}
-
-def get_main_menu_keyboard():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔑 01 CP Video and File --------- Rs.249", callback_data="pkg_1")],
-        [InlineKeyboardButton("🔑 02 Rap & CP & Big File VD --------- Rs.89", callback_data="pkg_2")],
-        [InlineKeyboardButton("🔑 03 Mom and Son Real Sex --------- Rs.45", callback_data="pkg_3")],
-        [InlineKeyboardButton("🔞 04 Insta viral reels and sex --------- Rs.30", callback_data="pkg_4")],
-        [InlineKeyboardButton("🔥 05 Ganga bath group join --------- Rs.199", callback_data="pkg_5")],
-        [InlineKeyboardButton("🔥 06 CP Bath camera hidden --------- Rs.55", callback_data="pkg_6")],
-        [InlineKeyboardButton("🔥 07 Pakistani girl real fuke --------- Rs.49", callback_data="pkg_7")],
-        [InlineKeyboardButton("❤️ 08 Sister and brother sex --------- Rs.30", callback_data="pkg_8")],
-    ])
-
-async def start(update: Update, context):
-    reply_markup = get_main_menu_keyboard()
-    if update.callback_query:
-        await update.callback_query.message.edit_text(
-            "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-    else:
-        await update.message.reply_text(
-            "✨ **All Max Content Bot**\n\nSelect a package below to purchase:",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-
-async def button_handler(update: Update, context):
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data
-
-    if data == "main_menu":
-        await start(update, context)
-        return
-
-    if data in PACKAGES:
-        pkg = PACKAGES[data]
-        amount_in_paise = pkg["price"] * 100
-
-        try:
-            payment_link = client.payment_link.create({
-                "amount": amount_in_paise,
-                "currency": "INR",
-                "accept_partial": False,
-                "description": pkg["name"],
-                "customer": {
-                    "name": "Customer",
-                    "email": "customer@example.com",
-                    "contact": "9876543210"
-                },
-                "notes": {
-                    "telegram_id": query.message.chat_id,
-                    "package_id": data
-                },
-                "notify": {"sms": False, "email": False},
-                "reminder_enable": False,
-                "callback_url": "https://t.me/",
-                "callback_method": "get"
-            })
-
-            payment_url = payment_link.get("short_url")
-            
-            keyboard = [
-                [InlineKeyboardButton(f"Pay ₹{pkg['price']} Now", url=payment_url)],
-                [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            
-            await query.message.edit_text(
-                f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:",
-                reply_markup=reply_markup,
-                parse_mode="Markdown"
-            )
-        except Exception as e:
-            await query.message.edit_text(f"Error creating payment link: {str(e)}")
-
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
 
 @app.route('/')
 def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
-def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
-    
-    import asyncio
-    async def process():
-        await telegram_app.initialize()
-        await telegram_app.process_update(update)
-    
-    asyncio.run(process())
-    return "OK", 200
+    return "Telegram Bot Server is Running!"
 
 @app.route('/razorpay-webhook', methods=['POST'])
 def razorpay_webhook():
     data = request.get_json()
-    
     if data.get("event") == "payment_link.paid":
         payment_entity = data["payload"]["payment_link"]["entity"]
         notes = payment_entity.get("notes", {})
         telegram_id = notes.get("telegram_id")
         package_id = notes.get("package_id")
         
+        PACKAGES = {
+            "pkg_1": {"name": "01 CP Video and File", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+            "pkg_2": {"name": "02 Rap & CP & Big File VD", "content_link": ""},
+            "pkg_3": {"name": "03 Mom and Son Real Sex", "content_link": ""},
+            "pkg_4": {"name": "04 Insta viral reels and sex", "content_link": ""},
+            "pkg_5": {"name": "05 Ganga bath group join", "content_link": ""},
+            "pkg_6": {"name": "06 CP Bath camera hidden", "content_link": ""},
+            "pkg_7": {"name": "07 Pakistani girl real fuke", "content_link": ""},
+            "pkg_8": {"name": "08 Sister and brother sex", "content_link": ""},
+        }
+        
         if telegram_id and package_id in PACKAGES:
             pkg = PACKAGES[package_id]
-            channel_link = pkg["link"]
-            
+            channel_link = pkg["content_link"]
             if channel_link:
-                import asyncio
-                async def send_content():
-                    await telegram_app.initialize()
-                    await telegram_app.bot.send_message(
-                        chat_id=telegram_id,
-                        text=f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
-                        parse_mode="Markdown"
-                    )
-                
-                asyncio.run(send_content())
-            
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
+                    "chat_id": telegram_id,
+                    "text": f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
+                    "parse_mode": "Markdown"
+                })
     return "OK", 200
 
-if __name__ == '__main__':
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    if RENDER_EXTERNAL_URL:
-        import urllib.request
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
+# Packages Mapping
+PACKAGES = {
+    "pkg_1": {"name": "01 CP Video and File", "price": 249, "payment_link": "https://rzp.io/l/testlink", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_3": {"name": "03 Mom and Son Real Sex", "price": 45, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_4": {"name": "04 Insta viral reels and sex", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_5": {"name": "05 Ganga bath group join", "price": 199, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_6": {"name": "06 CP Bath camera hidden", "price": 55, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_7": {"name": "07 Pakistani girl real fuke", "price": 49, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_8": {"name": "08 Sister and brother sex", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+}
 
+# Main menu keyboard jisme niche Left side mein Big Demo button aur Right side mein Help & Support hai
+def get_main_menu_keyboard():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔑 01 CP Video - ₹249", callback_data="pkg_1")],
+        [InlineKeyboardButton("🔑 02 Rap & Big File - ₹89", callback_data="pkg_2")],
+        [InlineKeyboardButton("🔑 03 Mom & Son - ₹45", callback_data="pkg_3")],
+        [InlineKeyboardButton("🔞 04 Insta Viral - ₹30", callback_data="pkg_4")],
+        [InlineKeyboardButton("🔥 05 Ganga Bath - ₹199", callback_data="pkg_5")],
+        [InlineKeyboardButton("🔥 06 CP Bath Hidden - ₹55", callback_data="pkg_6")],
+        [InlineKeyboardButton("🔥 07 Pakistani Girl - ₹49", callback_data="pkg_7")],
+        [InlineKeyboardButton("❤️ 08 Sister & Brother - ₹30", callback_data="pkg_8")],
+        # Niche ke buttons: Left side mein Big Demo, Right side mein Help & Support
+        [
+            InlineKeyboardButton("🎬 WATCH BIG FREE DEMOS", callback_data="btn_demo"),
+            InlineKeyboardButton("💬 HELP & SUPPORT", callback_data="btn_support")
+        ]
+    ])
+
+async def start(update: Update, context):
+    user = update.effective_user
+    user_name = user.first_name if user and user.first_name else "User"
+    reply_markup = get_main_menu_keyboard()
+    
+    welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
+    saved_photo = get_saved_photo()
+    
+    if update.message:
+        if saved_photo:
+            try:
+                await update.message.reply_photo(photo=saved_photo, caption=welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+                return
+            except Exception:
+                pass
+        await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+    elif update.callback_query:
+        if saved_photo:
+            try:
+                await update.callback_query.message.edit_media(media=InputMediaPhoto(media=saved_photo, caption=welcome_text, parse_mode="Markdown"), reply_markup=reply_markup)
+                return
+            except Exception:
+                pass
+        await update.callback_query.message.edit_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+
+async def set_photo_handler(update: Update, context):
+    message = update.message
+    photo_obj = None
+    if message.photo:
+        photo_obj = message.photo[-1]
+    elif message.reply_to_message and message.reply_to_message.photo:
+        photo_obj = message.reply_to_message.photo[-1]
+        
+    if photo_obj:
+        save_photo_id(photo_obj.file_id)
+        await message.reply_text("✅ Success! Welcome banner photo update ho gayi hai. Ab naye users ko yahi photo dikhegi!")
+    else:
+        await message.reply_text("❌ Kripya koi photo bhejiye ya photo par reply karke `/setphoto` likhiye.")
+
+async def button_handler(update: Update, context):
+    query = update.callback_query
+    await query.answer()
+    data = query.data
+
+    if data == "main_menu":
+        user = update.effective_user
+        user_name = user.first_name if user and user.first_name else "User"
+        reply_markup = get_main_menu_keyboard()
+        saved_photo = get_saved_photo()
+        welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
+        
+        if saved_photo:
+            try:
+                await query.message.edit_media(media=InputMediaPhoto(media=saved_photo, caption=welcome_text, parse_mode="Markdown"), reply_markup=reply_markup)
+                return
+            except Exception:
+                pass
+        await query.message.edit_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
+        return
+
+    # Demo button action
+    if data == "btn_demo":
+        await query.message.reply_text("🎬 Yeh raha aapka demo content link:\n\n🔗 https://t.me/+iLoNw5R4Qwk5MGI1")
+        return
+
+    # Support button action
+    if data == "btn_support":
+        await query.message.reply_text("🛠 Kisi bhi madad ke liye yahan contact karein:\n\n🔗 https://t.me/your_support_username")
+        return
+
+    if data in PACKAGES:
+        pkg = PACKAGES[data]
+        payment_url = pkg["payment_link"]
+        keyboard = [
+            [InlineKeyboardButton(f"Pay ₹{pkg['price']} Now", url=payment_url)],
+            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        payment_text = f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:"
+        
+        try:
+            await query.message.edit_caption(caption=payment_text, reply_markup=reply_markup, parse_mode="Markdown")
+        except Exception:
+            await query.message.edit_text(payment_text, reply_markup=reply_markup, parse_mode="Markdown")
+
+if __name__ == '__main__':
     port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-                              
+    flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=port), daemon=True)
+    flask_thread.start()
+
+    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
+    
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("setphoto", set_photo_handler))
+    application.add_handler(CallbackQueryHandler(button_handler))
+
+    print("Bot is running via polling...")
+    application.run_polling()
+    
