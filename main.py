@@ -22,46 +22,32 @@ app = Flask(__name__)
 
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249, "payment_link": "https://rzp.io/l/testlink", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
-    "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_3": {"name": "03 Mom and Son Real Sex", "price": 45, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_4": {"name": "04 Insta viral reels and sex", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_5": {"name": "05 Ganga bath group join", "price": 199, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_6": {"name": "06 CP Bath camera hidden", "price": 55, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_7": {"name": "07 Pakistani girl real fuke", "price": 49, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_8": {"name": "08 Sister and brother sex", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_2": {"name": "02 Rap & Big File", "price": 89, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_3": {"name": "03 Mom & Son", "price": 45, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_4": {"name": "04 Insta Viral", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_5": {"name": "05 Ganga Bath", "price": 199, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_6": {"name": "06 CP Bath Hidden", "price": 55, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_7": {"name": "07 Pakistani Girl", "price": 49, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_8": {"name": "08 Sister & Brother", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
 }
 
 def send_telegram_message(chat_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
-    payload = {
-        "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown"
-    }
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
     if reply_markup:
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload).json()
 
 def send_telegram_photo(chat_id, photo_id, caption, reply_markup=None):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendPhoto"
-    payload = {
-        "chat_id": chat_id,
-        "photo": photo_id,
-        "caption": caption,
-        "parse_mode": "Markdown"
-    }
+    payload = {"chat_id": chat_id, "photo": photo_id, "caption": caption, "parse_mode": "Markdown"}
     if reply_markup:
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload).json()
 
-def edit_telegram_message(chat_id, message_id, text, reply_markup=None):
+def edit_message_text(chat_id, message_id, text, reply_markup=None):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText"
-    payload = {
-        "chat_id": chat_id,
-        "message_id": message_id,
-        "text": text,
-        "parse_mode": "Markdown"
-    }
+    payload = {"chat_id": chat_id, "message_id": message_id, "text": text, "parse_mode": "Markdown"}
     if reply_markup:
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload).json()
@@ -77,7 +63,6 @@ def get_main_menu_keyboard():
             [{"text": "🔥 06 CP Bath Hidden - ₹55", "callback_data": "pkg_6"}],
             [{"text": "🔥 07 Pakistani Girl - ₹49", "callback_data": "pkg_7"}],
             [{"text": "❤️ 08 Sister & Brother - ₹30", "callback_data": "pkg_8"}],
-            # Left side: Big Demo, Right side: Help & Support
             [
                 {"text": "🎬 WATCH BIG FREE DEMOS", "callback_data": "btn_demo"},
                 {"text": "💬 HELP & SUPPORT", "callback_data": "btn_support"}
@@ -87,7 +72,7 @@ def get_main_menu_keyboard():
 
 @app.route('/')
 def home():
-    return "Telegram Bot Webhook Server is Running!"
+    return "Telegram Bot Server is Running!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -99,7 +84,6 @@ def webhook():
         user_name = msg.get("from", {}).get("first_name", "User")
         text = msg.get("text", "")
         
-        # /setphoto command handler
         if text.startswith("/setphoto") or (msg.get("photo") and msg.get("caption", "").startswith("/setphoto")):
             photo_obj = None
             if msg.get("photo"):
@@ -114,7 +98,6 @@ def webhook():
                 send_telegram_message(chat_id, "❌ Kripya koi photo bhejiye ya photo par reply karke `/setphoto` likhiye.")
             return "OK", 200
 
-        # /start command handler
         if text.startswith("/start"):
             welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
             reply_markup = get_main_menu_keyboard()
@@ -122,7 +105,7 @@ def webhook():
             
             if saved_photo:
                 res = send_telegram_photo(chat_id, saved_photo, welcome_text, reply_markup)
-                if not res.get("ok"): # Agar file_id expire ho gayi ho toh text bhej dega
+                if not res.get("ok"):
                     send_telegram_message(chat_id, welcome_text, reply_markup)
             else:
                 send_telegram_message(chat_id, welcome_text, reply_markup)
@@ -135,13 +118,12 @@ def webhook():
         user_name = query.get("from", {}).get("first_name", "User")
         data_val = query["data"]
         
-        # Acknowledge callback query to remove loading animation
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={"callback_query_id": query["id"]})
 
         if data_val == "main_menu":
             welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
             reply_markup = get_main_menu_keyboard()
-            edit_telegram_message(chat_id, message_id, welcome_text, reply_markup)
+            edit_message_text(chat_id, message_id, welcome_text, reply_markup)
             return "OK", 200
 
         if data_val == "btn_demo":
@@ -161,7 +143,7 @@ def webhook():
                     [{"text": "🔙 Back to Menu", "callback_data": "main_menu"}]
                 ]
             }
-            edit_telegram_message(chat_id, message_id, payment_text, payment_keyboard)
+            edit_message_text(chat_id, message_id, payment_text, payment_keyboard)
             return "OK", 200
 
     return "OK", 200
@@ -194,4 +176,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+            
