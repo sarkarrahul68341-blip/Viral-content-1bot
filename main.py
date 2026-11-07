@@ -1,4 +1,5 @@
 import os
+import asyncio
 import razorpay
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto
@@ -24,7 +25,13 @@ client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 app = Flask(__name__)
 
-# Packages Mapping
+# Single global event loop initialization for Telegram Bot
+loop = asyncio.new_event_loop()
+asyncio.set_event_loop(loop)
+
+telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
+loop.run_until_complete(telegram_app.initialize())
+
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249, "payment_link": "https://rzp.io/l/testlink", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
@@ -38,11 +45,7 @@ PACKAGES = {
 
 def get_reply_keyboard():
     return ReplyKeyboardMarkup([
-        [
-            KeyboardButton("🎬 Demo"),
-            KeyboardButton("📢 Channel"),
-            KeyboardButton("🛠 Support")
-        ]
+        [KeyboardButton("🎬 Demo"), KeyboardButton("📢 Channel"), KeyboardButton("🛠 Support")]
     ], resize_keyboard=True)
 
 def get_main_menu_keyboard():
@@ -60,10 +63,8 @@ def get_main_menu_keyboard():
 async def start(update: Update, context):
     user = update.effective_user
     user_name = user.first_name if user and user.first_name else "User"
-    
     reply_markup = get_main_menu_keyboard()
     reply_kb = get_reply_keyboard()
-    
     welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
     saved_photo = get_saved_photo()
     
@@ -76,7 +77,6 @@ async def start(update: Update, context):
             except Exception:
                 pass
         await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
-        
     elif update.callback_query:
         if saved_photo:
             try:
@@ -145,9 +145,29 @@ async def button_handler(update: Update, context):
         except Exception:
             await query.message.edit_text(payment_text, reply_markup=reply_markup, parse_mode="Markdown")
 
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("setphoto", set_photo_handler))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_buttons))
+
 @app.route('/')
 def home():
     return "Telegram Bot Webhook Server is Running!"
+
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+def webhook():
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, telegram_app.bot)
+    
+    # Use the same global event loop to process updates safely
+    global loop
+    future = asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop)
+    try:
+        future.result(timeout=10)
+    except Exception as e:
+        print(f"Webhook processing error: {e}")
+        
+    return "OK", 200
 
 @app.route('/razorpay-webhook', methods=['POST'])
 def razorpay_webhook():
@@ -158,7 +178,6 @@ def razorpay_webhook():
         telegram_id = notes.get("telegram_id")
         package_id = notes.get("package_id")
         
-        # Razorpay payment success par notification bhejne ke liye Flask se bot ko call
         if telegram_id and package_id in PACKAGES:
             pkg = PACKAGES[package_id]
             channel_link = pkg["content_link"]
@@ -171,29 +190,13 @@ def razorpay_webhook():
                 })
     return "OK", 200
 
-def main():
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("setphoto", set_photo_handler))
-    application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_buttons))
-
-    PORT = int(os.environ.get("PORT", 10000))
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    
-    if RENDER_EXTERNAL_URL:
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        print(f"Starting webhook on {webhook_url}")
-        application.run_webhook(
-            listen="0.0.0.0",
-            port=PORT,
-            secret_token="my_secret_token",
-            webhook_url=webhook_url
-        )
-    else:
-        application.run_polling()
-
 if __name__ == '__main__':
-    # Flask app ko alag thread ya main thread
-    
+    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        import urllib.request
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
+        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+        
