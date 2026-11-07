@@ -2,7 +2,7 @@ import os
 import asyncio
 import razorpay
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
@@ -82,12 +82,34 @@ async def start(update: Update, context):
     if update.message:
         await update.message.reply_text("👇 Menu options:", reply_markup=reply_kb)
         
-        # Agar photo saved hai toh photo ke sath caption me welcome text bhega (screenshot jaisa)
         if saved_photo:
             try:
                 await update.message.reply_photo(
                     photo=saved_photo,
                     caption=welcome_text,
                     reply_markup=reply_markup,
-                    parse_mode="
-                    
+                    parse_mode="Markdown"
+                )
+                return
+            except Exception:
+                pass
+                
+        await update.message.reply_text(
+            welcome_text,
+            reply_markup=reply_markup,
+            parse_mode="Markdown"
+        )
+        
+    elif update.callback_query:
+        if saved_photo:
+            try:
+                await update.callback_query.message.edit_media(
+                    media=InputMediaPhoto(media=saved_photo, caption=welcome_text, parse_mode="Markdown"),
+                    reply_markup=reply_markup
+                )
+                return
+            except Exception:
+                pass
+
+        await update.callback_query.message.edit_text(
+            welcome_
