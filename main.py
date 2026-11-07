@@ -1,7 +1,6 @@
 import os
 import threading
-import asyncio
-import razorpay
+import requests
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
@@ -22,22 +21,45 @@ def save_photo_id(file_id):
     with open(PHOTO_FILE, "w") as f:
         f.write(file_id)
 
-client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
-
+# Flask App for Render Health Check & Razorpay Webhook
 app = Flask(__name__)
 
-# Setup a dedicated background event loop for Telegram Bot
-bot_loop = asyncio.new_event_loop()
+@app.route('/')
+def home():
+    return "Telegram Bot Server is Running!"
 
-def start_background_loop(loop):
-    asyncio.set_event_loop(loop)
-    loop.run_forever()
+@app.route('/razorpay-webhook', methods=['POST'])
+def razorpay_webhook():
+    data = request.get_json()
+    if data.get("event") == "payment_link.paid":
+        payment_entity = data["payload"]["payment_link"]["entity"]
+        notes = payment_entity.get("notes", {})
+        telegram_id = notes.get("telegram_id")
+        package_id = notes.get("package_id")
+        
+        PACKAGES = {
+            "pkg_1": {"name": "01 CP Video and File", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+            "pkg_2": {"name": "02 Rap & CP & Big File VD", "content_link": ""},
+            "pkg_3": {"name": "03 Mom and Son Real Sex", "content_link": ""},
+            "pkg_4": {"name": "04 Insta viral reels and sex", "content_link": ""},
+            "pkg_5": {"name": "05 Ganga bath group join", "content_link": ""},
+            "pkg_6": {"name": "06 CP Bath camera hidden", "content_link": ""},
+            "pkg_7": {"name": "07 Pakistani girl real fuke", "content_link": ""},
+            "pkg_8": {"name": "08 Sister and brother sex", "content_link": ""},
+        }
+        
+        if telegram_id and package_id in PACKAGES:
+            pkg = PACKAGES[package_id]
+            channel_link = pkg["content_link"]
+            if channel_link:
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
+                    "chat_id": telegram_id,
+                    "text": f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
+                    "parse_mode": "Markdown"
+                })
+    return "OK", 200
 
-threading.Thread(target=start_background_loop, args=(bot_loop,), daemon=True).start()
-
-telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
-asyncio.run_coroutine_threadsafe(telegram_app.initialize(), bot_loop).result()
-
+# Telegram Bot Handlers
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249, "payment_link": "https://rzp.io/l/testlink", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
@@ -84,18 +106,5 @@ async def start(update: Update, context):
                 pass
         await update.message.reply_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
     elif update.callback_query:
-        if saved_photo:
-            try:
-                await update.callback_query.message.edit_media(media=InputMediaPhoto(media=saved_photo, caption=welcome_text, parse_mode="Markdown"), reply_markup=reply_markup)
-                return
-            except Exception:
-                pass
-        await update.callback_query.message.edit_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
-
-async def set_photo_handler(update: Update, context):
-    message = update.message
-    photo_obj = None
-    if message.photo:
-        photo_obj = message.photo[-1]
-    elif message.reply_to_message and message.reply_to_message.photo:
-        photo_obj = message.reply_to
+        if
+            
