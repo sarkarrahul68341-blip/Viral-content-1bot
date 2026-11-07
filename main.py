@@ -51,12 +51,17 @@ def send_telegram_photo(chat_id, photo_id, caption, reply_markup=None):
         payload["reply_markup"] = reply_markup
     return requests.post(url, json=payload).json()
 
-def edit_message_reply_markup(chat_id, message_id, reply_markup=None):
-    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageReplyMarkup"
-    payload = {"chat_id": chat_id, "message_id": message_id}
+def edit_telegram_message(chat_id, message_id, text, reply_markup=None):
+    url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText"
+    payload = {
+        "chat_id": chat_id,
+        "message_id": message_id,
+        "text": text,
+        "parse_mode": "Markdown"
+    }
     if reply_markup:
         payload["reply_markup"] = reply_markup
-    requests.post(url, json=payload)
+    return requests.post(url, json=payload).json()
 
 def create_razorpay_payment_link(amount_in_rs, package_name, telegram_id, package_id):
     url = "https://api.razorpay.com/v1/payment_links"
@@ -103,7 +108,7 @@ def get_main_menu_keyboard():
 
 @app.route('/')
 def home():
-    return "Telegram Bot Server is Running with Clean UI & Automatic Payment Links!"
+    return "Telegram Bot Server is Running with Single-Message UI Update!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -152,22 +157,13 @@ def webhook():
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={"callback_query_id": query["id"]})
 
         if data_val == "main_menu":
-            # Purane message ke buttons hata kar clean kar rahe hain
-            edit_message_reply_markup(chat_id, message_id, reply_markup={"inline_keyboard": []})
-            
             welcome_text = f"💖💖💖 Hello **{user_name}** ji! ✨\n\nWelcome to **All Max Content Bot** 🚀🔥\n\n👇 **Select any package below to purchase instantly:**"
             reply_markup = get_main_menu_keyboard()
-            saved_photo = get_saved_photo()
-            if saved_photo:
-                send_telegram_photo(chat_id, saved_photo, welcome_text, reply_markup)
-            else:
-                send_telegram_message(chat_id, welcome_text, reply_markup)
+            # Wahi purane message ko edit karke main menu dikhayenge
+            edit_telegram_message(chat_id, message_id, welcome_text, reply_markup)
             return "OK", 200
 
         if data_val == "btn_demo":
-            # Purane buttons ko turant hide kar rahe hain taaki stacking na ho
-            edit_message_reply_markup(chat_id, message_id, reply_markup={"inline_keyboard": []})
-            
             demo_text = (
                 "🎬 **Welcome to Free Demos Hub!** 🔥✨\n\n"
                 "Yahan aapko hamare saare latest aur trending collections ke **100% Real High-Quality Demos** dekhne ko milenge:\n\n"
@@ -184,13 +180,12 @@ def webhook():
                     [{"text": "🔙 Back to Main Menu", "callback_data": "main_menu"}]
                 ]
             }
-            send_telegram_message(chat_id, demo_text, demo_keyboard)
+            # Message ko hi edit karke demos dikhayenge
+            edit_telegram_message(chat_id, message_id, demo_text, demo_keyboard)
             return "OK", 200
 
         if data_val in PACKAGES:
             pkg = PACKAGES[data_val]
-            # Purane buttons ko hata rahe hain taaki upar list jam na ho
-            edit_message_reply_markup(chat_id, message_id, reply_markup={"inline_keyboard": []})
             
             # Automatic unique payment link generate hoga fixed price ke sath
             payment_link = create_razorpay_payment_link(pkg['price'], pkg['name'], chat_id, data_val)
@@ -205,7 +200,8 @@ def webhook():
                     [{"text": "🔙 Back to Main Menu", "callback_data": "main_menu"}]
                 ]
             }
-            send_telegram_message(chat_id, payment_text, payment_keyboard)
+            # Message ko hi edit karke payment link dikhayenge
+            edit_telegram_message(chat_id, message_id, payment_text, payment_keyboard)
             return "OK", 200
 
     return "OK", 200
