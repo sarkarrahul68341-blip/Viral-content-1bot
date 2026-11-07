@@ -6,9 +6,11 @@ TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
-# Aapke naye links yahan set kar diye gaye hain
 SUPPORT_CHANNEL_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"  
 DEMO_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"       
+
+# Aapka Razorpay Payment Handle Link
+RAZORPAY_HANDLE_URL = "https://razorpay.me/@subratasarkar2132"
 
 PHOTO_FILE = "welcome_photo.txt"
 
@@ -24,15 +26,16 @@ def save_photo_id(file_id):
 
 app = Flask(__name__)
 
+# Package 1 ka content link aapka naya private link set kar diya gaya hai
 PACKAGES = {
-    "pkg_1": {"name": "01 CP Video and File", "price": 249, "payment_link": "https://rzp.io/l/testlink", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
-    "pkg_2": {"name": "02 Rap & Big File", "price": 89, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_3": {"name": "03 Mom & Son", "price": 45, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_4": {"name": "04 Insta Viral", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_5": {"name": "05 Ganga Bath", "price": 199, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_6": {"name": "06 CP Bath Hidden", "price": 55, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_7": {"name": "07 Pakistani Girl", "price": 49, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
-    "pkg_8": {"name": "08 Sister & Brother", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
+    "pkg_1": {"name": "01 CP Video and File", "price": 1, "payment_link": RAZORPAY_HANDLE_URL, "content_link": "https://t.me/+s4Zzmwni59diNjU1"},
+    "pkg_2": {"name": "02 Rap & Big File", "price": 89, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
+    "pkg_3": {"name": "03 Mom & Son", "price": 45, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
+    "pkg_4": {"name": "04 Insta Viral", "price": 30, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
+    "pkg_5": {"name": "05 Ganga Bath", "price": 199, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
+    "pkg_6": {"name": "06 CP Bath Hidden", "price": 55, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
+    "pkg_7": {"name": "07 Pakistani Girl", "price": 49, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
+    "pkg_8": {"name": "08 Sister & Brother", "price": 30, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
 }
 
 def send_telegram_message(chat_id, text, reply_markup=None):
@@ -56,7 +59,7 @@ def delete_telegram_message(chat_id, message_id):
 def get_main_menu_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "💎 01 CP Video & File — ₹249", "callback_data": "pkg_1"}],
+            [{"text": "💎 01 CP Video & File — ₹1 (TEST)", "callback_data": "pkg_1"}],
             [{"text": "🔥 02 Rap & Big File — ₹89", "callback_data": "pkg_2"}],
             [{"text": "💖 03 Mom & Son Special — ₹45", "callback_data": "pkg_3"}],
             [{"text": "🔞 04 Insta Viral Reels — ₹30", "callback_data": "pkg_4"}],
@@ -73,7 +76,7 @@ def get_main_menu_keyboard():
 
 @app.route('/')
 def home():
-    return "Telegram Bot Server is Running with New Links!"
+    return "Telegram Bot Server is Running with Private Link!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -140,7 +143,7 @@ def webhook():
                 "🔥 `02 Rap & Big File Video Samples`\n"
                 "💖 `03 Mom & Son Special Clips`\n"
                 "🔞 `04 Insta Viral Reels & Extra Content`\n"
-                "🌊 `05 Ganga Bath & Group Hidden Videos`\n\n"
+                "🌊 `05 Ganga Bath Group & Hidden Videos`\n\n"
                 "👇 **Demo channel join karne ke liye niche button par click karein:**"
             )
             demo_keyboard = {
@@ -155,10 +158,10 @@ def webhook():
         if data_val in PACKAGES:
             pkg = PACKAGES[data_val]
             delete_telegram_message(chat_id, message_id)
-            payment_text = f"📦 **Package:** {pkg['name']}\n💰 **Price:** Rs. **{pkg['price']}**\n\n✨ **Secure Payment Link:**\nClick the button below to complete your payment safely:"
+            payment_text = f"📦 **Package:** {pkg['name']}\n💰 **Price:** Rs. **{pkg['price']}**\n\n✨ **Payment Link:**\nClick the button below to complete your payment:"
             payment_keyboard = {
                 "inline_keyboard": [
-                    [{"text": f"💳 Pay ₹{pkg['price']} Now securely", "url": pkg["payment_link"]}],
+                    [{"text": f"💳 Pay ₹{pkg['price']} Now", "url": pkg["payment_link"]}],
                     [{"text": "🔙 Back to Main Menu", "callback_data": "main_menu"}]
                 ]
             }
@@ -182,7 +185,7 @@ def razorpay_webhook():
             if channel_link:
                 send_telegram_message(
                     telegram_id,
-                    f"🎉 **Payment Successful!** ✅\n\nAapne successfully **{pkg['name']}** purchase kar liya hai! 🚀\n\n👇 **Niche diye gaye exclusive link se apna content turant access karein:**\n\n🔗 {channel_link}"
+                    f"🎉 **Payment Successful!** ✅\n\nAapne successfully **{pkg['name']}** purchase kar liya hai! 🚀\n\n👇 **Niche diye gaye private link se apna content turant access karein:**\n\n🔗 {channel_link}"
                 )
     return "OK", 200
 
@@ -195,4 +198,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+        
