@@ -6,8 +6,9 @@ TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
-SUPPORT_CHANNEL_LINK = "https://t.me/yoursupportusername"  
-DEMO_CHANNEL_LINK = "https://t.me/+iLoNw5R4Qwk5MGI1"       
+# Aapke naye links yahan set kar diye gaye hain
+SUPPORT_CHANNEL_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"  
+DEMO_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"       
 
 PHOTO_FILE = "welcome_photo.txt"
 
@@ -55,16 +56,16 @@ def delete_telegram_message(chat_id, message_id):
 def get_main_menu_keyboard():
     return {
         "inline_keyboard": [
-            [{"text": "🔑 01 CP Video - ₹249", "callback_data": "pkg_1"}],
-            [{"text": "🔑 02 Rap & Big File - ₹89", "callback_data": "pkg_2"}],
-            [{"text": "🔑 03 Mom & Son - ₹45", "callback_data": "pkg_3"}],
-            [{"text": "🔞 04 Insta Viral - ₹30", "callback_data": "pkg_4"}],
-            [{"text": "🔥 05 Ganga Bath - ₹199", "callback_data": "pkg_5"}],
-            [{"text": "🔥 06 CP Bath Hidden - ₹55", "callback_data": "pkg_6"}],
-            [{"text": "🔥 07 Pakistani Girl - ₹49", "callback_data": "pkg_7"}],
-            [{"text": "❤️ 08 Sister & Brother - ₹30", "callback_data": "pkg_8"}],
+            [{"text": "💎 01 CP Video & File — ₹249", "callback_data": "pkg_1"}],
+            [{"text": "🔥 02 Rap & Big File — ₹89", "callback_data": "pkg_2"}],
+            [{"text": "💖 03 Mom & Son Special — ₹45", "callback_data": "pkg_3"}],
+            [{"text": "🔞 04 Insta Viral Reels — ₹30", "callback_data": "pkg_4"}],
+            [{"text": "🌊 05 Ganga Bath Group — ₹199", "callback_data": "pkg_5"}],
+            [{"text": "📸 06 CP Bath Hidden Cam — ₹55", "callback_data": "pkg_6"}],
+            [{"text": "🌸 07 Pakistani Girl Real — ₹49", "callback_data": "pkg_7"}],
+            [{"text": "❤️ 08 Sister & Brother — ₹30", "callback_data": "pkg_8"}],
             [
-                {"text": "🎬 WATCH BIG FREE DEMOS", "url": DEMO_CHANNEL_LINK},
+                {"text": "🎬 WATCH FREE DEMOS", "callback_data": "btn_demo"},
                 {"text": "💬 HELP & SUPPORT", "url": SUPPORT_CHANNEL_LINK}
             ]
         ]
@@ -72,7 +73,7 @@ def get_main_menu_keyboard():
 
 @app.route('/')
 def home():
-    return "Telegram Bot Server is Running!"
+    return "Telegram Bot Server is Running with New Links!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -93,13 +94,13 @@ def webhook():
                 
             if photo_obj:
                 save_photo_id(photo_obj["file_id"])
-                send_telegram_message(chat_id, "✅ Success! Welcome banner photo update ho gayi hai.")
+                send_telegram_message(chat_id, "✅ **Success!** Welcome banner photo successfully update ho gayi hai! 📸✨")
             else:
                 send_telegram_message(chat_id, "❌ Kripya koi photo bhejiye ya photo par reply karke `/setphoto` likhiye.")
             return "OK", 200
 
         if text.startswith("/start"):
-            welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
+            welcome_text = f"💖💖💖 Hello **{user_name}** ji! ✨\n\nWelcome to **All Max Content Bot** 🚀🔥\n\n👇 **Select any package below to purchase instantly:**"
             reply_markup = get_main_menu_keyboard()
             saved_photo = get_saved_photo()
             
@@ -122,7 +123,7 @@ def webhook():
 
         if data_val == "main_menu":
             delete_telegram_message(chat_id, message_id)
-            welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
+            welcome_text = f"💖💖💖 Hello **{user_name}** ji! ✨\n\nWelcome to **All Max Content Bot** 🚀🔥\n\n👇 **Select any package below to purchase instantly:**"
             reply_markup = get_main_menu_keyboard()
             saved_photo = get_saved_photo()
             if saved_photo:
@@ -131,14 +132,34 @@ def webhook():
                 send_telegram_message(chat_id, welcome_text, reply_markup)
             return "OK", 200
 
+        if data_val == "btn_demo":
+            demo_text = (
+                "🎬 **Welcome to Free Demos Hub!** 🔥✨\n\n"
+                "Yahan aapko hamare saare latest aur trending collections ke **100% Real High-Quality Demos** dekhne ko milenge:\n\n"
+                "💎 `01 CP Video & Exclusive Files Preview`\n"
+                "🔥 `02 Rap & Big File Video Samples`\n"
+                "💖 `03 Mom & Son Special Clips`\n"
+                "🔞 `04 Insta Viral Reels & Extra Content`\n"
+                "🌊 `05 Ganga Bath & Group Hidden Videos`\n\n"
+                "👇 **Demo channel join karne ke liye niche button par click karein:**"
+            )
+            demo_keyboard = {
+                "inline_keyboard": [
+                    [{"text": "🚀 JOIN DEMO CHANNEL NOW", "url": DEMO_CHANNEL_LINK}],
+                    [{"text": "🔙 Back to Main Menu", "callback_data": "main_menu"}]
+                ]
+            }
+            send_telegram_message(chat_id, demo_text, demo_keyboard)
+            return "OK", 200
+
         if data_val in PACKAGES:
             pkg = PACKAGES[data_val]
             delete_telegram_message(chat_id, message_id)
-            payment_text = f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:"
+            payment_text = f"📦 **Package:** {pkg['name']}\n💰 **Price:** Rs. **{pkg['price']}**\n\n✨ **Secure Payment Link:**\nClick the button below to complete your payment safely:"
             payment_keyboard = {
                 "inline_keyboard": [
-                    [{"text": f"Pay ₹{pkg['price']} Now", "url": pkg["payment_link"]}],
-                    [{"text": "🔙 Back to Menu", "callback_data": "main_menu"}]
+                    [{"text": f"💳 Pay ₹{pkg['price']} Now securely", "url": pkg["payment_link"]}],
+                    [{"text": "🔙 Back to Main Menu", "callback_data": "main_menu"}]
                 ]
             }
             send_telegram_message(chat_id, payment_text, payment_keyboard)
@@ -161,7 +182,7 @@ def razorpay_webhook():
             if channel_link:
                 send_telegram_message(
                     telegram_id,
-                    f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}"
+                    f"🎉 **Payment Successful!** ✅\n\nAapne successfully **{pkg['name']}** purchase kar liya hai! 🚀\n\n👇 **Niche diye gaye exclusive link se apna content turant access karein:**\n\n🔗 {channel_link}"
                 )
     return "OK", 200
 
@@ -174,4 +195,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-            
+    
