@@ -9,8 +9,17 @@ TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
-# Variable to store the latest welcome photo file_id dynamically
-SAVED_WELCOME_PHOTO_ID = None
+PHOTO_FILE = "welcome_photo.txt"
+
+def get_saved_photo():
+    if os.path.exists(PHOTO_FILE):
+        with open(PHOTO_FILE, "r") as f:
+            return f.read().strip()
+    return None
+
+def save_photo_id(file_id):
+    with open(PHOTO_FILE, "w") as f:
+        f.write(file_id)
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
@@ -60,7 +69,6 @@ def get_main_menu_keyboard():
     ])
 
 async def start(update: Update, context):
-    global SAVED_WELCOME_PHOTO_ID
     user = update.effective_user
     user_name = user.first_name if user and user.first_name else "User"
     
@@ -69,150 +77,17 @@ async def start(update: Update, context):
     
     welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
     
+    saved_photo = get_saved_photo()
+    
     if update.message:
         await update.message.reply_text("👇 Menu options:", reply_markup=reply_kb)
         
-        # Agar koi photo set ki hui hai toh photo ke sath bhejega, warna sirf text
-        if SAVED_WELCOME_PHOTO_ID:
+        # Agar photo saved hai toh photo ke sath caption me welcome text bhega (screenshot jaisa)
+        if saved_photo:
             try:
                 await update.message.reply_photo(
-                    photo=SAVED_WELCOME_PHOTO_ID,
+                    photo=saved_photo,
                     caption=welcome_text,
                     reply_markup=reply_markup,
-                    parse_mode="Markdown"
-                )
-                return
-            except Exception:
-                pass
-                
-        await update.message.reply_text(
-            welcome_text,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-        
-    elif update.callback_query:
-        await update.callback_query.message.reply_text(
-            welcome_text,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-
-# Phone se photo set karne ka command handler
-async def set_photo_handler(update: Update, context):
-    global SAVED_WELCOME_PHOTO_ID
-    message = update.message
-    
-    # Check karo ki photo bheji hai ya kisi photo par reply karke command di hai
-    photo_obj = None
-    if message.photo:
-        photo_obj = message.photo[-1] # Highest resolution photo
-    elif message.reply_to_message and message.reply_to_message.photo:
-        photo_obj = message.reply_to_message.photo[-1]
-        
-    if photo_obj:
-        SAVED_WELCOME_PHOTO_ID = photo_obj.file_id
-        await message.reply_text("✅ Success! Welcome photo successfully update ho gayi hai. Ab naye users ko yahi photo dikhegi!")
-    else:
-        await message.reply_text("❌ Kripya koi photo bhejiye ya photo par reply karke `/setphoto` likhiye.")
-
-async def handle_text_buttons(update: Update, context):
-    text = update.message.text
-    if text == "🎬 Demo":
-        await update.message.reply_text("🎬 Yeh raha aapka demo content link:\n\n🔗 https://t.me/+iLoNw5R4Qwk5MGI1")
-    elif text == "📢 Channel":
-        await update.message.reply_text("📢 Hamara official channel join karein:\n\n🔗 https://t.me/+iLoNw5R4Qwk5MGI1")
-    elif text == "🛠 Support":
-        await update.message.reply_text("🛠 Kisi bhi madad ke liye yahan contact karein:\n\n🔗 https://t.me/your_support_username")
-
-async def button_handler(update: Update, context):
-    query = update.callback_query
-    await query.answer()
-
-    data = query.data
-
-    if data == "main_menu":
-        user = update.effective_user
-        user_name = user.first_name if user and user.first_name else "User"
-        reply_markup = get_main_menu_keyboard()
-        
-        await query.message.edit_text(
-            f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-        return
-
-    if data in PACKAGES:
-        pkg = PACKAGES[data]
-        payment_url = pkg["payment_link"]
-
-        keyboard = [
-            [InlineKeyboardButton(f"Pay ₹{pkg['price']} Now", url=payment_url)],
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        
-        await query.message.edit_text(
-            f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("setphoto", set_photo_handler))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_buttons))
-
-@app.route('/')
-def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
-def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
-    
-    req_loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(req_loop)
-    req_loop.run_until_complete(telegram_app.process_update(update))
-    
-    return "OK", 200
-
-@app.route('/razorpay-webhook', methods=['POST'])
-def razorpay_webhook():
-    data = request.get_json()
-    
-    if data.get("event") == "payment_link.paid":
-        payment_entity = data["payload"]["payment_link"]["entity"]
-        notes = payment_entity.get("notes", {})
-        telegram_id = notes.get("telegram_id")
-        package_id = notes.get("package_id")
-        
-        if telegram_id and package_id in PACKAGES:
-            pkg = PACKAGES[package_id]
-            channel_link = pkg["content_link"]
-            
-            if channel_link:
-                req_loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(req_loop)
-                req_loop.run_until_complete(
-                    telegram_app.bot.send_message(
-                        chat_id=telegram_id,
-                        text=f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
-                        parse_mode="Markdown"
-                    )
-                )
-            
-    return "OK", 200
-
-if __name__ == '__main__':
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    if RENDER_EXTERNAL_URL:
-        import urllib.request
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-            
+                    parse_mode="
+                    
