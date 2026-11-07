@@ -1,4 +1,6 @@
 import os
+import time
+import threading
 import asyncio
 import razorpay
 from flask import Flask, request
@@ -16,7 +18,7 @@ app = Flask(__name__)
 # Telegram Application Build
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
 
-# Packages Mapping (Y apne links daal sakte hain)
+# Packages Mapping
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249, "payment_link": "https://rzp.io/l/testlink", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
     "pkg_2": {"name": "02 Rap & CP & Big File VD", "price": 89, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
@@ -57,7 +59,7 @@ async def start(update: Update, context):
 
 async def button_handler(update: Update, context):
     query = update.callback_query
-    await query.answer()  # Turant loading band karne ke liye
+    await query.answer()
 
     data = query.data
 
@@ -77,77 +79,5 @@ async def button_handler(update: Update, context):
         
         await query.message.edit_text(
             f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
-
-# App startup par initialize karne ke liye flag
-is_initialized = False
-
-def initialize_bot_sync():
-    global is_initialized
-    if not is_initialized:
-        loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(loop)
-        loop.run_until_complete(telegram_app.initialize())
-        loop.run_until_complete(telegram_app.start())
-        is_initialized = True
-
-@app.route('/')
-def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
-def webhook():
-    initialize_bot_sync()
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
-    
-    loop = asyncio.new_event_loop()
-    asyncio.set_event_loop(loop)
-    loop.run_until_complete(telegram_app.process_update(update))
-    
-    return "OK", 200
-
-@app.route('/razorpay-webhook', methods=['POST'])
-def razorpay_webhook():
-    initialize_bot_sync()
-    data = request.get_json()
-    
-    if data.get("event") == "payment_link.paid":
-        payment_entity = data["payload"]["payment_link"]["entity"]
-        notes = payment_entity.get("notes", {})
-        telegram_id = notes.get("telegram_id")
-        package_id = notes.get("package_id")
-        
-        if telegram_id and package_id in PACKAGES:
-            pkg = PACKAGES[package_id]
-            channel_link = pkg["content_link"]
-            
-            if channel_link:
-                loop = asyncio.new_event_loop()
-                asyncio.set_event_loop(loop)
-                loop.run_until_complete(
-                    telegram_app.bot.send_message(
-                        chat_id=telegram_id,
-                        text=f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
-                        parse_mode="Markdown"
-                    )
-                )
-            
-    return "OK", 200
-
-if __name__ == '__main__':
-    initialize_bot_sync()
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    if RENDER_EXTERNAL_URL:
-        import urllib.request
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+            reply
         
