@@ -3,14 +3,13 @@ import requests
 from flask import Flask, request
 
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
+
+# Aapki Razorpay API Credentials (Live ya Test keys yahan dalein)
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
 RAZORPAY_KEY_SECRET = "PQAYNmZVrzPoPtRZPgR14FrK"
 
 SUPPORT_CHANNEL_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"  
 DEMO_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"       
-
-# Aapka Razorpay Payment Handle Link
-RAZORPAY_HANDLE_URL = "https://razorpay.me/@subratasarkar2132"
 
 PHOTO_FILE = "welcome_photo.txt"
 
@@ -26,16 +25,16 @@ def save_photo_id(file_id):
 
 app = Flask(__name__)
 
-# Package 1 ka content link aapka naya private link set kar diya gaya hai
+# Har package ka fix price aur uska apna private content link yahan set hai
 PACKAGES = {
-    "pkg_1": {"name": "01 CP Video and File", "price": 1, "payment_link": RAZORPAY_HANDLE_URL, "content_link": "https://t.me/+s4Zzmwni59diNjU1"},
-    "pkg_2": {"name": "02 Rap & Big File", "price": 89, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
-    "pkg_3": {"name": "03 Mom & Son", "price": 45, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
-    "pkg_4": {"name": "04 Insta Viral", "price": 30, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
-    "pkg_5": {"name": "05 Ganga Bath", "price": 199, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
-    "pkg_6": {"name": "06 CP Bath Hidden", "price": 55, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
-    "pkg_7": {"name": "07 Pakistani Girl", "price": 49, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
-    "pkg_8": {"name": "08 Sister & Brother", "price": 30, "payment_link": RAZORPAY_HANDLE_URL, "content_link": ""},
+    "pkg_1": {"name": "01 CP Video and File", "price": 1, "content_link": "https://t.me/+s4Zzmwni59diNjU1"}, # Testing ke liye ₹1
+    "pkg_2": {"name": "02 Rap & Big File", "price": 89, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_3": {"name": "03 Mom & Son", "price": 45, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_4": {"name": "04 Insta Viral", "price": 30, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_5": {"name": "05 Ganga Bath", "price": 199, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_6": {"name": "06 CP Bath Hidden", "price": 55, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_7": {"name": "07 Pakistani Girl", "price": 49, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
+    "pkg_8": {"name": "08 Sister & Brother", "price": 30, "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
 }
 
 def send_telegram_message(chat_id, text, reply_markup=None):
@@ -55,6 +54,31 @@ def send_telegram_photo(chat_id, photo_id, caption, reply_markup=None):
 def delete_telegram_message(chat_id, message_id):
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/deleteMessage"
     requests.post(url, json={"chat_id": chat_id, "message_id": message_id})
+
+def create_razorpay_payment_link(amount_in_rs, package_name, telegram_id, package_id):
+    url = "https://api.razorpay.com/v1/payment_links"
+    amount_in_paise = int(amount_in_rs * 100) # Razorpay paise mein amount leta hai
+    
+    payload = {
+        "amount": amount_in_paise,
+        "currency": "INR",
+        "description": f"Purchase {package_name}",
+        "customer": {
+            "name": "Telegram User",
+            "email": "customer@bot.com",
+            "contact": "9999999999"
+        },
+        "notify": {"sms": False, "email": False},
+        "reminder_enable": False,
+        "notes": {
+            "telegram_id": str(telegram_id),
+            "package_id": str(package_id)
+        }
+    }
+    
+    response = requests.post(url, json=payload, auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+    data = response.json()
+    return data.get("short_url")
 
 def get_main_menu_keyboard():
     return {
@@ -76,7 +100,7 @@ def get_main_menu_keyboard():
 
 @app.route('/')
 def home():
-    return "Telegram Bot Server is Running with Private Link!"
+    return "Telegram Bot Server is Running with Automatic Payment Links!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -158,10 +182,17 @@ def webhook():
         if data_val in PACKAGES:
             pkg = PACKAGES[data_val]
             delete_telegram_message(chat_id, message_id)
-            payment_text = f"📦 **Package:** {pkg['name']}\n💰 **Price:** Rs. **{pkg['price']}**\n\n✨ **Payment Link:**\nClick the button below to complete your payment:"
+            
+            # Automatic unique payment link generate hoga fixed price ke sath
+            payment_link = create_razorpay_payment_link(pkg['price'], pkg['name'], chat_id, data_val)
+            
+            if not payment_link:
+                payment_link = "https://razorpay.me/@subratasarkar2132" # Fallback link agar API fail ho
+                
+            payment_text = f"📦 **Package:** {pkg['name']}\n💰 **Price:** Rs. **{pkg['price']}**\n\n✨ **Secure Payment Link Generated:**\nClick the button below to pay exact amount:"
             payment_keyboard = {
                 "inline_keyboard": [
-                    [{"text": f"💳 Pay ₹{pkg['price']} Now", "url": pkg["payment_link"]}],
+                    [{"text": f"💳 Pay ₹{pkg['price']} Now", "url": payment_link}],
                     [{"text": "🔙 Back to Main Menu", "callback_data": "main_menu"}]
                 ]
             }
@@ -173,6 +204,7 @@ def webhook():
 @app.route('/razorpay-webhook', methods=['POST'])
 def razorpay_webhook():
     data = request.get_json()
+    # Jab payment link successfully paid ho jayega
     if data.get("event") == "payment_link.paid":
         payment_entity = data["payload"]["payment_link"]["entity"]
         notes = payment_entity.get("notes", {})
@@ -183,6 +215,7 @@ def razorpay_webhook():
             pkg = PACKAGES[package_id]
             channel_link = pkg["content_link"]
             if channel_link:
+                # Bot turant automatic user ko private link bhej dega
                 send_telegram_message(
                     telegram_id,
                     f"🎉 **Payment Successful!** ✅\n\nAapne successfully **{pkg['name']}** purchase kar liya hai! 🚀\n\n👇 **Niche diye gaye private link se apna content turant access karein:**\n\n🔗 {channel_link}"
