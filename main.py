@@ -1,5 +1,8 @@
 import os
+import threading
+import asyncio
 import razorpay
+from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
@@ -20,6 +23,20 @@ def save_photo_id(file_id):
         f.write(file_id)
 
 client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
+
+app = Flask(__name__)
+
+# Setup a dedicated background event loop for Telegram Bot
+bot_loop = asyncio.new_event_loop()
+
+def start_background_loop(loop):
+    asyncio.set_event_loop(loop)
+    loop.run_forever()
+
+threading.Thread(target=start_background_loop, args=(bot_loop,), daemon=True).start()
+
+telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
+asyncio.run_coroutine_threadsafe(telegram_app.initialize(), bot_loop).result()
 
 PACKAGES = {
     "pkg_1": {"name": "01 CP Video and File", "price": 249, "payment_link": "https://rzp.io/l/testlink", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
@@ -81,70 +98,4 @@ async def set_photo_handler(update: Update, context):
     if message.photo:
         photo_obj = message.photo[-1]
     elif message.reply_to_message and message.reply_to_message.photo:
-        photo_obj = message.reply_to_message.photo[-1]
-        
-    if photo_obj:
-        save_photo_id(photo_obj.file_id)
-        await message.reply_text("✅ Success! Welcome banner photo update ho gayi hai. Ab naye users ko yahi photo dikhegi!")
-    else:
-        await message.reply_text("❌ Kripya koi photo bhejiye ya photo par reply karke `/setphoto` likhiye.")
-
-async def handle_text_buttons(update: Update, context):
-    text = update.message.text
-    if text == "🎬 Demo":
-        await update.message.reply_text("🎬 Yeh raha aapka demo content link:\n\n🔗 https://t.me/+iLoNw5R4Qwk5MGI1")
-    elif text == "📢 Channel":
-        await update.message.reply_text("📢 Hamara official channel join karein:\n\n🔗 https://t.me/+iLoNw5R4Qwk5MGI1")
-    elif text == "🛠 Support":
-        await update.message.reply_text("🛠 Kisi bhi madad ke liye yahan contact karein:\n\n🔗 https://t.me/your_support_username")
-
-async def button_handler(update: Update, context):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if data == "main_menu":
-        user = update.effective_user
-        user_name = user.first_name if user and user.first_name else "User"
-        reply_markup = get_main_menu_keyboard()
-        saved_photo = get_saved_photo()
-        welcome_text = f"❤️❤️❤️ Hello **{user_name}**! ✨\n\nWelcome to **All Max Content Bot**\n\nSelect a package below to purchase:"
-        
-        if saved_photo:
-            try:
-                await query.message.edit_media(media=InputMediaPhoto(media=saved_photo, caption=welcome_text, parse_mode="Markdown"), reply_markup=reply_markup)
-                return
-            except Exception:
-                pass
-        await query.message.edit_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
-        return
-
-    if data in PACKAGES:
-        pkg = PACKAGES[data]
-        payment_url = pkg["payment_link"]
-        keyboard = [
-            [InlineKeyboardButton(f"Pay ₹{pkg['price']} Now", url=payment_url)],
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
-        ]
-        reply_markup = InlineKeyboardMarkup(keyboard)
-        payment_text = f"📦 **{pkg['name']}**\n💰 Price: **Rs.{pkg['price']}**\n\nClick the button below to complete your payment:"
-        
-        try:
-            await query.message.edit_caption(caption=payment_text, reply_markup=reply_markup, parse_mode="Markdown")
-        except Exception:
-            await query.message.edit_text(payment_text, reply_markup=reply_markup, parse_mode="Markdown")
-
-def main():
-    application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-    
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(CommandHandler("setphoto", set_photo_handler))
-    application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_text_buttons))
-
-    print("Bot is starting via polling...")
-    application.run_polling()
-
-if __name__ == '__main__':
-    main()
-                
+        photo_obj = message.reply_to
