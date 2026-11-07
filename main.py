@@ -1,9 +1,8 @@
 import os
 import threading
-import requests
-from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from flask import Flask
 
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 RAZORPAY_KEY_ID = "rzp_test_Twuy8rP25nQzlV"
@@ -21,43 +20,12 @@ def save_photo_id(file_id):
     with open(PHOTO_FILE, "w") as f:
         f.write(file_id)
 
-# Flask App for Render Health Check & Razorpay Webhook
+# Minimal Flask app to satisfy Render port binding
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "Telegram Bot Server is Running!"
-
-@app.route('/razorpay-webhook', methods=['POST'])
-def razorpay_webhook():
-    data = request.get_json()
-    if data.get("event") == "payment_link.paid":
-        payment_entity = data["payload"]["payment_link"]["entity"]
-        notes = payment_entity.get("notes", {})
-        telegram_id = notes.get("telegram_id")
-        package_id = notes.get("package_id")
-        
-        PACKAGES = {
-            "pkg_1": {"name": "01 CP Video and File", "content_link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
-            "pkg_2": {"name": "02 Rap & CP & Big File VD", "content_link": ""},
-            "pkg_3": {"name": "03 Mom and Son Real Sex", "content_link": ""},
-            "pkg_4": {"name": "04 Insta viral reels and sex", "content_link": ""},
-            "pkg_5": {"name": "05 Ganga bath group join", "content_link": ""},
-            "pkg_6": {"name": "06 CP Bath camera hidden", "content_link": ""},
-            "pkg_7": {"name": "07 Pakistani girl real fuke", "content_link": ""},
-            "pkg_8": {"name": "08 Sister and brother sex", "content_link": ""},
-        }
-        
-        if telegram_id and package_id in PACKAGES:
-            pkg = PACKAGES[package_id]
-            channel_link = pkg["content_link"]
-            if channel_link:
-                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
-                    "chat_id": telegram_id,
-                    "text": f"✅ **Payment Successful!**\n\nAapne **{pkg['name']}** purchase kar liya hai.\n\nNiche diye gaye link se content access karein:\n\n🔗 {channel_link}",
-                    "parse_mode": "Markdown"
-                })
-    return "OK", 200
+    return "Telegram Bot is Running via Polling!"
 
 # Packages Mapping
 PACKAGES = {
@@ -71,7 +39,7 @@ PACKAGES = {
     "pkg_8": {"name": "08 Sister and brother sex", "price": 30, "payment_link": "https://rzp.io/l/testlink", "content_link": ""},
 }
 
-# Main menu keyboard jisme niche Left side mein Big Demo button aur Right side mein Help & Support hai
+# Main menu keyboard: Packages + Left side Big Demo, Right side Help & Support
 def get_main_menu_keyboard():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("🔑 01 CP Video - ₹249", callback_data="pkg_1")],
@@ -82,7 +50,7 @@ def get_main_menu_keyboard():
         [InlineKeyboardButton("🔥 06 CP Bath Hidden - ₹55", callback_data="pkg_6")],
         [InlineKeyboardButton("🔥 07 Pakistani Girl - ₹49", callback_data="pkg_7")],
         [InlineKeyboardButton("❤️ 08 Sister & Brother - ₹30", callback_data="pkg_8")],
-        # Niche ke buttons: Left side mein Big Demo, Right side mein Help & Support
+        # Left side: Demo, Right side: Help & Support
         [
             InlineKeyboardButton("🎬 WATCH BIG FREE DEMOS", callback_data="btn_demo"),
             InlineKeyboardButton("💬 HELP & SUPPORT", callback_data="btn_support")
@@ -149,12 +117,10 @@ async def button_handler(update: Update, context):
         await query.message.edit_text(welcome_text, reply_markup=reply_markup, parse_mode="Markdown")
         return
 
-    # Demo button action
     if data == "btn_demo":
         await query.message.reply_text("🎬 Yeh raha aapka demo content link:\n\n🔗 https://t.me/+iLoNw5R4Qwk5MGI1")
         return
 
-    # Support button action
     if data == "btn_support":
         await query.message.reply_text("🛠 Kisi bhi madad ke liye yahan contact karein:\n\n🔗 https://t.me/your_support_username")
         return
@@ -175,10 +141,12 @@ async def button_handler(update: Update, context):
             await query.message.edit_text(payment_text, reply_markup=reply_markup, parse_mode="Markdown")
 
 if __name__ == '__main__':
+    # Run Flask in background thread for Render
     port = int(os.environ.get("PORT", 10000))
     flask_thread = threading.Thread(target=lambda: app.run(host='0.0.0.0', port=port), daemon=True)
     flask_thread.start()
 
+    # Run Telegram Bot via Polling (Super stable, no webhook/event loop crashes)
     application = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
     
     application.add_handler(CommandHandler("start", start))
@@ -187,4 +155,4 @@ if __name__ == '__main__':
 
     print("Bot is running via polling...")
     application.run_polling()
-    
+        
