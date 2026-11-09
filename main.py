@@ -3,19 +3,21 @@ import logging
 from flask import Flask, send_file
 from threading import Thread
 
-# Flask web server setup (Yeh website chalane ke liye hai)
+# Logging setup
+logging.basicConfig(level=logging.INFO)
+
+# Flask web server setup
 app = Flask(__name__)
 
 @app.route('/')
 def home():
-    # Yeh root URL par seedha aapka pricing page (index.html) dikhayega
     try:
+        # Yeh root URL par seedha aapka pricing page (index.html) serve karega
         return send_file('index.html')
     except Exception as e:
         return "Telegram Bot Server is Running with Single-Message UI Update!"
 
 def run_web_server():
-    # Render ke liye port 10000 par server start karega
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
 
@@ -24,13 +26,17 @@ def keep_alive():
     t.daemon = True
     t.start()
 
-# --- Yahan se aapka Telegram bot ka main code shuru hota hai ---
-# Aapka baaki bot logic, handlers, aur polling yahan aayegi
+# --- Aapka Telegram Bot Code yahan aayega ---
+# Agar aap python-telegram-bot ya pyTelegramBotAPI use kar rahe hain,
+# toh apna bot polling / startup code yahan niche likh sakte hain.
 
 if __name__ == '__main__':
-    # Server ko background mein live rakhne ke liye keep_alive call kiya hai
+    # Web server ko background mein start karne ke liye
     keep_alive()
     
-    print("Bot and Web Server are starting...")
-    # Agar aapka bot polling method use kar raha hai toh yahan bot.infinity_polling() ya jo bhi code ho wo daal dein.
+    logging.info("Telegram Bot and Web Server are starting up...")
+    
+    # Example bot runner (agar aapka bot polling use karta hai):
+    # from bot_module import bot
+    # bot.infinity_polling()
     
