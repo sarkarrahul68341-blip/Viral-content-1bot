@@ -1,4 +1,5 @@
 import os
+import asyncio
 import qrcode
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -33,7 +34,6 @@ def get_main_menu_keyboard():
 
 # ==================== QR CODE GENERATOR ====================
 def generate_upi_qr(amount, pkg_name, order_id):
-    """Har package ke price ke hisaab se dynamic UPI QR code banata hai"""
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={BUSINESS_NAME}&am={amount}&cu=INR&tn=Order_{order_id}"
     
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
@@ -67,7 +67,6 @@ async def button_handler(update: Update, context):
         pkg = PACKAGES[data]
         user_id = query.from_user.id
         
-        # QR Code generate karein
         qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
         
         caption = (
@@ -89,6 +88,16 @@ async def button_handler(update: Update, context):
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 
+# Global initialization flag
+app_initialized = False
+
+async def initialize_bot():
+    global app_initialized
+    if not app_initialized:
+        await telegram_app.initialize()
+        await telegram_app.start()
+        app_initialized = True
+
 # ==================== FLASK ROUTES ====================
 @app.route('/')
 def home():
@@ -99,12 +108,16 @@ def webhook():
     json_data = request.get_json(force=True)
     update = Update.de_json(json_data, telegram_app.bot)
     
-    import asyncio
-    async def process():
-        await telegram_app.initialize()
-        await telegram_app.process_update(update)
+    loop = asyncio.new_event_loop()
+    asyncio.set_event_loop(loop)
     
-    asyncio.run(process())
+    async def process():
+        await initialize_bot()
+        await telegram_app.process_update(update)
+        
+    loop.run_until_complete(process())
+    loop.close()
+    
     return "OK", 200
 
 # ==================== MAIN RUNNER ====================
@@ -117,4 +130,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+        
