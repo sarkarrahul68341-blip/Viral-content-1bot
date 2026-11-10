@@ -17,9 +17,9 @@ WELCOME_PHOTO_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fb
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== 8 PACKAGES WITH INDIVIDUAL LINKS ====================
+# ==================== 8 PACKAGES WITH EMOJIS & LINKS ====================
 PACKAGES = {
-    "pkg_1": {"name": "🔑 01 Video and File", "price": 249, "link": "YAHAN_APNA_LINK_1_DALO"},
+    "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "YAHAN_APNA_LINK_1_DALO"},
     "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "YAHAN_APNA_LINK_2_DALO"},
     "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "YAHAN_APNA_LINK_3_DALO"},
     "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "YAHAN_APNA_LINK_4_DALO"},
@@ -32,11 +32,11 @@ PACKAGES = {
 def get_main_menu_keyboard():
     keyboard = []
     for key, pkg in PACKAGES.items():
-        keyboard.append([InlineKeyboardButton(f"{pkg['name']} --------- Rs.{pkg['price']}", callback_data=key)])
+        keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
-    # Demo aur Help/Support buttons bade (full-width) size mein
-    keyboard.append([InlineKeyboardButton("🚀 Free Demo", url=DEMO_LINK)])
-    keyboard.append([InlineKeyboardButton("💬 Help / Support", url=SUPPORT_LINK)])
+    # Bade size (full-width) wale Demo aur Support buttons emojis ke sath
+    keyboard.append([InlineKeyboardButton("🚀 Free Demo & Trial", url=DEMO_LINK)])
+    keyboard.append([InlineKeyboardButton("💬 Help & Support Chat", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
 
@@ -93,11 +93,11 @@ async def button_handler(update: Update, context):
         text = (
             f"📦 **{pkg['name']}**\n"
             f"💰 Price: **Rs.{pkg['price']}**\n\n"
-            f"Payment karne ke liye niche diye gaye button par click karein:"
+            f"✨ Payment karne ke liye niche diye gaye button par click karein:"
         )
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💳 Pay Now", callback_data=f"pay_{data}")],
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+            [InlineKeyboardButton("💳 Pay Now (UPI QR)", callback_data=f"pay_{data}")],
+            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
         ])
         
         try:
@@ -123,12 +123,12 @@ async def button_handler(update: Update, context):
                 f"📦 **{pkg['name']}**\n"
                 f"💰 Price: **Rs.{pkg['price']}**\n\n"
                 f"📱 **Payment Instructions:**\n"
-                f"1. Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2. Payment ke baad niche **Verify Payment** par click karein."
+                f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
+                f"2️⃣ Payment ke baad niche **Verify Payment** par click karein."
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("✅ Verify Payment", callback_data=f"verify_{pkg_key}")],
-                [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ])
             
             try:
@@ -149,21 +149,20 @@ async def button_handler(update: Update, context):
         except Exception as e:
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
-                text=f"Error generating QR code: {str(e)}"
+                text=f"❌ Error generating QR code: {str(e)}"
             )
 
     elif data.startswith("verify_"):
         pkg_key = data.replace("verify_", "")
         pkg = PACKAGES[pkg_key]
         text = (
-            f"🎉 **Payment Verified Successfully!**\n"
-            f"Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
-            f"Aapka content link niche diya gaya hai. Button par click karke join karein:"
+            f"🎉 **Payment Verified Successfully!** 🎉\n"
+            f"📦 Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
+            f"✨ Aapka content link niche diya gaya hai. Button par click karke turant join karein:"
         )
-        # Yahan Access link ke sath "Back to Menu" ka button bhi jod diya hai
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🔗 Access Content Link", url=pkg["link"])],
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
         ])
         
         try:
@@ -178,16 +177,15 @@ async def button_handler(update: Update, context):
             parse_mode="Markdown"
         )
 
-# Agar user screenshot (photo) bhejta hai, toh bot automatically link aur Menu button de dega
+# Agar user screenshot (photo) bhejta hai, toh bot automatically emojis ke sath link aur Menu button de dega
 async def handle_photo(update: Update, context):
     text = (
-        "📸 **Screenshot Received!**\n\n"
-        "Aapka payment check ho gaya hai. Niche diye gaye button se content access karein ya menu par qayam karein:"
+        "📸 **Screenshot Received Successfully!**\n\n"
+        "✨ Aapka payment check ho gaya hai. Niche diye gaye button se content access karein ya menu par wapas jayen:"
     )
-    # Default pehla package ya general link yahan de sakte hain, ya main menu ka option
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔗 Access Content Link", url=PACKAGES["pkg_1"]["link"])],
-        [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
     ])
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
@@ -222,4 +220,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
+    
