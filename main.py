@@ -24,7 +24,7 @@ logger = logging.getLogger(__name__)
 # Bot Token (Updated securely to Viral VIP Access token)
 TOKEN = os.getenv("TELEGRAM_TOKEN", "9251056494:AAG-i-lewl5C1yrJgXLncwFlmm60UddSNa8")
 
-# Official Support and Community Preview Links from Active Context
+# Official Support and Community Preview Links
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 DEMO_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 
@@ -41,12 +41,12 @@ def home():
 
 
 # =====================================================================
-# 3. START COMMAND & MAIN MENU HANDLER
+# 3. START COMMAND & MAIN MENU HANDLER (8 PACKAGES)
 # =====================================================================
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
     Handles the /start command sent by users.
-    Greets the user and presents the main interactive package menu.
+    Greets the user and presents the full menu with all 8 packages.
     """
     try:
         user = update.effective_user
@@ -62,10 +62,16 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📌 **Please choose from the available packages below:**"
         )
         
-        # Interactive inline keyboard buttons matching your exact requirements
+        # All 8 packages inline keyboard buttons
         keyboard = [
             [InlineKeyboardButton("⭐ 01 All mix content VIP Access", callback_data="pack_1")],
             [InlineKeyboardButton("🔑 02 Rap & Big File VD", callback_data="pack_2")],
+            [InlineKeyboardButton("🔥 03 Special Update Pack", callback_data="pack_3")],
+            [InlineKeyboardButton("💎 04 Mega Archive VIP", callback_data="pack_4")],
+            [InlineKeyboardButton("🚀 05 Fast Server Access", callback_data="pack_5")],
+            [InlineKeyboardButton("🎯 06 Exclusive Vault", callback_data="pack_6")],
+            [InlineKeyboardButton("👑 07 Ultimate Lifetime Pass", callback_data="pack_7")],
+            [InlineKeyboardButton("⚡ 08 Premium Direct Link", callback_data="pack_8")],
             [InlineKeyboardButton("🎬 Free Demo & Preview", url=DEMO_LINK)],
             [InlineKeyboardButton("📞 Support & Help", url=SUPPORT_LINK)]
         ]
@@ -83,11 +89,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # =====================================================================
-# 4. CALLBACK QUERY HANDLER (PACKAGES, DETAILS & NAVIGATION)
+# 4. CALLBACK QUERY HANDLER (ALL 8 PACKAGES DETAILS & NAVIGATION)
 # =====================================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handles all button clicks from the inline keyboards (Package details & menu navigation).
+    Handles all button clicks from the inline keyboards for all 8 packages.
     """
     try:
         query = update.callback_query
@@ -96,42 +102,31 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = query.data
         logger.info(f"Callback query received: '{data}' from user ID: {query.from_user.id}")
         
-        if data == "pack_1":
+        # Dictionary of package titles for cleaner code
+        packages = {
+            "pack_1": "⭐ **01 All mix content VIP Access**",
+            "pack_2": "🔑 **02 Rap & Big File VD**",
+            "pack_3": "🔥 **03 Special Update Pack**",
+            "pack_4": "💎 **04 Mega Archive VIP**",
+            "pack_5": "🚀 **05 Fast Server Access**",
+            "pack_6": "🎯 **06 Exclusive Vault**",
+            "pack_7": "👑 **07 Ultimate Lifetime Pass**",
+            "pack_8": "⚡ **08 Premium Direct Link**"
+        }
+        
+        if data in packages:
+            pkg_title = packages[data]
             package_text = (
-                "⭐ **01 All mix content VIP Access**\n\n"
-                "✨ **Package Highlights:**\n"
-                "• Full lifetime access to all mix content channels.\n"
-                "• Daily regular updates & fresh uploads.\n"
-                "• High-speed secure server links.\n\n"
-                "💳 **Payment Instructions:**\n"
-                "1. Complete your UPI payment to our official scanner/ID.\n"
-                "2. Send your payment screenshot here in the chat.\n"
-                "3. Your private access link will be shared instantly upon verification.\n\n"
-                "👉 Click below to contact support after payment:"
-            )
-            keyboard = [
-                [InlineKeyboardButton("💬 Send Payment Screenshot / Verify", url=SUPPORT_LINK)],
-                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-            ]
-            reply_markup = InlineKeyboardMarkup(keyboard)
-            await query.message.edit_text(
-                text=package_text,
-                reply_markup=reply_markup,
-                parse_mode="Markdown"
-            )
-
-        elif data == "pack_2":
-            package_text = (
-                "🔑 **02 Rap & Big File VD**\n\n"
-                "✨ **Package Highlights:**\n"
-                "• Access to exclusive high-resolution rap videos & big file archives.\n"
-                "• Direct fast-download links with zero speed limits.\n"
-                "• Premium private channel membership.\n\n"
-                "💳 **Payment Instructions:**\n"
-                "1. Complete your UPI transaction.\n"
-                "2. Share the transaction screenshot with support.\n"
-                "3. Get added to the private archive immediately.\n\n"
-                "👉 Click below to contact support after payment:"
+                f"{pkg_title}\n\n"
+                f"✨ **Package Highlights:**\n"
+                f"• Full secure access to this VIP channel.\n"
+                f"• Daily regular updates & fresh uploads.\n"
+                f"• High-speed secure download links.\n\n"
+                f"💳 **Payment Instructions:**\n"
+                f"1. Complete your UPI payment to our official ID/scanner.\n"
+                f"2. Send your payment screenshot here in the chat.\n"
+                f"3. Your private access link will be shared instantly upon verification.\n\n"
+                f"👉 Click below to contact support after payment:"
             )
             keyboard = [
                 [InlineKeyboardButton("💬 Send Payment Screenshot / Verify", url=SUPPORT_LINK)],
@@ -154,6 +149,12 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             keyboard = [
                 [InlineKeyboardButton("⭐ 01 All mix content VIP Access", callback_data="pack_1")],
                 [InlineKeyboardButton("🔑 02 Rap & Big File VD", callback_data="pack_2")],
+                [InlineKeyboardButton("🔥 03 Special Update Pack", callback_data="pack_3")],
+                [InlineKeyboardButton("💎 04 Mega Archive VIP", callback_data="pack_4")],
+                [InlineKeyboardButton("🚀 05 Fast Server Access", callback_data="pack_5")],
+                [InlineKeyboardButton("🎯 06 Exclusive Vault", callback_data="pack_6")],
+                [InlineKeyboardButton("👑 07 Ultimate Lifetime Pass", callback_data="pack_7")],
+                [InlineKeyboardButton("⚡ 08 Premium Direct Link", callback_data="pack_8")],
                 [InlineKeyboardButton("🎬 Free Demo & Preview", url=DEMO_LINK)],
                 [InlineKeyboardButton("📞 Support & Help", url=SUPPORT_LINK)]
             ]
@@ -212,7 +213,7 @@ async def handle_user_messages(update: Update, context: ContextTypes.DEFAULT_TYP
 # =====================================================================
 def main():
     """Main entry point to build the application and start polling and Flask web server."""
-    logger.info("Initializing Viral VIP Access Telegram bot application...")
+    logger.info("Initializing Viral VIP Access Telegram bot application with 8 packages...")
     
     # Build Telegram Bot application using the updated token
     application = Application.builder().token(TOKEN).build()
@@ -240,4 +241,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-        
+            
