@@ -12,7 +12,9 @@ BUSINESS_NAME = "All Max Content Bot"
 
 DEMO_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-WELCOME_PHOTO_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
+
+# Default welcome photo agar user set na kare
+WELCOME_PHOTO_FILE_ID = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
@@ -34,7 +36,6 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
-    # Bade size (full-width) wale Demo aur Support buttons emojis ke sath
     keyboard.append([InlineKeyboardButton("🚀 Free Demo & Trial", url=DEMO_LINK)])
     keyboard.append([InlineKeyboardButton("💬 Help & Support Chat", url=SUPPORT_LINK)])
     
@@ -52,6 +53,7 @@ def generate_upi_qr(amount, pkg_name, order_id):
 
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
+    global WELCOME_PHOTO_FILE_ID
     reply_markup = get_main_menu_keyboard()
     caption = (
         "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
@@ -66,18 +68,29 @@ async def start(update: Update, context):
             pass
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            photo=WELCOME_PHOTO_URL,
+            photo=WELCOME_PHOTO_FILE_ID,
             caption=caption,
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
     else:
         await update.message.reply_photo(
-            photo=WELCOME_PHOTO_URL,
+            photo=WELCOME_PHOTO_FILE_ID,
             caption=caption,
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
+
+# Naya command: Photo bhej kar /setphoto likhne par welcome photo update ho jayegi
+async def set_photo(update: Update, context):
+    global WELCOME_PHOTO_FILE_ID
+    if update.message.photo:
+        # Telegram ka sabse best quality photo file_id le lete hain
+        photo_file = update.message.photo[-1].file_id
+        WELCOME_PHOTO_FILE_ID = photo_file
+        await update.message.reply_text("✅ **Welcome Photo successfully update ho gayi hai!** Ab /start dabakar check karein.")
+    else:
+        await update.message.reply_text("⚠️ Kripya photo ke sath caption mein `/setphoto` likhkar bhejein.")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -177,8 +190,13 @@ async def button_handler(update: Update, context):
             parse_mode="Markdown"
         )
 
-# Agar user screenshot (photo) bhejta hai, toh bot automatically emojis ke sath link aur Menu button de dega
+# Agar user screenshot bhejta hai
 async def handle_photo(update: Update, context):
+    # Agar user ne /setphoto likha hai photo ke sath
+    if update.message.caption and "/setphoto" in update.message.caption:
+        await set_photo(update, context)
+        return
+
     text = (
         "📸 **Screenshot Received Successfully!**\n\n"
         "✨ Aapka payment check ho gaya hai. Niche diye gaye button se content access karein ya menu par wapas jayen:"
@@ -190,6 +208,7 @@ async def handle_photo(update: Update, context):
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
 telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("setphoto", set_photo))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
