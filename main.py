@@ -19,14 +19,14 @@ telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
 # ==================== 8 PACKAGES CONFIGURATION ====================
 PACKAGES = {
-    "pkg_1": {"name": "🔑 01 Video and File", "price": 249, "link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
-    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_7": {"name": "🔥 07 Pakistani girl real fuke", "price": 49, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
+    "pkg_1": {"name": "🔑 01 Video and File", "price": 249},
+    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89},
+    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45},
+    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30},
+    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199},
+    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55},
+    "pkg_7": {"name": "🔥 07 Pakistani girl real fuke", "price": 49},
+    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30},
 }
 
 def get_main_menu_keyboard():
@@ -34,10 +34,10 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} --------- Rs.{pkg['price']}", callback_data=key)])
     
-    keyboard.append([
-        InlineKeyboardButton("🚀 Free Demo", url=DEMO_LINK),
-        InlineKeyboardButton("💬 Help / Support", url=SUPPORT_LINK)
-    ])
+    # Demo aur Help/Support buttons bade (full-width) size mein
+    keyboard.append([InlineKeyboardButton("🚀 Free Demo", url=DEMO_LINK)])
+    keyboard.append([InlineKeyboardButton("💬 Help / Support", url=SUPPORT_LINK)])
+    
     return InlineKeyboardMarkup(keyboard)
 
 def generate_upi_qr(amount, pkg_name, order_id):
@@ -88,7 +88,7 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Package Click -> Pay Now Option (Safe delete & send message)
+    # Package Click -> Pay Now Option
     if data in PACKAGES:
         pkg = PACKAGES[data]
         text = (
@@ -113,7 +113,7 @@ async def button_handler(update: Update, context):
             parse_mode="Markdown"
         )
 
-    # Pay Now Click -> QR Code & Verify Payment
+    # Pay Now Click -> QR Code & Verify Payment Button
     elif data.startswith("pay_"):
         pkg_key = data.replace("pay_", "")
         pkg = PACKAGES[pkg_key]
@@ -154,7 +154,7 @@ async def button_handler(update: Update, context):
                 text=f"Error generating QR code: {str(e)}"
             )
 
-    # Verify Payment Click -> Instructions & Content Link
+    # Verify Payment Click -> Screenshot/UTR message without link button
     elif data.startswith("verify_"):
         pkg_key = data.replace("verify_", "")
         pkg = PACKAGES[pkg_key]
@@ -162,10 +162,9 @@ async def button_handler(update: Update, context):
             f"🔍 **Payment Verification**\n"
             f"Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
             f"Kripya apne payment ka **screenshot** ya **UTR / Transaction ID** is chat mein bhej dein.\n"
-            f"Payment verify hone ke baad aap niche diye gaye button se content access kar sakte hain:"
+            f"Jald hi aapka payment verify kar diya jayega!"
         )
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 Access Content Link", url=pkg["link"])],
             [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
         ])
         
@@ -211,4 +210,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
+    
