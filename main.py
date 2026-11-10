@@ -22,7 +22,7 @@ telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 # ==================== 8 PACKAGES CONFIGURATION ====================
 PACKAGES = {
     "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1"},
-    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "YAHAN_APNA_LINK_2_DALO"},
+    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 1, "link": "https://t.me/+f9i3BlsoUeZiZmY1"},
     "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+cKmPMnPz-UI4Y2NI"},
     "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
     "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
@@ -140,7 +140,6 @@ async def button_handler(update: Update, context):
                 f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
                 f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot (Photo)** bhejien taaki aapko turant link mil sake."
             )
-            # Yahan se "Verify" button hata diya gaya hai, ab sirf Menu ka button rahega
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ])
@@ -171,7 +170,6 @@ async def handle_photo(update: Update, context):
         await set_photo(update, context)
         return
 
-    # User ka last selected package check karo, agar nahi hai toh default pkg_1 lo
     last_pkg_key = context.user_data.get('last_pkg', 'pkg_1')
     pkg = PACKAGES.get(last_pkg_key, PACKAGES['pkg_1'])
 
