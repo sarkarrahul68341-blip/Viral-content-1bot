@@ -1,5 +1,4 @@
 import os
-import asyncio
 import qrcode
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -10,15 +9,14 @@ TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
 UPI_ID = "Puja6489@ptyes"
 BUSINESS_NAME = "All Max Content Bot"
 
-# Aapke diye gaye naye links yahan set kar diye gaye hain:
 DEMO_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-
-# Welcome Banner Photo ka Link
 WELCOME_PHOTO_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 app = Flask(__name__)
-telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).updater(None).build()
+
+# Telegram Application Setup (Without local loop overhead)
+telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
 # ==================== 8 PACKAGES CONFIGURATION ====================
 PACKAGES = {
@@ -32,29 +30,23 @@ PACKAGES = {
     "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
 }
 
-# ==================== KEYBOARD FUNCTIONS ====================
 def get_main_menu_keyboard():
     keyboard = []
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} --------- Rs.{pkg['price']}", callback_data=key)])
     
-    # Left Side: Demo Button | Right Side: Help/Support Button (Sath-sath)
     keyboard.append([
         InlineKeyboardButton("🚀 Free Demo", url=DEMO_LINK),
         InlineKeyboardButton("💬 Help / Support", url=SUPPORT_LINK)
     ])
-    
     return InlineKeyboardMarkup(keyboard)
 
-# ==================== QR CODE GENERATOR ====================
 def generate_upi_qr(amount, pkg_name, order_id):
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={BUSINESS_NAME}&am={amount}&cu=INR&tn=Order_{order_id}"
-    
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(upi_uri)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    
     filename = f"qr_{order_id}.png"
     img.save(filename)
     return filename
@@ -73,7 +65,6 @@ async def start(update: Update, context):
             await query.message.delete()
         except Exception:
             pass
-            
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
             photo=WELCOME_PHOTO_URL,
@@ -98,7 +89,6 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # 1. Package click karne par Sub-menu (Pay Now & Verify)
     if data in PACKAGES:
         pkg = PACKAGES[data]
         text = (
@@ -119,4 +109,121 @@ async def button_handler(update: Update, context):
                     chat_id=query.message.chat_id,
                     text=text,
                     reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+            else:
+                await query.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        except Exception:
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=text,
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+
+    elif data.startswith("pay_"):
+        pkg_key = data.replace("pay_", "")
+        pkg = PACKAGES[pkg_key]
+        user_id = query.from_user.id
+        
+        try:
+            qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
+            caption = (
+                f"📦 **{pkg['name']}**\n"
+                f"💰 Price: **Rs.{pkg['price']}**\n\n"
+                f"📱 **Payment Instructions:**\n"
+                f"1. Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
+                f"2. Payment ke baad niche **Verify Payment** par click karein."
+            )
+            keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("✅ Verify Payment", callback_data=f"verify_{pkg_key}")],
+                [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+            ])
+            
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
+                
+            with open(qr_file_path, 'rb') as photo:
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=photo,
+                    caption=caption,
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+            if os.path.exists(qr_file_path):
+                os.remove(qr_file_path)
+        except Exception as e:
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=f"Error generating QR code: {str(e)}"
+            )
+
+    elif data.startswith("verify_"):
+        pkg_key = data.replace("verify_", "")
+        pkg = PACKAGES[pkg_key]
+        text = (
+            f"🔍 **Payment Verification**\n"
+            f"Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
+            f"Kripya apne payment ka **screenshot** ya **UTR / Transaction ID** is chat mein bhej dein.\n"
+            f"Payment verify hone ke baad aap niche diye gaye button se content access kar sakte hain:"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔗 Access Content Link", url=pkg["link"])],
+            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+        ])
+        
+        try:
+            if query.message.photo:
+                await query.message.delete()
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=text,
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+            else:
+                await query.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        except Exception:
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=text,
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+
+# ==================== FLASK ROUTES ====================
+@app.route('/')
+def home():
+    return "Telegram Bot Webhook Server is Running!"
+
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+def webhook():
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, telegram_app.bot)
+    
+    # Proper async execution inside Flask without loop closure errors
+    import asyncio
+    async def run_update():
+        async with telegram_app:
+            await telegram_app.process_update(update)
+
+    asyncio.run(run_update())
+    return "OK", 200
+
+# ==================== MAIN RUNNER ====================
+if __name__ == '__main__':
+    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        import urllib.request
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
+        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
                 
