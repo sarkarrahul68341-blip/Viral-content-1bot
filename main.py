@@ -89,11 +89,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # =====================================================================
-# 4. CALLBACK QUERY HANDLER (ALL 8 PACKAGES DETAILS & NAVIGATION)
+# 4. CALLBACK QUERY HANDLER (PACKAGES WITH PRICES, QR & LINKS)
 # =====================================================================
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    Handles all button clicks from the inline keyboards for all 8 packages.
+    Handles all button clicks from the inline keyboards for all 8 packages,
+    displaying their specific price, QR code info, and secure private link.
     """
     try:
         query = update.callback_query
@@ -102,31 +103,72 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = query.data
         logger.info(f"Callback query received: '{data}' from user ID: {query.from_user.id}")
         
-        # Dictionary of package titles for cleaner code
-        packages = {
-            "pack_1": "⭐ **01 All mix content VIP Access**",
-            "pack_2": "🔑 **02 Rap & Big File VD**",
-            "pack_3": "🔥 **03 Special Update Pack**",
-            "pack_4": "💎 **04 Mega Archive VIP**",
-            "pack_5": "🚀 **05 Fast Server Access**",
-            "pack_6": "🎯 **06 Exclusive Vault**",
-            "pack_7": "👑 **07 Ultimate Lifetime Pass**",
-            "pack_8": "⚡ **08 Premium Direct Link**"
+        # Database/Structure for all 8 packages (Title, Price, QR/Payment Info, Private Link)
+        packages_data = {
+            "pack_1": {
+                "title": "⭐ **01 All mix content VIP Access**",
+                "price": "₹199 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"  # Apne channel ka link yahan daal sakti hain
+            },
+            "pack_2": {
+                "title": "🔑 **02 Rap & Big File VD**",
+                "price": "₹249 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"
+            },
+            "pack_3": {
+                "title": "🔥 **03 Special Update Pack**",
+                "price": "₹299 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"
+            },
+            "pack_4": {
+                "title": "💎 **04 Mega Archive VIP**",
+                "price": "₹349 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"
+            },
+            "pack_5": {
+                "title": "🚀 **05 Fast Server Access**",
+                "price": "₹149 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"
+            },
+            "pack_6": {
+                "title": "🎯 **06 Exclusive Vault**",
+                "price": "₹399 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"
+            },
+            "pack_7": {
+                "title": "👑 **07 Ultimate Lifetime Pass**",
+                "price": "₹499 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"
+            },
+            "pack_8": {
+                "title": "⚡ **08 Premium Direct Link**",
+                "price": "₹199 / Lifetime",
+                "qr_info": "Scan below or pay via UPI to our official scanner/ID.",
+                "private_link": "https://t.me/+T_Rwn6XiNPsyMDg9"
+            }
         }
         
-        if data in packages:
-            pkg_title = packages[data]
+        if data in packages_data:
+            pkg = packages_data[data]
             package_text = (
-                f"{pkg_title}\n\n"
+                f"{pkg['title']}\n\n"
+                f"💰 **Price:** {pkg['price']}\n\n"
                 f"✨ **Package Highlights:**\n"
-                f"• Full secure access to this VIP channel.\n"
+                f"• Full secure access to private channel.\n"
                 f"• Daily regular updates & fresh uploads.\n"
                 f"• High-speed secure download links.\n\n"
-                f"💳 **Payment Instructions:**\n"
-                f"1. Complete your UPI payment to our official ID/scanner.\n"
-                f"2. Send your payment screenshot here in the chat.\n"
-                f"3. Your private access link will be shared instantly upon verification.\n\n"
-                f"👉 Click below to contact support after payment:"
+                f"💳 **Payment & QR Instructions:**\n"
+                f"• {pkg['qr_info']}\n"
+                f"• Send your payment screenshot here in the chat for instant verification.\n\n"
+                f"🔗 **Access Link:** [Click Here to Join Channel after Payment]({pkg['private_link']})\n\n"
+                f"👉 Need help? Contact support below:"
             )
             keyboard = [
                 [InlineKeyboardButton("💬 Send Payment Screenshot / Verify", url=SUPPORT_LINK)],
@@ -213,7 +255,7 @@ async def handle_user_messages(update: Update, context: ContextTypes.DEFAULT_TYP
 # =====================================================================
 def main():
     """Main entry point to build the application and start polling and Flask web server."""
-    logger.info("Initializing Viral VIP Access Telegram bot application with 8 packages...")
+    logger.info("Initializing Viral VIP Access Telegram bot application with 8 packages & prices...")
     
     # Build Telegram Bot application using the updated token
     application = Application.builder().token(TOKEN).build()
@@ -241,4 +283,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-            
+        
