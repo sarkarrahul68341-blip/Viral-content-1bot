@@ -19,16 +19,16 @@ WELCOME_PHOTO_FILE_ID = "https://images.unsplash.com/photo-1618005182384-a83a8bd
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== 8 PACKAGES WITH EMOJIS & LINKS ====================
+# ==================== 8 PACKAGES CONFIGURATION ====================
 PACKAGES = {
-    "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "YAHAN_APNA_LINK_1_DALO"},
+    "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1"},
     "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "YAHAN_APNA_LINK_2_DALO"},
-    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "YAHAN_APNA_LINK_3_DALO"},
-    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "YAHAN_APNA_LINK_4_DALO"},
-    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "YAHAN_APNA_LINK_5_DALO"},
-    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "YAHAN_APNA_LINK_6_DALO"},
-    "pkg_7": {"name": "🔥 07 Pakistani girl real fuke", "price": 49, "link": "YAHAN_APNA_LINK_7_DALO"},
-    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "YAHAN_APNA_LINK_8_DALO"},
+    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+cKmPMnPz-UI4Y2NI"},
+    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
+    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
+    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9"},
+    "pkg_7": {"name": "🔥 07 Pakistani girl real fuke", "price": 49, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
+    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
 }
 
 def get_main_menu_keyboard():
@@ -81,11 +81,9 @@ async def start(update: Update, context):
             parse_mode="Markdown"
         )
 
-# Naya command: Photo bhej kar /setphoto likhne par welcome photo update ho jayegi
 async def set_photo(update: Update, context):
     global WELCOME_PHOTO_FILE_ID
     if update.message.photo:
-        # Telegram ka sabse best quality photo file_id le lete hain
         photo_file = update.message.photo[-1].file_id
         WELCOME_PHOTO_FILE_ID = photo_file
         await update.message.reply_text("✅ **Welcome Photo successfully update ho gayi hai!** Ab /start dabakar check karein.")
@@ -103,6 +101,8 @@ async def button_handler(update: Update, context):
 
     if data in PACKAGES:
         pkg = PACKAGES[data]
+        context.user_data['last_pkg'] = data
+        
         text = (
             f"📦 **{pkg['name']}**\n"
             f"💰 Price: **Rs.{pkg['price']}**\n\n"
@@ -128,6 +128,7 @@ async def button_handler(update: Update, context):
     elif data.startswith("pay_"):
         pkg_key = data.replace("pay_", "")
         pkg = PACKAGES[pkg_key]
+        context.user_data['last_pkg'] = pkg_key
         user_id = query.from_user.id
         
         try:
@@ -171,10 +172,10 @@ async def button_handler(update: Update, context):
         text = (
             f"🎉 **Payment Verified Successfully!** 🎉\n"
             f"📦 Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
-            f"✨ Aapka content link niche diya gaya hai. Button par click karke turant join karein:"
+            f"✨ Aapka VIP Access link niche diya gaya hai. Button par click karke turant join karein:"
         )
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 Access Content Link", url=pkg["link"])],
+            [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
             [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
         ])
         
@@ -190,19 +191,21 @@ async def button_handler(update: Update, context):
             parse_mode="Markdown"
         )
 
-# Agar user screenshot bhejta hai
 async def handle_photo(update: Update, context):
-    # Agar user ne /setphoto likha hai photo ke sath
     if update.message.caption and "/setphoto" in update.message.caption:
         await set_photo(update, context)
         return
 
+    last_pkg_key = context.user_data.get('last_pkg', 'pkg_1')
+    pkg = PACKAGES.get(last_pkg_key, PACKAGES['pkg_1'])
+
     text = (
         "📸 **Screenshot Received Successfully!**\n\n"
-        "✨ Aapka payment check ho gaya hai. Niche diye gaye button se content access karein ya menu par wapas jayen:"
+        f"🎉 Package: **{pkg['name']}**\n"
+        "✨ Aapka payment check ho gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
     )
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔗 Access Content Link", url=PACKAGES["pkg_1"]["link"])],
+        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
         [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
     ])
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
@@ -239,4 +242,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+        
