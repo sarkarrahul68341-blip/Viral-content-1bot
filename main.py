@@ -3,7 +3,7 @@ import asyncio
 import qrcode
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 # ==================== CONFIGURATION ====================
 TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
@@ -34,7 +34,7 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} --------- Rs.{pkg['price']}", callback_data=key)])
     
-    # Demo aur Help/Support buttons ko alag-alag row mein rakha hai taaki wo bade (full-width) dikhein
+    # Demo aur Help/Support buttons bade (full-width) size mein
     keyboard.append([InlineKeyboardButton("🚀 Free Demo", url=DEMO_LINK)])
     keyboard.append([InlineKeyboardButton("💬 Help / Support", url=SUPPORT_LINK)])
     
@@ -160,6 +160,7 @@ async def button_handler(update: Update, context):
             f"Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
             f"Aapka content link niche diya gaya hai. Button par click karke join karein:"
         )
+        # Yahan Access link ke sath "Back to Menu" ka button bhi jod diya hai
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("🔗 Access Content Link", url=pkg["link"])],
             [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
@@ -177,8 +178,22 @@ async def button_handler(update: Update, context):
             parse_mode="Markdown"
         )
 
+# Agar user screenshot (photo) bhejta hai, toh bot automatically link aur Menu button de dega
+async def handle_photo(update: Update, context):
+    text = (
+        "📸 **Screenshot Received!**\n\n"
+        "Aapka payment check ho gaya hai. Niche diye gaye button se content access karein ya menu par qayam karein:"
+    )
+    # Default pehla package ya general link yahan de sakte hain, ya main menu ka option
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔗 Access Content Link", url=PACKAGES["pkg_1"]["link"])],
+        [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
+    ])
+    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
+telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
 # ==================== FLASK ROUTES ====================
 @app.route('/')
@@ -207,3 +222,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+        
