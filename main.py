@@ -14,20 +14,58 @@ SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 WELCOME_PHOTO_URL = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 app = Flask(__name__)
-
-# Telegram Application Setup (Without local loop overhead)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== 8 PACKAGES CONFIGURATION ====================
+# ==================== 8 PACKAGES CONFIGURATION (WITH CUSTOM DESCRIPTIONS) ====================
 PACKAGES = {
-    "pkg_1": {"name": "🔑 01 Video and File", "price": 249, "link": "https://t.me/+iLoNw5R4Qwk5MGI1"},
-    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_7": {"name": "🔥 07 Pakistani girl real fuke", "price": 49, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
-    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"},
+    "pkg_1": {
+        "name": "🔑 01 Video and File", 
+        "price": 249, 
+        "desc": "Yahan aapko sabse best high quality video files aur premium content milega! Niche 'Pay Now' par click karke payment karein.",
+        "link": "https://t.me/+iLoNw5R4Qwk5MGI1"
+    },
+    "pkg_2": {
+        "name": "🔑 02 Rap & Big File VD", 
+        "price": 89, 
+        "desc": "Yahan aapko heavy rap videos aur badi files ka direct access milega! Niche 'Pay Now' par click karein.",
+        "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"
+    },
+    "pkg_3": {
+        "name": "🔑 03 Mom and Son Real Sex", 
+        "price": 45, 
+        "desc": "Yahan aapko exclusive real content milne wala hai. Niche 'Pay Now' par click karke aage badhein!",
+        "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"
+    },
+    "pkg_4": {
+        "name": "🔞 04 Insta viral reels and sex", 
+        "price": 30, 
+        "desc": "Yahan saari Insta viral reels aur hot clips milengi. Niche 'Pay Now' button par click karein!",
+        "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"
+    },
+    "pkg_5": {
+        "name": "🔥 05 Ganga bath group join", 
+        "price": 199, 
+        "desc": "Yahan aapko special Ganga bath group ka link aur exclusive content milega. Niche click karein!",
+        "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"
+    },
+    "pkg_6": {
+        "name": "🔥 06 Bath camera hidden", 
+        "price": 55, 
+        "desc": "Yahan hidden camera bath ki secret videos milengi. Niche 'Pay Now' par click karke payment karein.",
+        "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"
+    },
+    "pkg_7": {
+        "name": "🔥 07 Pakistani girl real fuke", 
+        "price": 49, 
+        "desc": "Yahan Pakistani viral aur real hot videos ka collection milega. Niche click karke aage badhein!",
+        "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"
+    },
+    "pkg_8": {
+        "name": "❤️ 08 Sister and brother sex", 
+        "price": 30, 
+        "desc": "Yahan aapko yeh special collection dekhne ko milega. Niche 'Pay Now' par click karke turant join karein!",
+        "link": "https://t.me/+w4MJrYfZ2zIyMTQ1"
+    },
 }
 
 def get_main_menu_keyboard():
@@ -89,16 +127,17 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
+    # Har package ke click par uska special description aur 'Pay Now' option
     if data in PACKAGES:
         pkg = PACKAGES[data]
         text = (
             f"📦 **{pkg['name']}**\n"
             f"💰 Price: **Rs.{pkg['price']}**\n\n"
-            f"Aage badhne ke liye niche diye gaye option par click karein:"
+            f"📝 {pkg['desc']}\n\n"
+            f"👉 Niche **Pay Now** par click karke payment karein:"
         )
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("💳 Pay Now", callback_data=f"pay_{data}")],
-            [InlineKeyboardButton("✅ Verify Payment", callback_data=f"verify_{data}")],
             [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
         ])
         
@@ -158,72 +197,4 @@ async def button_handler(update: Update, context):
         except Exception as e:
             await context.bot.send_message(
                 chat_id=query.message.chat_id,
-                text=f"Error generating QR code: {str(e)}"
-            )
-
-    elif data.startswith("verify_"):
-        pkg_key = data.replace("verify_", "")
-        pkg = PACKAGES[pkg_key]
-        text = (
-            f"🔍 **Payment Verification**\n"
-            f"Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
-            f"Kripya apne payment ka **screenshot** ya **UTR / Transaction ID** is chat mein bhej dein.\n"
-            f"Payment verify hone ke baad aap niche diye gaye button se content access kar sakte hain:"
-        )
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 Access Content Link", url=pkg["link"])],
-            [InlineKeyboardButton("🔙 Back to Menu", callback_data="main_menu")]
-        ])
-        
-        try:
-            if query.message.photo:
-                await query.message.delete()
-                await context.bot.send_message(
-                    chat_id=query.message.chat_id,
-                    text=text,
-                    reply_markup=keyboard,
-                    parse_mode="Markdown"
-                )
-            else:
-                await query.message.edit_text(text, reply_markup=keyboard, parse_mode="Markdown")
-        except Exception:
-            await context.bot.send_message(
-                chat_id=query.message.chat_id,
-                text=text,
-                reply_markup=keyboard,
-                parse_mode="Markdown"
-            )
-
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
-
-# ==================== FLASK ROUTES ====================
-@app.route('/')
-def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
-def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
     
-    # Proper async execution inside Flask without loop closure errors
-    import asyncio
-    async def run_update():
-        async with telegram_app:
-            await telegram_app.process_update(update)
-
-    asyncio.run(run_update())
-    return "OK", 200
-
-# ==================== MAIN RUNNER ====================
-if __name__ == '__main__':
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    if RENDER_EXTERNAL_URL:
-        import urllib.request
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-                
