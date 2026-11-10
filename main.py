@@ -1,219 +1,243 @@
 import os
-import asyncio
-import qrcode
-from flask import Flask, request
+import logging
+import threading
+from flask import Flask
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    CallbackQueryHandler,
+    MessageHandler,
+    filters,
+    ContextTypes
+)
 
-# ==================== CONFIGURATION ====================
-TELEGRAM_BOT_TOKEN = "9094967544:AAGu8LW9_3oXiBwww8jfBvlWvcnS4Ok4NWs"
-UPI_ID = "Puja6489@ptyes"
-BUSINESS_NAME = "All Max Content Bot"
+# =====================================================================
+# 1. LOGGING & SYSTEM CONFIGURATION SETUP
+# =====================================================================
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+logger = logging.getLogger(__name__)
 
-DEMO_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
+# Bot Token (Updated securely to Viral VIP Access token)
+TOKEN = os.getenv("TELEGRAM_TOKEN", "9251056494:AAG-i-lewl5C1yrJgXLncwFlmm60UddSNa8")
+
+# Official Support and Community Preview Links from Active Context
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
+DEMO_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 
-# Default welcome photo agar user set na kare
-WELCOME_PHOTO_FILE_ID = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
+# =====================================================================
+# 2. FLASK APP CONFIGURATION FOR RENDER 24/7 KEEP-ALIVE
+# =====================================================================
 app = Flask(__name__)
-telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== 8 PACKAGES CONFIGURATION ====================
-PACKAGES = {
-    "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1"},
-    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 1, "link": "https://t.me/+f9i3BlsoUeZiZmY1"},
-    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+cKmPMnPz-UI4Y2NI"},
-    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
-    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
-    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9"},
-    "pkg_7": {"name": "🔥 07 Pakistani girl real fuke", "price": 49, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
-    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
-}
-
-def get_main_menu_keyboard():
-    keyboard = []
-    for key, pkg in PACKAGES.items():
-        keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
-    
-    keyboard.append([InlineKeyboardButton("🚀 Free Demo & Trial", url=DEMO_LINK)])
-    keyboard.append([InlineKeyboardButton("💬 Help & Support Chat", url=SUPPORT_LINK)])
-    
-    return InlineKeyboardMarkup(keyboard)
-
-def generate_upi_qr(amount, pkg_name, order_id):
-    upi_uri = f"upi://pay?pa={UPI_ID}&pn={BUSINESS_NAME}&am={amount}&cu=INR&tn=Order_{order_id}"
-    qr = qrcode.QRCode(version=1, box_size=10, border=2)
-    qr.add_data(upi_uri)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    filename = f"qr_{order_id}.png"
-    img.save(filename)
-    return filename
-
-# ==================== HANDLERS ====================
-async def start(update: Update, context):
-    global WELCOME_PHOTO_FILE_ID
-    reply_markup = get_main_menu_keyboard()
-    caption = (
-        "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
-        "✨ Aapka yahan swagat hai! Niche diye gaye packages mein se apna pasandida option select karein:\n"
-    )
-    
-    if update.callback_query:
-        query = update.callback_query
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=WELCOME_PHOTO_FILE_ID,
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-    else:
-        await update.message.reply_photo(
-            photo=WELCOME_PHOTO_FILE_ID,
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-
-async def set_photo(update: Update, context):
-    global WELCOME_PHOTO_FILE_ID
-    if update.message.photo:
-        photo_file = update.message.photo[-1].file_id
-        WELCOME_PHOTO_FILE_ID = photo_file
-        await update.message.reply_text("✅ **Welcome Photo successfully update ho gayi hai!** Ab /start dabakar check karein.")
-    else:
-        await update.message.reply_text("⚠️ Kripya photo ke sath caption mein `/setphoto` likhkar bhejein.")
-
-async def button_handler(update: Update, context):
-    query = update.callback_query
-    await query.answer()
-    data = query.data
-
-    if data == "main_menu":
-        await start(update, context)
-        return
-
-    if data in PACKAGES:
-        pkg = PACKAGES[data]
-        context.user_data['last_pkg'] = data
-        
-        text = (
-            f"📦 **{pkg['name']}**\n"
-            f"💰 Price: **Rs.{pkg['price']}**\n\n"
-            f"✨ Payment karne ke liye niche diye gaye button par click karein:"
-        )
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💳 Pay Now (UPI QR)", callback_data=f"pay_{data}")],
-            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-        ])
-        
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-            
-        await context.bot.send_message(
-            chat_id=query.message.chat_id,
-            text=text,
-            reply_markup=keyboard,
-            parse_mode="Markdown"
-        )
-
-    elif data.startswith("pay_"):
-        pkg_key = data.replace("pay_", "")
-        pkg = PACKAGES[pkg_key]
-        context.user_data['last_pkg'] = pkg_key
-        user_id = query.from_user.id
-        
-        try:
-            qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
-            caption = (
-                f"📦 **{pkg['name']}**\n"
-                f"💰 Price: **Rs.{pkg['price']}**\n\n"
-                f"📱 **Payment Instructions:**\n"
-                f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot (Photo)** bhejien taaki aapko turant link mil sake."
-            )
-            keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-            ])
-            
-            try:
-                await query.message.delete()
-            except Exception:
-                pass
-                
-            with open(qr_file_path, 'rb') as photo:
-                await context.bot.send_photo(
-                    chat_id=query.message.chat_id,
-                    photo=photo,
-                    caption=caption,
-                    reply_markup=keyboard,
-                    parse_mode="Markdown"
-                )
-            if os.path.exists(qr_file_path):
-                os.remove(qr_file_path)
-        except Exception as e:
-            await context.bot.send_message(
-                chat_id=query.message.chat_id,
-                text=f"❌ Error generating QR code: {str(e)}"
-            )
-
-async def handle_photo(update: Update, context):
-    if update.message.caption and "/setphoto" in update.message.caption:
-        await set_photo(update, context)
-        return
-
-    last_pkg_key = context.user_data.get('last_pkg', 'pkg_1')
-    pkg = PACKAGES.get(last_pkg_key, PACKAGES['pkg_1'])
-
-    text = (
-        "📸 **Screenshot Received Successfully!**\n\n"
-        f"🎉 Package: **{pkg['name']}**\n"
-        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
-    )
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
-        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-    ])
-    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
-
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("setphoto", set_photo))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
-
-# ==================== FLASK ROUTES ====================
 @app.route('/')
 def home():
-    return "Telegram Bot Webhook Server is Running!"
+    """Health check route for Render web service to prevent sleeping"""
+    return "Viral VIP Access Bot is running live, secure, and fully operational 24/7!"
 
-@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
-def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
+
+# =====================================================================
+# 3. START COMMAND & MAIN MENU HANDLER
+# =====================================================================
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles the /start command sent by users.
+    Greets the user and presents the main interactive package menu.
+    """
+    try:
+        user = update.effective_user
+        user_name = user.first_name if user else "Valued User"
+        
+        logger.info(f"Incoming /start command from user: {user_name} (ID: {user.id if user else 'Unknown'})")
+        
+        welcome_text = (
+            f"Hello **{user_name}**!\n\n"
+            f"Welcome to **Viral VIP Access** 🚀\n\n"
+            f"Get instant access to exclusive premium content, high-speed big files, "
+            f"and regular daily updates.\n\n"
+            f"📌 **Please choose from the available packages below:**"
+        )
+        
+        # Interactive inline keyboard buttons matching your exact requirements
+        keyboard = [
+            [InlineKeyboardButton("⭐ 01 All mix content VIP Access", callback_data="pack_1")],
+            [InlineKeyboardButton("🔑 02 Rap & Big File VD", callback_data="pack_2")],
+            [InlineKeyboardButton("🎬 Free Demo & Preview", url=DEMO_LINK)],
+            [InlineKeyboardButton("📞 Support & Help", url=SUPPORT_LINK)]
+        ]
+        reply_markup = InlineKeyboardMarkup(keyboard)
+        
+        if update.message:
+            await update.message.reply_text(
+                text=welcome_text,
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error occurred in start handler: {e}")
+
+
+# =====================================================================
+# 4. CALLBACK QUERY HANDLER (PACKAGES, DETAILS & NAVIGATION)
+# =====================================================================
+async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles all button clicks from the inline keyboards (Package details & menu navigation).
+    """
+    try:
+        query = update.callback_query
+        await query.answer()
+        
+        data = query.data
+        logger.info(f"Callback query received: '{data}' from user ID: {query.from_user.id}")
+        
+        if data == "pack_1":
+            package_text = (
+                "⭐ **01 All mix content VIP Access**\n\n"
+                "✨ **Package Highlights:**\n"
+                "• Full lifetime access to all mix content channels.\n"
+                "• Daily regular updates & fresh uploads.\n"
+                "• High-speed secure server links.\n\n"
+                "💳 **Payment Instructions:**\n"
+                "1. Complete your UPI payment to our official scanner/ID.\n"
+                "2. Send your payment screenshot here in the chat.\n"
+                "3. Your private access link will be shared instantly upon verification.\n\n"
+                "👉 Click below to contact support after payment:"
+            )
+            keyboard = [
+                [InlineKeyboardButton("💬 Send Payment Screenshot / Verify", url=SUPPORT_LINK)],
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.message.edit_text(
+                text=package_text,
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+
+        elif data == "pack_2":
+            package_text = (
+                "🔑 **02 Rap & Big File VD**\n\n"
+                "✨ **Package Highlights:**\n"
+                "• Access to exclusive high-resolution rap videos & big file archives.\n"
+                "• Direct fast-download links with zero speed limits.\n"
+                "• Premium private channel membership.\n\n"
+                "💳 **Payment Instructions:**\n"
+                "1. Complete your UPI transaction.\n"
+                "2. Share the transaction screenshot with support.\n"
+                "3. Get added to the private archive immediately.\n\n"
+                "👉 Click below to contact support after payment:"
+            )
+            keyboard = [
+                [InlineKeyboardButton("💬 Send Payment Screenshot / Verify", url=SUPPORT_LINK)],
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.message.edit_text(
+                text=package_text,
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+
+        elif data == "main_menu":
+            user_name = query.from_user.first_name if query.from_user else "Valued User"
+            welcome_text = (
+                f"Hello **{user_name}**!\n\n"
+                f"Welcome back to **Viral VIP Access** 🚀\n"
+                f"Please choose from the available packages below:"
+            )
+            keyboard = [
+                [InlineKeyboardButton("⭐ 01 All mix content VIP Access", callback_data="pack_1")],
+                [InlineKeyboardButton("🔑 02 Rap & Big File VD", callback_data="pack_2")],
+                [InlineKeyboardButton("🎬 Free Demo & Preview", url=DEMO_LINK)],
+                [InlineKeyboardButton("📞 Support & Help", url=SUPPORT_LINK)]
+            ]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            await query.message.edit_text(
+                text=welcome_text,
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error occurred in button handler: {e}")
+
+
+# =====================================================================
+# 5. PAYMENT SCREENSHOT & USER MESSAGE HANDLER
+# =====================================================================
+async def handle_user_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    Handles incoming text messages, images, or payment screenshots sent by users
+    and guides them to the support chat for swift verification.
+    """
+    try:
+        if update.message:
+            user_id = update.message.from_user.id
+            logger.info(f"Received message/photo from user ID: {user_id}")
+            
+            if update.message.photo:
+                reply_response = (
+                    "📸 **Payment Screenshot Successfully Received!**\n\n"
+                    "Thank you for sharing. Our team is verifying your transaction details. "
+                    "If verification takes a moment, please click below to ping support directly:"
+                )
+            else:
+                reply_response = (
+                    "✅ Message received successfully!\n\n"
+                    "If you are looking to purchase a VIP package or need instant assistance, "
+                    "please connect with our support team:"
+                )
+            
+            keyboard = [[InlineKeyboardButton("📞 Open Support Chat", url=SUPPORT_LINK)]]
+            reply_markup = InlineKeyboardMarkup(keyboard)
+            
+            await update.message.reply_text(
+                text=reply_response,
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+            
+    except Exception as e:
+        logger.error(f"Error handling user message: {e}")
+
+
+# =====================================================================
+# 6. MAIN APPLICATION INITIALIZATION & EXECUTION LOOP
+# =====================================================================
+def main():
+    """Main entry point to build the application and start polling and Flask web server."""
+    logger.info("Initializing Viral VIP Access Telegram bot application...")
     
-    async def run_update():
-        async with telegram_app:
-            await telegram_app.process_update(update)
+    # Build Telegram Bot application using the updated token
+    application = Application.builder().token(TOKEN).build()
 
-    asyncio.run(run_update())
-    return "OK", 200
+    # Registering all necessary handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CallbackQueryHandler(button_handler))
+    application.add_handler(MessageHandler(filters.TEXT | filters.PHOTO & ~filters.COMMAND, handle_user_messages))
 
-# ==================== MAIN RUNNER ====================
-if __name__ == '__main__':
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    if RENDER_EXTERNAL_URL:
-        import urllib.request
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
+    # Determine port for Render deployment
+    port_num = int(os.environ.get("PORT", 8080))
     
+    # Launch Flask keep-alive server in a separate background daemon thread
+    logger.info(f"Starting Flask keep-alive web server on port {port_num}...")
+    flask_thread = threading.Thread(
+        target=lambda: app.run(host="0.0.0.0", port=port_num, debug=False, use_reloader=False)
+    )
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    # Start the bot polling loop
+    logger.info("Starting Telegram bot polling loop... Bot is now live!")
+    application.run_polling()
+
+
+if __name__ == "__main__":
+    main()
+        
