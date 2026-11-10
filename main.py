@@ -138,10 +138,10 @@ async def button_handler(update: Update, context):
                 f"💰 Price: **Rs.{pkg['price']}**\n\n"
                 f"📱 **Payment Instructions:**\n"
                 f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment ke baad niche **Verify Payment** par click karein."
+                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot (Photo)** bhejien taaki aapko turant link mil sake."
             )
+            # Yahan se "Verify" button hata diya gaya hai, ab sirf Menu ka button rahega
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("✅ Verify Payment", callback_data=f"verify_{pkg_key}")],
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ])
             
@@ -166,43 +166,19 @@ async def button_handler(update: Update, context):
                 text=f"❌ Error generating QR code: {str(e)}"
             )
 
-    elif data.startswith("verify_"):
-        pkg_key = data.replace("verify_", "")
-        pkg = PACKAGES[pkg_key]
-        text = (
-            f"🎉 **Payment Verified Successfully!** 🎉\n"
-            f"📦 Package: **{pkg['name']}** (Rs.{pkg['price']})\n\n"
-            f"✨ Aapka VIP Access link niche diya gaya hai. Button par click karke turant join karein:"
-        )
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
-            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-        ])
-        
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-            
-        await context.bot.send_message(
-            chat_id=query.message.chat_id,
-            text=text,
-            reply_markup=keyboard,
-            parse_mode="Markdown"
-        )
-
 async def handle_photo(update: Update, context):
     if update.message.caption and "/setphoto" in update.message.caption:
         await set_photo(update, context)
         return
 
+    # User ka last selected package check karo, agar nahi hai toh default pkg_1 lo
     last_pkg_key = context.user_data.get('last_pkg', 'pkg_1')
     pkg = PACKAGES.get(last_pkg_key, PACKAGES['pkg_1'])
 
     text = (
         "📸 **Screenshot Received Successfully!**\n\n"
         f"🎉 Package: **{pkg['name']}**\n"
-        "✨ Aapka payment check ho gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
+        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
     )
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
@@ -242,4 +218,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
+    
