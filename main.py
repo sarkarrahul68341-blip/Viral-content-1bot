@@ -6,7 +6,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 # ==================== CONFIGURATION ====================
-TELEGRAM_BOT_TOKEN = "9251056494:AAG-i-lewl5C1yrJgXLncwFlmm60UddSNa8"
+TELEGRAM_BOT_TOKEN = "9210267090:AAFGulP572uIzyKPEGVa01y7HuR9xt2adio"
 
 UPI_ID = "Puja6489@ptyes"
 BUSINESS_NAME = "All Max Content Bot"
