@@ -23,7 +23,7 @@ telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 # ==================== 8 PACKAGES CONFIGURATION ====================
 PACKAGES = {
     "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1"},
-    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 79, "link": "https://t.me/+f9i3BlsoUeZiZmY1"},
+    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 1, "link": "https://t.me/+f9i3BlsoUeZiZmY1"},
     "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+cKmPMnPz-UI4Y2NI"},
     "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
     "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
