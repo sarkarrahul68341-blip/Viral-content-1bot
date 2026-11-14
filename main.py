@@ -25,10 +25,10 @@ PACKAGES = {
     "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1"},
     "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+_AILkUGhVnVkMzBl"},
     "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+qjTxEmHC-z4wMzE1"},
-    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 30, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
+    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
     "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
     "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9"},
-    "pkg_7": {"name": "🔥 07 Pakistani girl real fuke", "price": 49, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
+    "pkg_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
     "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
 }
 
