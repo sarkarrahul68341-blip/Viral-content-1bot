@@ -29,7 +29,7 @@ PACKAGES = {
     "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
     "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9"},
     "pkg_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+f9i3BlsoUeZiZmY1"},
-    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOldmg4w3c2MjQ1"},
+    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1"},
 }
 
 def get_main_menu_keyboard():
