@@ -139,7 +139,7 @@ async def button_handler(update: Update, context):
                 f"💰 Price: **Rs.{pkg['price']}**\n\n"
                 f"📱 **Payment Instructions:**\n"
                 f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot (Photo)** bhejien taaki aapko turant link mil sake."
+                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot ** bhejien taaki aapko turant link mil sake."
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
