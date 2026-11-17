@@ -30,7 +30,8 @@ def init_db():
         CREATE TABLE IF NOT EXISTS demo_stats (
             clip_id INTEGER PRIMARY KEY,
             video_file_id TEXT,
-            views INTEGER DEFAULT 0
+            views INTEGER DEFAULT 0,
+            custom_link TEXT
         )
     ''')
     cursor.execute('''
@@ -48,7 +49,7 @@ init_db()
 def get_clip_data(clip_id):
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT video_file_id, views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+    cursor.execute('SELECT video_file_id, views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
     row = cursor.fetchone()
     conn.close()
     return row
@@ -67,7 +68,6 @@ def check_and_increment_view(user_id, clip_id):
     else:
         current_views = row[0]
 
-    # Agar user Admin nahi hai, tabhi unique view track karein
     if user_id != ADMIN_USER_ID:
         cursor.execute('SELECT * FROM user_views WHERE user_id = ? AND clip_id = ?', (user_id, clip_id))
         already_viewed = cursor.fetchone()
@@ -84,15 +84,30 @@ def check_and_increment_view(user_id, clip_id):
 def save_video_to_db(clip_id, file_id):
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+    cursor.execute('SELECT views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
     row = cursor.fetchone()
-    initial_views = row[1] if row else 0
+    initial_views = row[0] if row else 0
+    existing_link = row[1] if row else None
     
     cursor.execute('''
-        INSERT INTO demo_stats (clip_id, video_file_id, views) 
-        VALUES (?, ?, ?) 
+        INSERT INTO demo_stats (clip_id, video_file_id, views, custom_link) 
+        VALUES (?, ?, ?, ?) 
         ON CONFLICT(clip_id) DO UPDATE SET video_file_id = excluded.video_file_id
-    ''', (clip_id, file_id, initial_views))
+    ''', (clip_id, file_id, initial_views, existing_link))
+    conn.commit()
+    conn.close()
+
+def save_link_to_db(clip_id, link):
+    conn = sqlite3.connect('bot_views.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+    row = cursor.fetchone()
+    
+    if not row:
+        cursor.execute('INSERT INTO demo_stats (clip_id, views, custom_link) VALUES (?, 0, ?)', (clip_id, link))
+    else:
+        cursor.execute('UPDATE demo_stats SET custom_link = ? WHERE clip_id = ?', (link, clip_id))
+    
     conn.commit()
     conn.close()
 
@@ -188,25 +203,39 @@ async def process_photo_setting(update: Update, context):
 
 async def process_video_setting(update: Update, context):
     if not update.message.video:
-        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2` ya `/setdemo2`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2`", parse_mode="Markdown")
         return
 
     video_file_id = update.message.video.file_id
     caption_text = (update.message.caption or "").strip()
     
-    # Extract all numbers from caption
     numbers = re.findall(r'\d+', caption_text)
-    
-    # Agar caption mein number hai toh wo use karo, warna default 1 mat lo agar command me number hai
     clip_num = 1
     if numbers:
-        clip_num = int(numbers[-1])  # Last detected number (e.g. in /setdemo 2, 2 will be picked)
+        clip_num = int(numbers[-1])
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
         await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
     else:
         await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 2`).")
+
+async def set_demo_link_handler(update: Update, context):
+    args = context.args
+    if not args or len(args) < 2:
+        await update.message.reply_text("⚠️ Sahi tarika: `/setdemolink 1 https://t.me/your_link`", parse_mode="Markdown")
+        return
+    
+    clip_num_str = args[0]
+    link = args[1]
+    
+    if not clip_num_str.isdigit() or not (1 <= int(clip_num_str) <= 10):
+        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka clip number dein.")
+        return
+        
+    clip_num = int(clip_num_str)
+    save_link_to_db(clip_num, link)
+    await update.message.reply_text(f"✅ **Demo Clip {clip_num}** ka custom link successfully set ho gaya hai:\n🔗 `{link}`", parse_mode="Markdown")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -222,8 +251,17 @@ async def button_handler(update: Update, context):
         index = int(data.replace("demo_", ""))
         
         current_views = check_and_increment_view(user_id, index)
+        clip_data = get_clip_data(index)
+        video_file_id = clip_data[0] if clip_data else None
+        custom_link = clip_data[2] if clip_data and len(clip_data) > 2 else None
         
         nav_buttons = []
+        
+        # Agar custom link set hai toh pehle wo button dikhega
+        if custom_link:
+            nav_buttons.append([InlineKeyboardButton("🔥 Join VIP Channel / Link", url=custom_link)])
+        
+        # Next / Back buttons row
         row = []
         if index > 1:
             row.append(InlineKeyboardButton("⬅️ Back", callback_data=f"demo_{index - 1}"))
@@ -248,9 +286,6 @@ async def button_handler(update: Update, context):
         except Exception:
             pass
             
-        clip_data = get_clip_data(index)
-        video_file_id = clip_data[0] if clip_data else None
-        
         if video_file_id:
             try:
                 await context.bot.send_video(
@@ -377,6 +412,7 @@ telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CommandHandler("file", process_photo_setting))
 telegram_app.add_handler(CommandHandler("setdemo", process_video_setting))
+telegram_app.add_handler(CommandHandler("setdemolink", set_demo_link_handler))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
 
@@ -407,3 +443,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+    
