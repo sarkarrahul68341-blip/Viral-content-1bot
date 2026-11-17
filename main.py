@@ -16,9 +16,9 @@ BUSINESS_NAME = "All Max Content Bot"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 ADMIN_USER_ID = 8776203848  # Aapki Admin ID (Aapke dekhne par view count nahi badhega)
 
-# Permanent Channel Button (Jo Back to Main Menu ke niche hamesha dikhega)
+# Permanent Channel Button (Back to Main Menu ke niche fixed)
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zlyMTQ1"
-PERMANENT_BUTTON_NAME = "🔥 Join Our Channel"
+PERMANENT_BUTTON_NAME = "Join Channel"
 
 # Default welcome photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
@@ -198,13 +198,10 @@ async def process_video_setting(update: Update, context):
     video_file_id = update.message.video.file_id
     caption_text = (update.message.caption or "").strip()
     
-    # Extract all numbers from caption
     numbers = re.findall(r'\d+', caption_text)
-    
-    # Agar caption mein number hai toh wo use karo, warna default 1 mat lo agar command me number hai
     clip_num = 1
     if numbers:
-        clip_num = int(numbers[-1])  # Last detected number (e.g. in /setdemo 2, 2 will be picked)
+        clip_num = int(numbers[-1])
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
@@ -240,7 +237,7 @@ async def button_handler(update: Update, context):
         # Back to Main Menu button
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         
-        # Permanent Channel Button right below Back to Main Menu
+        # Permanent 'Join Channel' button right below Back to Main Menu
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
         
         keyboard = InlineKeyboardMarkup(nav_buttons)
@@ -416,3 +413,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+        
