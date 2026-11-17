@@ -16,8 +16,8 @@ BUSINESS_NAME = "All Max Content Bot"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 
-# Permanent Channel Button Link (Bilkul sahi set kiya gaya hai)
-PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zlyMTQ1"
+# Permanent Channel Button Link (Aapka exact link yahan set hai)
+PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Channel"
 
 # Default welcome photo
@@ -236,7 +236,7 @@ async def button_handler(update: Update, context):
         # Back to Main Menu button
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         
-        # Join Channel button with correct url argument
+        # Join Channel button with exact URL
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
         
         keyboard = InlineKeyboardMarkup(nav_buttons)
@@ -412,4 +412,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+                                                                                      
