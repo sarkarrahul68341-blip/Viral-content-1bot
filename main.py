@@ -16,7 +16,7 @@ BUSINESS_NAME = "All Max Content Bot"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 
-# Permanent Channel Button Link (Yahan aap apna link badal bhi sakte hain)
+# Permanent Channel Button Link & Name (Aapka diya hua link yahan fix hai)
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zlyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Channel"
 
@@ -236,7 +236,7 @@ async def button_handler(update: Update, context):
         # Back to Main Menu button
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         
-        # FIXED: Explicitly passing url=PERMANENT_CHANNEL_LINK so it opens the link correctly
+        # Join Channel button with exact url parameter enabled
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
         
         keyboard = InlineKeyboardMarkup(nav_buttons)
@@ -370,7 +370,7 @@ async def handle_media(update: Update, context):
     text = (
         "📸 **Screenshot Received Successfully!**\n\n"
         f"🎉 File: **{pkg['name']}**\n"
-        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button par apna VIP Access link kholen:"
+        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
     )
     keyboard = InlineKeyboardMarkup([
         [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
@@ -379,7 +379,7 @@ async def handle_media(update: Update, context):
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
 telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler(Parses := "setphoto", process_photo_setting)) # standard handlers below
+telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CommandHandler("file", process_photo_setting))
 telegram_app.add_handler(CommandHandler("setdemo", process_video_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
@@ -412,4 +412,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
