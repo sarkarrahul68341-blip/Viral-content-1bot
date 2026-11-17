@@ -1,6 +1,7 @@
 import os
 import asyncio
 import sqlite3
+import re
 import qrcode
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -112,9 +113,8 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
-    # Stylish Demo Button
-    keyboard.append([InlineKeyboardButton("✨ ── ꜰʀᴇᴇ ᴅᴇᴍᴏ ɴᴏᴡ ── ✨", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("🆘", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
 
@@ -157,28 +157,25 @@ async def start(update: Update, context):
             parse_mode="Markdown"
         )
 
-async def set_photo_handler(update: Update, context):
+async def process_photo_setting(update: Update, context):
     global DEFAULT_PHOTO
     if not update.message.photo:
         await update.message.reply_text("⚠️ Kripya photo ke sath command likhein.")
         return
 
     photo_file = update.message.photo[-1].file_id
-    args = context.args if context and hasattr(context, 'args') else []
     caption_text = (update.message.caption or "").strip().lower()
-    text_to_check = " ".join(args) if args else caption_text
 
     file_key = None
-    import re
-    numbers = re.findall(r'\d+', text_to_check)
+    numbers = re.findall(r'\d+', caption_text)
     
     if numbers:
-        num = numbers[0]
-        if 1 <= int(num) <= 8:
+        num = int(numbers[0])
+        if 1 <= num <= 8:
             file_key = f"file_{num}"
 
     for key in PACKAGES.keys():
-        if key in text_to_check or key.replace("_", "") in text_to_check.replace("_", ""):
+        if key in caption_text or key.replace("_", "") in caption_text.replace("_", ""):
             file_key = key
             break
 
@@ -189,29 +186,24 @@ async def set_photo_handler(update: Update, context):
         DEFAULT_PHOTO = photo_file
         await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
 
-async def set_demo_video_handler(update: Update, context):
+async def process_video_setting(update: Update, context):
     if not update.message.video:
-        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 1`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 1` ya `/setdemo1`", parse_mode="Markdown")
         return
 
     video_file_id = update.message.video.file_id
-    args = context.args
     caption_text = (update.message.caption or "").strip()
-
-    import re
-    numbers = re.findall(r'\d+', caption_text)
     
+    numbers = re.findall(r'\d+', caption_text)
     clip_num = 1
     if numbers:
         clip_num = int(numbers[0])
-    elif args and args[0].isdigit():
-        clip_num = int(args[0])
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
         await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
     else:
-        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 5`).")
+        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 1` ya `/setdemo1`).")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -352,11 +344,16 @@ async def button_handler(update: Update, context):
 
 async def handle_media(update: Update, context):
     caption_text = (update.message.caption or "").lower()
-    if "/setdemo" in caption_text:
-        await set_demo_video_handler(update, context)
+    
+    if update.message.video and "setdemo" in caption_text:
+        await process_video_setting(update, context)
         return
-    elif "/setphoto" in caption_text or "/file" in caption_text:
-        await set_photo_handler(update, context)
+        
+    if update.message.photo and ("setphoto" in caption_text or "file" in caption_text or any(f"file_{i}" in caption_text or f" {i} " in f" {caption_text} " for i in range(1, 9))):
+        await process_photo_setting(update, context)
+        return
+    elif update.message.photo and not caption_text:
+        await process_photo_setting(update, context)
         return
 
     last_file_key = context.user_data.get('last_pkg', 'file_1')
@@ -374,9 +371,9 @@ async def handle_media(update: Update, context):
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
 telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("setphoto", set_photo_handler))
-telegram_app.add_handler(CommandHandler("file", set_photo_handler))
-telegram_app.add_handler(CommandHandler("setdemo", set_demo_video_handler))
+telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
+telegram_app.add_handler(CommandHandler("file", process_photo_setting))
+telegram_app.add_handler(CommandHandler("setdemo", process_video_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
 
