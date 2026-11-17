@@ -13,6 +13,7 @@ UPI_ID = "Puja6489@ptyes"
 BUSINESS_NAME = "All Max Content Bot"
 
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
+ADMIN_USER_ID = 8776203848  # Aapki Admin ID (Aapke dekhne par view count nahi badhega)
 
 # Default welcome photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
@@ -20,7 +21,7 @@ DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== DATABASE SETUP FOR UNIQUE VIEWS ====================
+# ==================== DATABASE SETUP ====================
 def init_db():
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
@@ -31,7 +32,6 @@ def init_db():
             views INTEGER DEFAULT 0
         )
     ''')
-    # Table to track unique views per user so each person's view counts only once
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_views (
             user_id INTEGER,
@@ -66,16 +66,16 @@ def check_and_increment_view(user_id, clip_id):
     else:
         current_views = row[0]
 
-    # Check if this specific user has already viewed this clip
-    cursor.execute('SELECT * FROM user_views WHERE user_id = ? AND clip_id = ?', (user_id, clip_id))
-    already_viewed = cursor.fetchone()
-    
-    if not already_viewed:
-        # Pehli baar dekhne par view +1 hoga (chahe wo aap ho ya koi aur user)
-        current_views += 1
-        cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (current_views, clip_id))
-        cursor.execute('INSERT INTO user_views (user_id, clip_id) VALUES (?, ?)', (user_id, clip_id))
-        conn.commit()
+    # Agar user Admin nahi hai, tabhi unique view track karein
+    if user_id != ADMIN_USER_ID:
+        cursor.execute('SELECT * FROM user_views WHERE user_id = ? AND clip_id = ?', (user_id, clip_id))
+        already_viewed = cursor.fetchone()
+        
+        if not already_viewed:
+            current_views += 1
+            cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (current_views, clip_id))
+            cursor.execute('INSERT INTO user_views (user_id, clip_id) VALUES (?, ?)', (user_id, clip_id))
+            conn.commit()
     
     conn.close()
     return current_views
@@ -112,6 +112,7 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
+    # Stylish Demo Button
     keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
     keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
     
@@ -206,11 +207,11 @@ async def set_demo_video_handler(update: Update, context):
     elif args and args[0].isdigit():
         clip_num = int(args[0])
 
-    if 1 <= clip_num <= 30:
+    if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
-        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 30** successfully save ho gayi hai!")
+        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
     else:
-        await update.message.reply_text("⚠️ Kripya 1 se 30 ke beech ka number dein (jaise `/setdemo 5`).")
+        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 5`).")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -225,14 +226,13 @@ async def button_handler(update: Update, context):
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
         
-        # Har unique user (including yourself) ka pehla view count hoga
         current_views = check_and_increment_view(user_id, index)
         
         nav_buttons = []
         row = []
         if index > 1:
             row.append(InlineKeyboardButton("⬅️ Back", callback_data=f"demo_{index - 1}"))
-        if index < 30:
+        if index < 10:
             row.append(InlineKeyboardButton("➡️ Next Clip", callback_data=f"demo_{index + 1}"))
             
         if row:
@@ -242,7 +242,7 @@ async def button_handler(update: Update, context):
         keyboard = InlineKeyboardMarkup(nav_buttons)
         
         text = (
-            f"🎬 **Demo Clip {index} / 30**\n"
+            f"🎬 **Demo Clip {index} / 10**\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
             f"👁️ Views: **{current_views:,}**"
@@ -307,7 +307,7 @@ async def button_handler(update: Update, context):
             photo=pkg["photo"],
             caption=text,
             reply_markup=keyboard,
-            parse_photo="Markdown"
+            parse_mode="Markdown"
         )
 
     elif data.startswith("pay_"):
@@ -407,4 +407,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+        
