@@ -13,7 +13,7 @@ BUSINESS_NAME = "All Max Content Bot"
 
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 
-# Default welcome photo / video fallback
+# Default welcome photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 app = Flask(__name__)
@@ -31,21 +31,9 @@ PACKAGES = {
     "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": DEFAULT_PHOTO},
 }
 
-# ==================== DEMO VIDEO CLIPS CONFIGURATION (Up to 30 Clips) ====================
-# Yahan aap apni video file_id ya URL dal sakte hain (Maximum 30 clips tak add kar sakte hain)
-DEMO_VIDEOS = [
-    {
-        "title": "🎬 **Demo Clip 1 / 30**",
-        "desc": "✨ Yeh hamari pehli demo video clip hai. Quality check karein!",
-        "video": "YOUR_VIDEO_FILE_ID_1" # Yahan Telegram ka video file_id ya direct link aayega
-    },
-    {
-        "title": "🎬 **Demo Clip 2 / 30**",
-        "desc": "🔥 Yeh doosri demo clip hai. Aur bhi mazedaar content available hai!",
-        "video": "YOUR_VIDEO_FILE_ID_2"
-    },
-    # Aap aise hi niche aur bhi clips (3 tak ya maximum 30 tak) add kar sakte hain:
-]
+# ==================== DYNAMIC DEMO VIDEOS (Up to 30) ====================
+# Yeh dictionary dynamically store karegi jo aap /setdemo se bhejenge
+DEMO_VIDEOS = {}
 
 def get_main_menu_keyboard():
     keyboard = []
@@ -53,7 +41,7 @@ def get_main_menu_keyboard():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
     # Single Demo Button
-    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_0")])
+    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
     
     # Help & Support Button with 🆘
     keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
@@ -131,6 +119,31 @@ async def set_photo_handler(update: Update, context):
         DEFAULT_PHOTO = photo_file
         await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
 
+# New handler to set demo videos dynamically via /setdemo 1 to 30
+async def set_demo_video_handler(update: Update, context):
+    if not update.message.video:
+        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 1`", parse_mode="Markdown")
+        return
+
+    video_file_id = update.message.video.file_id
+    args = context.args
+    caption_text = (update.message.caption or "").strip()
+
+    import re
+    numbers = re.findall(r'\d+', caption_text)
+    
+    clip_num = 1
+    if numbers:
+        clip_num = int(numbers[0])
+    elif args and args[0].isdigit():
+        clip_num = int(args[0])
+
+    if 1 <= clip_num <= 30:
+        DEMO_VIDEOS[clip_num] = video_file_id
+        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 30** successfully set ho gayi hai!")
+    else:
+        await update.message.reply_text("⚠️ Kripya 1 se 30 ke beech ka number dein (jaise `/setdemo 5`).")
+
 async def button_handler(update: Update, context):
     query = update.callback_query
     await query.answer()
@@ -140,21 +153,15 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Demo video slides handler (Next / Back)
+    # Demo video slides handler (1 to 30)
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
         
-        # Fallback agar list mein video na ho
-        if index >= len(DEMO_VIDEOS):
-            index = 0
-            
-        clip = DEMO_VIDEOS[index]
-        
         nav_buttons = []
         row = []
-        if index > 0:
+        if index > 1:
             row.append(InlineKeyboardButton("⬅️ Back", callback_data=f"demo_{index - 1}"))
-        if index < len(DEMO_VIDEOS) - 1:
+        if index < 30:
             row.append(InlineKeyboardButton("➡️ Next Clip", callback_data=f"demo_{index + 1}"))
             
         if row:
@@ -163,28 +170,39 @@ async def button_handler(update: Update, context):
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         keyboard = InlineKeyboardMarkup(nav_buttons)
         
-        text = f"{clip['title']}\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n{clip['desc']}"
+        text = (
+            f"🎬 **Demo Clip {index} / 30**\n"
+            "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!"
+        )
         
         try:
             await query.message.delete()
         except Exception:
             pass
             
-        # Agar video file_id URL nahi hai balki placeholder hai, toh error se bachne ke liye photo bhejega warna video
-        try:
-            await context.bot.send_video(
-                chat_id=query.message.chat_id,
-                video=clip["video"],
-                caption=text,
-                reply_markup=keyboard,
-                parse_mode="Markdown"
-            )
-        except Exception:
-            # Fallback agar video load na ho paye
+        # Check if video is set for this index
+        if index in DEMO_VIDEOS:
+            try:
+                await context.bot.send_video(
+                    chat_id=query.message.chat_id,
+                    video=DEMO_VIDEOS[index],
+                    caption=text,
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=f"❌ Error sending video: {str(e)}",
+                    reply_markup=keyboard
+                )
+        else:
+            # Fallback if video not uploaded yet for this number
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=DEFAULT_PHOTO,
-                caption=text + "\n\n*(Video clip not uploaded yet, showing default)*",
+                caption=text + "\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo " + str(index) + " use karein)*",
                 reply_markup=keyboard,
                 parse_mode="Markdown"
             )
@@ -260,9 +278,12 @@ async def button_handler(update: Update, context):
                 text=f"❌ Error generating QR code: {str(e)}"
             )
 
-async def handle_photo(update: Update, context):
+async def handle_media(update: Update, context):
     caption_text = (update.message.caption or "").lower()
-    if "/setphoto" in caption_text or "/file" in caption_text:
+    if "/setdemo" in caption_text:
+        await set_demo_video_handler(update, context)
+        return
+    elif "/setphoto" in caption_text or "/file" in caption_text:
         await set_photo_handler(update, context)
         return
 
@@ -283,8 +304,9 @@ async def handle_photo(update: Update, context):
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", set_photo_handler))
 telegram_app.add_handler(CommandHandler("file", set_photo_handler))
+telegram_app.add_handler(CommandHandler("setdemo", set_demo_video_handler))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
+telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
 
 # ==================== FLASK ROUTES ====================
 @app.route('/')
