@@ -13,13 +13,13 @@ BUSINESS_NAME = "All Max Content Bot"
 
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 
-# Default welcome photo
+# Default welcome photo / video fallback
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== 8 FILES CONFIGURATION (Alag-alag Photos ke sath) ====================
+# ==================== 8 FILES CONFIGURATION ====================
 PACKAGES = {
     "file_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": DEFAULT_PHOTO},
     "file_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": DEFAULT_PHOTO},
@@ -31,23 +31,20 @@ PACKAGES = {
     "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": DEFAULT_PHOTO},
 }
 
-# ==================== DEMO SLIDES CONFIGURATION ====================
-DEMO_SLIDES = [
+# ==================== DEMO VIDEO CLIPS CONFIGURATION (Up to 30 Clips) ====================
+# Yahan aap apni video file_id ya URL dal sakte hain (Maximum 30 clips tak add kar sakte hain)
+DEMO_VIDEOS = [
     {
-        "title": "🎬 **Demo Preview 1 / 3**",
-        "desc": "✨ Yeh hamare content ka pehla sample preview hai. Quality check karein!",
-        "photo": DEFAULT_PHOTO
+        "title": "🎬 **Demo Clip 1 / 30**",
+        "desc": "✨ Yeh hamari pehli demo video clip hai. Quality check karein!",
+        "video": "YOUR_VIDEO_FILE_ID_1" # Yahan Telegram ka video file_id ya direct link aayega
     },
     {
-        "title": "🎬 **Demo Preview 2 / 3**",
-        "desc": "🔥 Yeh doosra demo clip preview hai. Aur bhi mazedaar content yahan hai!",
-        "photo": DEFAULT_PHOTO
+        "title": "🎬 **Demo Clip 2 / 30**",
+        "desc": "🔥 Yeh doosri demo clip hai. Aur bhi mazedaar content available hai!",
+        "video": "YOUR_VIDEO_FILE_ID_2"
     },
-    {
-        "title": "🎬 **Demo Preview 3 / 3**",
-        "desc": "💎 Yeh aakhri demo preview hai. Agar pasand aaye toh menu se package select karein!",
-        "photo": DEFAULT_PHOTO
-    }
+    # Aap aise hi niche aur bhi clips (3 tak ya maximum 30 tak) add kar sakte hain:
 ]
 
 def get_main_menu_keyboard():
@@ -58,7 +55,7 @@ def get_main_menu_keyboard():
     # Single Demo Button
     keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_0")])
     
-    # Help & Support Button with 🆘 icon
+    # Help & Support Button with 🆘
     keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
@@ -143,17 +140,22 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Demo slides handler
+    # Demo video slides handler (Next / Back)
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
-        slide = DEMO_SLIDES[index]
+        
+        # Fallback agar list mein video na ho
+        if index >= len(DEMO_VIDEOS):
+            index = 0
+            
+        clip = DEMO_VIDEOS[index]
         
         nav_buttons = []
         row = []
         if index > 0:
             row.append(InlineKeyboardButton("⬅️ Back", callback_data=f"demo_{index - 1}"))
-        if index < len(DEMO_SLIDES) - 1:
-            row.append(InlineKeyboardButton("➡️ Next", callback_data=f"demo_{index + 1}"))
+        if index < len(DEMO_VIDEOS) - 1:
+            row.append(InlineKeyboardButton("➡️ Next Clip", callback_data=f"demo_{index + 1}"))
             
         if row:
             nav_buttons.append(row)
@@ -161,20 +163,31 @@ async def button_handler(update: Update, context):
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         keyboard = InlineKeyboardMarkup(nav_buttons)
         
-        text = f"{slide['title']}\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n{slide['desc']}"
+        text = f"{clip['title']}\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n{clip['desc']}"
         
         try:
             await query.message.delete()
         except Exception:
             pass
             
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=slide["photo"],
-            caption=text,
-            reply_markup=keyboard,
-            parse_mode="Markdown"
-        )
+        # Agar video file_id URL nahi hai balki placeholder hai, toh error se bachne ke liye photo bhejega warna video
+        try:
+            await context.bot.send_video(
+                chat_id=query.message.chat_id,
+                video=clip["video"],
+                caption=text,
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
+        except Exception:
+            # Fallback agar video load na ho paye
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=DEFAULT_PHOTO,
+                caption=text + "\n\n*(Video clip not uploaded yet, showing default)*",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
         return
 
     if data in PACKAGES:
@@ -300,4 +313,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
+    
