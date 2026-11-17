@@ -188,22 +188,25 @@ async def process_photo_setting(update: Update, context):
 
 async def process_video_setting(update: Update, context):
     if not update.message.video:
-        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 1` ya `/setdemo1`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2` ya `/setdemo2`", parse_mode="Markdown")
         return
 
     video_file_id = update.message.video.file_id
     caption_text = (update.message.caption or "").strip()
     
+    # Extract all numbers from caption
     numbers = re.findall(r'\d+', caption_text)
+    
+    # Agar caption mein number hai toh wo use karo, warna default 1 mat lo agar command me number hai
     clip_num = 1
     if numbers:
-        clip_num = int(numbers[0])
+        clip_num = int(numbers[-1])  # Last detected number (e.g. in /setdemo 2, 2 will be picked)
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
         await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
     else:
-        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 1` ya `/setdemo1`).")
+        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 2`).")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -404,4 +407,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
