@@ -32,7 +32,6 @@ PACKAGES = {
 }
 
 # ==================== DYNAMIC DEMO VIDEOS (Up to 30) ====================
-# Yeh dictionary dynamically store karegi jo aap /setdemo se bhejenge
 DEMO_VIDEOS = {}
 
 def get_main_menu_keyboard():
@@ -119,7 +118,7 @@ async def set_photo_handler(update: Update, context):
         DEFAULT_PHOTO = photo_file
         await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
 
-# New handler to set demo videos dynamically via /setdemo 1 to 30
+# Handler to set demo videos dynamically via /setdemo 1 to 30
 async def set_demo_video_handler(update: Update, context):
     if not update.message.video:
         await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 1`", parse_mode="Markdown")
@@ -170,10 +169,14 @@ async def button_handler(update: Update, context):
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         keyboard = InlineKeyboardMarkup(nav_buttons)
         
+        # Fake professional view count generator based on index
+        views_count = 1200 + (index * 145)
+        
         text = (
             f"🎬 **Demo Clip {index} / 30**\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!"
+            f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
+            f"👁️ Views: **{views_count:,}** | ❤️ Likes: **{int(views_count/3):,}**"
         )
         
         try:
@@ -202,7 +205,7 @@ async def button_handler(update: Update, context):
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=DEFAULT_PHOTO,
-                caption=text + "\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo " + str(index) + " use karein)*",
+                caption=text + f"\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo {index} use karein)*",
                 reply_markup=keyboard,
                 parse_mode="Markdown"
             )
@@ -335,4 +338,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
