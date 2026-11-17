@@ -104,10 +104,13 @@ async def button_handler(update: Update, context):
         pkg = PACKAGES[data]
         context.user_data['last_pkg'] = data
         
+        # Yahan package ke upar design, lines aur heavy emojis add kar diye gaye hain
         text = (
+            "🔥💎 **SELECTED VIP PACKAGE** 💎🔥\n"
+            "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"📦 **{pkg['name']}**\n"
             f"💰 Price: **Rs.{pkg['price']}**\n\n"
-            f"✨ Payment karne ke liye niche diye gaye button par click karein:"
+            "✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
         )
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("💳 Pay Now (UPI QR)", callback_data=f"pay_{data}")],
@@ -135,11 +138,12 @@ async def button_handler(update: Update, context):
         try:
             qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
             caption = (
+                "🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n"
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
                 f"📦 **{pkg['name']}**\n"
                 f"💰 Price: **Rs.{pkg['price']}**\n\n"
-                f"📱 **Payment Instructions:**\n"
                 f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot ** bhejien taaki aapko turant link mil sake."
+                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki aapko turant link mil sake."
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
@@ -217,4 +221,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-                
+    
