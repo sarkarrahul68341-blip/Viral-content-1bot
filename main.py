@@ -2,7 +2,7 @@ import os
 import asyncio
 import qrcode
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaVideo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 # ==================== CONFIGURATION ====================
@@ -11,18 +11,11 @@ TELEGRAM_BOT_TOKEN = "9210267090:AAFGulP572uIzyKPEGVa01y7HuR9xt2adio"
 UPI_ID = "Puja6489@ptyes"
 BUSINESS_NAME = "All Max Content Bot"
 
+DEMO_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 
 # Default welcome photo agar user set na kare
 WELCOME_PHOTO_FILE_ID = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
-
-# ==================== DEMO CLIPS CONFIGURATION ====================
-# Yahan aap apni 30-seconds ki video clips ke Telegram File IDs ya Direct Video URLs daal sakte hain
-DEMO_VIDEOS = [
-    {"video": "https://www.w3schools.com/html/mov_bbb.mp4", "caption": "🎥 Demo Clip 1/3: Preview & Gameplay"},
-    {"video": "https://www.w3schools.com/html/mov_bbb.mp4", "caption": "🎥 Demo Clip 2/3: Special Features"},
-    {"video": "https://www.w3schools.com/html/mov_bbb.mp4", "caption": "🎥 Demo Clip 3/3: VIP Content Teaser"}
-]
 
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
@@ -44,8 +37,7 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
-    # Demo button jo pehli video (index 0) ko khulega
-    keyboard.append([InlineKeyboardButton("🚀 Free Demo & Trial", callback_data="show_demo_0")])
+    keyboard.append([InlineKeyboardButton("🚀 Free Demo & Trial", url=DEMO_LINK)])
     keyboard.append([InlineKeyboardButton("💬 Help & Support Chat", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
@@ -108,44 +100,6 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Demo video navigation handler (Next / Prev ke sath 1 video show karega)
-    if data.startswith("show_demo_"):
-        index = int(data.split("_")[2])
-        video_data = DEMO_VIDEOS[index]
-        
-        keyboard = []
-        nav_buttons = []
-        
-        # Prev button agar pehli video nahi hai toh show hoga
-        if index > 0:
-            nav_buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"show_demo_{index - 1}"))
-            
-        # Next button agar aur videos baaki hain toh show hoga
-        if index < len(DEMO_VIDEOS) - 1:
-            nav_buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"show_demo_{index + 1}"))
-            
-        if nav_buttons:
-            keyboard.append(nav_buttons)
-            
-        keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
-        
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        # Purana message delete karke clean 1 single video bhejega
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-            
-        await context.bot.send_video(
-            chat_id=query.message.chat_id,
-            video=video_data["video"],
-            caption=f"{video_data['caption']}\n\n🎬 **(Video {index + 1} of {len(DEMO_VIDEOS)})**",
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-        return
-
     if data in PACKAGES:
         pkg = PACKAGES[data]
         context.user_data['last_pkg'] = data
@@ -185,7 +139,7 @@ async def button_handler(update: Update, context):
                 f"💰 Price: **Rs.{pkg['price']}**\n\n"
                 f"📱 **Payment Instructions:**\n"
                 f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki aapko turant link mil sake."
+                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot ** bhejien taaki aapko turant link mil sake."
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
@@ -261,6 +215,6 @@ if __name__ == '__main__':
         webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
         urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
 
-    port = int(os.environ.com.get("PORT", 10000) if hasattr(os.environ, "com") else os.environ.get("PORT", 10000))
+    port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
+                
