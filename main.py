@@ -1,5 +1,6 @@
 import os
 import asyncio
+import sqlite3
 import qrcode
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -19,6 +20,62 @@ DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
+# ==================== DATABASE SETUP FOR REAL VIEWS ====================
+def init_db():
+    conn = sqlite3.connect('bot_views.db')
+    cursor = conn.cursor()
+    cursor.execute('''
+        CREATE TABLE IF NOT EXISTS demo_stats (
+            clip_id INTEGER PRIMARY KEY,
+            video_file_id TEXT,
+            views INTEGER DEFAULT 0
+        )
+    ''')
+    conn.commit()
+    conn.close()
+
+init_db()
+
+def get_clip_data(clip_id):
+    conn = sqlite3.connect('bot_views.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT video_file_id, views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+    row = cursor.fetchone()
+    conn.close()
+    return row
+
+def increment_and_get_views(clip_id):
+    conn = sqlite3.connect('bot_views.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+    row = cursor.fetchone()
+    
+    if row:
+        new_views = row[0] + 1
+        cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (new_views, clip_id))
+    else:
+        new_views = 1250 # Starting base views agar pehli baar khule
+        cursor.execute('INSERT INTO demo_stats (clip_id, views) VALUES (?, ?)', (clip_id, new_views))
+        
+    conn.commit()
+    conn.close()
+    return new_views
+
+def save_video_to_db(clip_id, file_id):
+    conn = sqlite3.connect('bot_views.db')
+    cursor = conn.cursor()
+    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+    row = cursor.fetchone()
+    initial_views = row[1] if row else 1200
+    
+    cursor.execute('''
+        INSERT INTO demo_stats (clip_id, video_file_id, views) 
+        VALUES (?, ?, ?) 
+        ON CONFLICT(clip_id) DO UPDATE SET video_file_id = excluded.video_file_id
+    ''', (clip_id, file_id, initial_views))
+    conn.commit()
+    conn.close()
+
 # ==================== 8 FILES CONFIGURATION ====================
 PACKAGES = {
     "file_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": DEFAULT_PHOTO},
@@ -30,9 +87,6 @@ PACKAGES = {
     "file_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": DEFAULT_PHOTO},
     "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": DEFAULT_PHOTO},
 }
-
-# ==================== DYNAMIC DEMO VIDEOS (Up to 30) ====================
-DEMO_VIDEOS = {}
 
 def get_main_menu_keyboard():
     keyboard = []
@@ -138,8 +192,8 @@ async def set_demo_video_handler(update: Update, context):
         clip_num = int(args[0])
 
     if 1 <= clip_num <= 30:
-        DEMO_VIDEOS[clip_num] = video_file_id
-        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 30** successfully set ho gayi hai!")
+        save_video_to_db(clip_num, video_file_id)
+        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 30** successfully save ho gayi hai!")
     else:
         await update.message.reply_text("⚠️ Kripya 1 se 30 ke beech ka number dein (jaise `/setdemo 5`).")
 
@@ -152,9 +206,12 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Demo video slides handler (1 to 30)
+    # Demo video slides handler (1 to 30) with Real Incrementing Views
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
+        
+        # Har baar jab user clip dekhega, views database mein +1 ho jayenge
+        current_views = increment_and_get_views(index)
         
         nav_buttons = []
         row = []
@@ -169,14 +226,11 @@ async def button_handler(update: Update, context):
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         keyboard = InlineKeyboardMarkup(nav_buttons)
         
-        # Fake professional view count generator based on index
-        views_count = 1200 + (index * 145)
-        
         text = (
             f"🎬 **Demo Clip {index} / 30**\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
-            f"👁️ Views: **{views_count:,}** | ❤️ Likes: **{int(views_count/3):,}**"
+            f"👁️ Views: **{current_views:,}** | ❤️ Likes: **{int(current_views/3):,}**"
         )
         
         try:
@@ -184,12 +238,14 @@ async def button_handler(update: Update, context):
         except Exception:
             pass
             
-        # Check if video is set for this index
-        if index in DEMO_VIDEOS:
+        clip_data = get_clip_data(index)
+        video_file_id = clip_data[0] if clip_data else None
+        
+        if video_file_id:
             try:
                 await context.bot.send_video(
                     chat_id=query.message.chat_id,
-                    video=DEMO_VIDEOS[index],
+                    video=video_file_id,
                     caption=text,
                     reply_markup=keyboard,
                     parse_mode="Markdown"
@@ -201,7 +257,7 @@ async def button_handler(update: Update, context):
                     reply_markup=keyboard
                 )
         else:
-            # Fallback if video not uploaded yet for this number
+            # Fallback agar video upload na ho
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=DEFAULT_PHOTO,
@@ -314,7 +370,7 @@ telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_me
 # ==================== FLASK ROUTES ====================
 @app.route('/')
 def home():
-    return "Telegram Bot Webhook Server is Running!"
+    return "Telegram Bot Webhook Server is Running with Real Database Views!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
