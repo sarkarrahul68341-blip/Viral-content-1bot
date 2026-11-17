@@ -31,6 +31,7 @@ def init_db():
             views INTEGER DEFAULT 0
         )
     ''')
+    # Table to track unique views per user so each person's view counts only once
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS user_views (
             user_id INTEGER,
@@ -65,10 +66,12 @@ def check_and_increment_view(user_id, clip_id):
     else:
         current_views = row[0]
 
+    # Check if this specific user has already viewed this clip
     cursor.execute('SELECT * FROM user_views WHERE user_id = ? AND clip_id = ?', (user_id, clip_id))
     already_viewed = cursor.fetchone()
     
     if not already_viewed:
+        # Pehli baar dekhne par view +1 hoga (chahe wo aap ho ya koi aur user)
         current_views += 1
         cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (current_views, clip_id))
         cursor.execute('INSERT INTO user_views (user_id, clip_id) VALUES (?, ?)', (user_id, clip_id))
@@ -222,6 +225,7 @@ async def button_handler(update: Update, context):
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
         
+        # Har unique user (including yourself) ka pehla view count hoga
         current_views = check_and_increment_view(user_id, index)
         
         nav_buttons = []
@@ -237,10 +241,10 @@ async def button_handler(update: Update, context):
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         keyboard = InlineKeyboardMarkup(nav_buttons)
         
-        # Extra text hata kar sirf Clip number aur Views rakha gaya hai
         text = (
             f"🎬 **Demo Clip {index} / 30**\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
             f"👁️ Views: **{current_views:,}**"
         )
         
@@ -271,7 +275,7 @@ async def button_handler(update: Update, context):
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=DEFAULT_PHOTO,
-                caption=f"🎬 **Demo Clip {index} / 30**\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n👁️ Views: **{current_views:,}**\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo {index} use karein)*",
+                caption=text + f"\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo {index} use karein)*",
                 reply_markup=keyboard,
                 parse_mode="Markdown"
             )
@@ -303,7 +307,7 @@ async def button_handler(update: Update, context):
             photo=pkg["photo"],
             caption=text,
             reply_markup=keyboard,
-            parse_mode="Markdown"
+            parse_photo="Markdown"
         )
 
     elif data.startswith("pay_"):
@@ -338,5 +342,69 @@ async def button_handler(update: Update, context):
                     reply_markup=keyboard,
                     parse_mode="Markdown"
                 )
-            if os.path
+            if os.path.exists(qr_file_path):
+                os.remove(qr_file_path)
+        except Exception as e:
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=f"❌ Error generating QR code: {str(e)}"
+            )
+
+async def handle_media(update: Update, context):
+    caption_text = (update.message.caption or "").lower()
+    if "/setdemo" in caption_text:
+        await set_demo_video_handler(update, context)
+        return
+    elif "/setphoto" in caption_text or "/file" in caption_text:
+        await set_photo_handler(update, context)
+        return
+
+    last_file_key = context.user_data.get('last_pkg', 'file_1')
+    pkg = PACKAGES.get(last_file_key, PACKAGES['file_1'])
+
+    text = (
+        "📸 **Screenshot Received Successfully!**\n\n"
+        f"🎉 File: **{pkg['name']}**\n"
+        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
+        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+    ])
+    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("setphoto", set_photo_handler))
+telegram_app.add_handler(CommandHandler("file", set_photo_handler))
+telegram_app.add_handler(CommandHandler("setdemo", set_demo_video_handler))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
+
+# ==================== FLASK ROUTES ====================
+@app.route('/')
+def home():
+    return "Telegram Bot Webhook Server is Running!"
+
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+def webhook():
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, telegram_app.bot)
+    
+    async def run_update():
+        async with telegram_app:
+            await telegram_app.process_update(update)
+
+    asyncio.run(run_update())
+    return "OK", 200
+
+# ==================== MAIN RUNNER ====================
+if __name__ == '__main__':
+    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        import urllib.request
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
+        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
     
