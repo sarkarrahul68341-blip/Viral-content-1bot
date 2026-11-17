@@ -113,7 +113,7 @@ def get_main_menu_keyboard():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
     # Stylish Demo Button
-    keyboard.append([InlineKeyboardButton("✨ ── 🅵🆁🅴🅴 🅳🅴🅼🅾 ── ✨", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("✨ ── ꜰʀᴇᴇ ᴅᴇᴍᴏ ɴᴏᴡ ── ✨", callback_data="demo_1")])
     keyboard.append([InlineKeyboardButton("🆘", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
