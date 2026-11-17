@@ -114,7 +114,7 @@ def get_main_menu_keyboard():
     
     # Stylish Demo Button
     keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("🆘", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
 
