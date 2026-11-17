@@ -17,6 +17,10 @@ BUSINESS_NAME = "All Max Content Bot"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 
+# Permanent Channel Link (jo Back to Main Menu ke niche dikhega)
+PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zlyMTQ1"
+PERMANENT_BUTTON_NAME = "🔥 Join Our Channel"
+
 # Default welcome photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
@@ -346,6 +350,7 @@ async def button_handler(update: Update, context):
             
             nav_buttons = []
             
+            # Additional custom links added via /adddemolink
             for btn_name, link_url in custom_links:
                 nav_buttons.append([InlineKeyboardButton(btn_name, url=link_url)])
             
@@ -358,7 +363,12 @@ async def button_handler(update: Update, context):
             if row:
                 nav_buttons.append(row)
                 
+            # Back to Main Menu button
             nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+            
+            # Permanent Channel Button right below Back to Main Menu
+            nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
+            
             keyboard = InlineKeyboardMarkup(nav_buttons)
             
             text = (
@@ -493,13 +503,4 @@ async def handle_media(update: Update, context):
             "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
         )
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
-            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-        ])
-        await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
-    except Exception as e:
-        print(f"Handle Media Error: {e}")
-
-telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
-telegram_app.add_handler(CommandHandler("file", process_photo_set
+            [InlineKeyboardButton("🔗 Access VIP Content Link", url=p
