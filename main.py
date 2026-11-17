@@ -2,6 +2,7 @@ import os
 import asyncio
 import sqlite3
 import re
+import shlex
 import qrcode
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
@@ -31,8 +32,15 @@ def init_db():
             CREATE TABLE IF NOT EXISTS demo_stats (
                 clip_id INTEGER PRIMARY KEY,
                 video_file_id TEXT,
-                views INTEGER DEFAULT 0,
-                custom_link TEXT
+                views INTEGER DEFAULT 0
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS demo_links (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                clip_id INTEGER,
+                button_name TEXT,
+                link_url TEXT
             )
         ''')
         cursor.execute('''
@@ -53,13 +61,45 @@ def get_clip_data(clip_id):
     try:
         conn = sqlite3.connect('bot_views.db')
         cursor = conn.cursor()
-        cursor.execute('SELECT video_file_id, views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
+        cursor.execute('SELECT video_file_id, views FROM demo_stats WHERE clip_id = ?', (clip_id,))
         row = cursor.fetchone()
         conn.close()
         return row
     except Exception as e:
         print(f"Get Clip Error: {e}")
         return None
+
+def get_clip_links(clip_id):
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT button_name, link_url FROM demo_links WHERE clip_id = ?', (clip_id,))
+        rows = cursor.fetchall()
+        conn.close()
+        return rows 
+    except Exception as e:
+        print(f"Get Links Error: {e}")
+        return []
+
+def add_clip_link(clip_id, button_name, link):
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
+        cursor.execute('INSERT INTO demo_links (clip_id, button_name, link_url) VALUES (?, ?, ?)', (clip_id, button_name, link))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Add Link Error: {e}")
+
+def clear_clip_links(clip_id):
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
+        cursor.execute('DELETE FROM demo_links WHERE clip_id = ?', (clip_id,))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Clear Links Error: {e}")
 
 def check_and_increment_view(user_id, clip_id):
     try:
@@ -96,37 +136,19 @@ def save_video_to_db(clip_id, file_id):
     try:
         conn = sqlite3.connect('bot_views.db')
         cursor = conn.cursor()
-        cursor.execute('SELECT views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
+        cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
         row = cursor.fetchone()
         initial_views = row[0] if row else 0
-        existing_link = row[1] if row else None
         
         cursor.execute('''
-            INSERT INTO demo_stats (clip_id, video_file_id, views, custom_link) 
-            VALUES (?, ?, ?, ?) 
+            INSERT INTO demo_stats (clip_id, video_file_id, views) 
+            VALUES (?, ?, ?) 
             ON CONFLICT(clip_id) DO UPDATE SET video_file_id = excluded.video_file_id
-        ''', (clip_id, file_id, initial_views, existing_link))
+        ''', (clip_id, file_id, initial_views))
         conn.commit()
         conn.close()
     except Exception as e:
         print(f"Save Video Error: {e}")
-
-def save_link_to_db(clip_id, link):
-    try:
-        conn = sqlite3.connect('bot_views.db')
-        cursor = conn.cursor()
-        cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
-        row = cursor.fetchone()
-        
-        if not row:
-            cursor.execute('INSERT INTO demo_stats (clip_id, views, custom_link) VALUES (?, 0, ?)', (clip_id, link))
-        else:
-            cursor.execute('UPDATE demo_stats SET custom_link = ? WHERE clip_id = ?', (link, clip_id))
-        
-        conn.commit()
-        conn.close()
-    except Exception as e:
-        print(f"Save Link Error: {e}")
 
 # ==================== 8 FILES CONFIGURATION ====================
 PACKAGES = {
@@ -250,19 +272,24 @@ async def process_video_setting(update: Update, context):
     except Exception as e:
         await update.message.reply_text(f"❌ Error: {str(e)}")
 
-async def set_demo_link_handler(update: Update, context):
+async def add_demo_link_handler(update: Update, context):
     try:
         text = update.message.text or ""
-        parts = text.split()
+        try:
+            parts = shlex.split(text)
+        except Exception:
+            parts = text.split()
         
-        if context.args and len(context.args) >= 2:
-            clip_num_str = context.args[0]
-            link = context.args[1]
-        elif len(parts) >= 3:
+        if len(parts) >= 4:
             clip_num_str = parts[1]
-            link = parts[2]
+            button_name = parts[2]
+            link = parts[3]
+        elif context.args and len(context.args) >= 3:
+            clip_num_str = context.args[0]
+            button_name = context.args[1]
+            link = context.args[2]
         else:
-            await update.message.reply_text("⚠️ Sahi tarika: `/setdemolink 1 https://t.me/your_link`", parse_mode="Markdown")
+            await update.message.reply_text("⚠️ Sahi tarika: `/adddemolink 1 \"🔥 Join Channel\" https://t.me/your_link`", parse_mode="Markdown")
             return
         
         if not clip_num_str.isdigit() or not (1 <= int(clip_num_str) <= 10):
@@ -270,10 +297,33 @@ async def set_demo_link_handler(update: Update, context):
             return
             
         clip_num = int(clip_num_str)
-        save_link_to_db(clip_num, link)
-        await update.message.reply_text(f"✅ **Demo Clip {clip_num}** ka custom link successfully set ho gaya hai:\n🔗 `{link}`", parse_mode="Markdown")
+        add_clip_link(clip_num, button_name, link)
+        await update.message.reply_text(f"✅ **Demo Clip {clip_num}** mein naya button add ho gaya hai!\n🏷️ Name: `{button_name}`\n🔗 Link: `{link}`", parse_mode="Markdown")
     except Exception as e:
-        await update.message.reply_text(f"❌ Error setting link: {str(e)}")
+        await update.message.reply_text(f"❌ Error adding link: {str(e)}")
+
+async def clear_demo_links_handler(update: Update, context):
+    try:
+        text = update.message.text or ""
+        parts = text.split()
+        
+        if context.args and len(context.args) >= 1:
+            clip_num_str = context.args[0]
+        elif len(parts) >= 2:
+            clip_num_str = parts[1]
+        else:
+            await update.message.reply_text("⚠️ Sahi tarika: `/cleardemolinks 1`", parse_mode="Markdown")
+            return
+        
+        if not clip_num_str.isdigit() or not (1 <= int(clip_num_str) <= 10):
+            await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka clip number dein.")
+            return
+            
+        clip_num = int(clip_num_str)
+        clear_clip_links(clip_num)
+        await update.message.reply_text(f"✅ **Demo Clip {clip_num}** ke saare custom links clear kar diye gaye hain.")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error clearing links: {str(e)}")
 
 async def button_handler(update: Update, context):
     try:
@@ -292,12 +342,12 @@ async def button_handler(update: Update, context):
             current_views = check_and_increment_view(user_id, index)
             clip_data = get_clip_data(index)
             video_file_id = clip_data[0] if clip_data else None
-            custom_link = clip_data[2] if clip_data and len(clip_data) > 2 else None
+            custom_links = get_clip_links(index) 
             
             nav_buttons = []
             
-            if custom_link:
-                nav_buttons.append([InlineKeyboardButton("🔥 Join VIP Channel / Link", url=custom_link)])
+            for btn_name, link_url in custom_links:
+                nav_buttons.append([InlineKeyboardButton(btn_name, url=link_url)])
             
             row = []
             if index > 1:
@@ -452,41 +502,4 @@ async def handle_media(update: Update, context):
 
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
-telegram_app.add_handler(CommandHandler("file", process_photo_setting))
-telegram_app.add_handler(CommandHandler("setdemo", process_video_setting))
-telegram_app.add_handler(CommandHandler("setdemolink", set_demo_link_handler))
-telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
-
-# ==================== FLASK ROUTES ====================
-@app.route('/')
-def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
-def webhook():
-    try:
-        json_data = request.get_json(force=True)
-        update = Update.de_json(json_data, telegram_app.bot)
-        
-        async def run_update():
-            async with telegram_app:
-                await telegram_app.process_update(update)
-
-        asyncio.run(run_update())
-        return "OK", 200
-    except Exception as e:
-        print(f"Webhook Error: {e}")
-        return "OK", 200
-
-# ==================== MAIN RUNNER ====================
-if __name__ == '__main__':
-    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
-    if RENDER_EXTERNAL_URL:
-        import urllib.request
-        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
-        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
-
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host='0.0.0.0', port=port)
-    
+telegram_app.add_handler(CommandHandler("file", process_photo_set
