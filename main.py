@@ -2,7 +2,7 @@ import os
 import asyncio
 import qrcode
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaVideo
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 # ==================== CONFIGURATION ====================
@@ -13,42 +13,53 @@ BUSINESS_NAME = "All Max Content Bot"
 
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 
-# Default welcome photo agar user set na kare
-WELCOME_PHOTO_FILE_ID = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
-
-# ==================== DEMO CLIPS & VIEWS CONFIGURATION ====================
-# Yahan aap apni jitni marzi chahein utni videos (File ID ya Direct URL) daal sakte hain
-DEMO_VIDEOS = [
-    {"video": "https://www.w3schools.com/html/mov_bbb.mp4", "caption": "🎥 Demo Clip 1/3: Preview & Gameplay"},
-    {"video": "https://www.w3schools.com/html/mov_bbb.mp4", "caption": "🎥 Demo Clip 2/3: Special Features"},
-    {"video": "https://www.w3schools.com/html/mov_bbb.mp4", "caption": "🎥 Demo Clip 3/3: VIP Content Teaser"}
-]
-
-TOTAL_DEMO_VIEWS = 0  # Yeh track karega ki kitni baar demo video dekhi gayi hai
+# Default welcome photo
+DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== 8 PACKAGES CONFIGURATION ====================
+# ==================== 8 FILES CONFIGURATION (Alag-alag Photos ke sath) ====================
 PACKAGES = {
-    "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1"},
-    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+_AILkUGhVnVkMzBl"},
-    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+qjTxEmHC-z4wMzE1"},
-    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
-    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
-    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9"},
-    "pkg_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+f9i3BlsoUeZiZmY1"},
-    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1"},
+    "file_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": DEFAULT_PHOTO},
+    "file_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": DEFAULT_PHOTO},
+    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": DEFAULT_PHOTO},
+    "file_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": DEFAULT_PHOTO},
+    "file_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": DEFAULT_PHOTO},
+    "file_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": DEFAULT_PHOTO},
+    "file_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": DEFAULT_PHOTO},
+    "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": DEFAULT_PHOTO},
 }
+
+# ==================== DEMO SLIDES CONFIGURATION ====================
+DEMO_SLIDES = [
+    {
+        "title": "🎬 **Demo Preview 1 / 3**",
+        "desc": "✨ Yeh hamare content ka pehla sample preview hai. Quality check karein!",
+        "photo": DEFAULT_PHOTO
+    },
+    {
+        "title": "🎬 **Demo Preview 2 / 3**",
+        "desc": "🔥 Yeh doosra demo clip preview hai. Aur bhi mazedaar content yahan hai!",
+        "photo": DEFAULT_PHOTO
+    },
+    {
+        "title": "🎬 **Demo Preview 3 / 3**",
+        "desc": "💎 Yeh aakhri demo preview hai. Agar pasand aaye toh menu se package select karein!",
+        "photo": DEFAULT_PHOTO
+    }
+]
 
 def get_main_menu_keyboard():
     keyboard = []
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
-    # Demo button jo pehli video (index 0) ko khulega
-    keyboard.append([InlineKeyboardButton("🚀 Free Demo & Trial", callback_data="show_demo_0")])
-    keyboard.append([InlineKeyboardButton("💬 Help & Support Chat", url=SUPPORT_LINK)])
+    # Single Demo Button
+    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_0")])
+    
+    # Help & Support Button with 🆘 icon
+    keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
 
@@ -64,11 +75,10 @@ def generate_upi_qr(amount, pkg_name, order_id):
 
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
-    global WELCOME_PHOTO_FILE_ID
     reply_markup = get_main_menu_keyboard()
     caption = (
         "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
-        "✨ Aapka yahan swagat hai! Niche diye gaye packages mein se apna pasandida option select karein:\n"
+        "✨ Aapka yahan swagat hai! Niche diye gaye files mein se apna pasandida option select karein:\n"
     )
     
     if update.callback_query:
@@ -79,38 +89,52 @@ async def start(update: Update, context):
             pass
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            photo=WELCOME_PHOTO_FILE_ID,
+            photo=DEFAULT_PHOTO,
             caption=caption,
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
     else:
         await update.message.reply_photo(
-            photo=WELCOME_PHOTO_FILE_ID,
+            photo=DEFAULT_PHOTO,
             caption=caption,
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
 
-async def set_photo(update: Update, context):
-    global WELCOME_PHOTO_FILE_ID
-    if update.message.photo:
-        photo_file = update.message.photo[-1].file_id
-        WELCOME_PHOTO_FILE_ID = photo_file
-        await update.message.reply_text("✅ **Welcome Photo successfully update ho gayi hai!** Ab /start dabakar check karein.")
-    else:
-        await update.message.reply_text("⚠️ Kripya photo ke sath caption mein `/setphoto` likhkar bhejein.")
+async def set_photo_handler(update: Update, context):
+    global DEFAULT_PHOTO
+    if not update.message.photo:
+        await update.message.reply_text("⚠️ Kripya photo ke sath command likhein.")
+        return
 
-async def stats_command(update: Update, context):
-    global TOTAL_DEMO_VIEWS
-    await update.message.reply_text(
-        f"📊 **Bot Analytics & Stats:**\n\n"
-        f"👁️ Total Demo Video Views: **{TOTAL_DEMO_VIEWS}**",
-        parse_mode="Markdown"
-    )
+    photo_file = update.message.photo[-1].file_id
+    args = context.args if context and hasattr(context, 'args') else []
+    caption_text = (update.message.caption or "").strip().lower()
+    text_to_check = " ".join(args) if args else caption_text
+
+    file_key = None
+    import re
+    numbers = re.findall(r'\d+', text_to_check)
+    
+    if numbers:
+        num = numbers[0]
+        if 1 <= int(num) <= 8:
+            file_key = f"file_{num}"
+
+    for key in PACKAGES.keys():
+        if key in text_to_check or key.replace("_", "") in text_to_check.replace("_", ""):
+            file_key = key
+            break
+
+    if file_key and file_key in PACKAGES:
+        PACKAGES[file_key]["photo"] = photo_file
+        await update.message.reply_text(f"✅ **{PACKAGES[file_key]['name']}** ki alag photo successfully update ho gayi hai!")
+    else:
+        DEFAULT_PHOTO = photo_file
+        await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
 
 async def button_handler(update: Update, context):
-    global TOTAL_DEMO_VIEWS
     query = update.callback_query
     await query.answer()
     data = query.data
@@ -119,42 +143,36 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Demo video navigation handler (Next / Prev ke sath 1 video show karega + Views count)
-    if data.startswith("show_demo_"):
-        TOTAL_DEMO_VIEWS += 1  # Jaise hi koi demo kholega, view count +1 ho jayega
+    # Demo slides handler
+    if data.startswith("demo_"):
+        index = int(data.replace("demo_", ""))
+        slide = DEMO_SLIDES[index]
         
-        index = int(data.split("_")[2])
-        video_data = DEMO_VIDEOS[index]
-        
-        keyboard = []
         nav_buttons = []
-        
-        # Prev button agar pehli video nahi hai toh show hoga
+        row = []
         if index > 0:
-            nav_buttons.append(InlineKeyboardButton("⬅️ Prev", callback_data=f"show_demo_{index - 1}"))
+            row.append(InlineKeyboardButton("⬅️ Back", callback_data=f"demo_{index - 1}"))
+        if index < len(DEMO_SLIDES) - 1:
+            row.append(InlineKeyboardButton("➡️ Next", callback_data=f"demo_{index + 1}"))
             
-        # Next button agar aur videos baaki hain toh show hoga
-        if index < len(DEMO_VIDEOS) - 1:
-            nav_buttons.append(InlineKeyboardButton("Next ➡️", callback_data=f"show_demo_{index + 1}"))
+        if row:
+            nav_buttons.append(row)
             
-        if nav_buttons:
-            keyboard.append(nav_buttons)
-            
-        keyboard.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+        nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+        keyboard = InlineKeyboardMarkup(nav_buttons)
         
-        reply_markup = InlineKeyboardMarkup(keyboard)
-
-        # Purana message delete karke clean 1 single video bhejega
+        text = f"{slide['title']}\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n{slide['desc']}"
+        
         try:
             await query.message.delete()
         except Exception:
             pass
             
-        await context.bot.send_video(
+        await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            video=video_data["video"],
-            caption=f"{video_data['caption']}\n\n🎬 **(Video {index + 1} of {len(DEMO_VIDEOS)})**\n👁️ *Total Demo Views: {TOTAL_DEMO_VIEWS}*",
-            reply_markup=reply_markup,
+            photo=slide["photo"],
+            caption=text,
+            reply_markup=keyboard,
             parse_mode="Markdown"
         )
         return
@@ -164,9 +182,11 @@ async def button_handler(update: Update, context):
         context.user_data['last_pkg'] = data
         
         text = (
+            "🔥💎 **SELECTED VIP FILE** 💎🔥\n"
+            "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"📦 **{pkg['name']}**\n"
             f"💰 Price: **Rs.{pkg['price']}**\n\n"
-            f"✨ Payment karne ke liye niche diye gaye button par click karein:"
+            "✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
         )
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton("💳 Pay Now (UPI QR)", callback_data=f"pay_{data}")],
@@ -178,25 +198,27 @@ async def button_handler(update: Update, context):
         except Exception:
             pass
             
-        await context.bot.send_message(
+        await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            text=text,
+            photo=pkg["photo"],
+            caption=text,
             reply_markup=keyboard,
             parse_mode="Markdown"
         )
 
     elif data.startswith("pay_"):
-        pkg_key = data.replace("pay_", "")
-        pkg = PACKAGES[pkg_key]
-        context.user_data['last_pkg'] = pkg_key
+        file_key = data.replace("pay_", "")
+        pkg = PACKAGES[file_key]
+        context.user_data['last_pkg'] = file_key
         user_id = query.from_user.id
         
         try:
             qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
             caption = (
+                "🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n"
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
                 f"📦 **{pkg['name']}**\n"
                 f"💰 Price: **Rs.{pkg['price']}**\n\n"
-                f"📱 **Payment Instructions:**\n"
                 f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
                 f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki aapko turant link mil sake."
             )
@@ -226,16 +248,17 @@ async def button_handler(update: Update, context):
             )
 
 async def handle_photo(update: Update, context):
-    if update.message.caption and "/setphoto" in update.message.caption:
-        await set_photo(update, context)
+    caption_text = (update.message.caption or "").lower()
+    if "/setphoto" in caption_text or "/file" in caption_text:
+        await set_photo_handler(update, context)
         return
 
-    last_pkg_key = context.user_data.get('last_pkg', 'pkg_1')
-    pkg = PACKAGES.get(last_pkg_key, PACKAGES['pkg_1'])
+    last_file_key = context.user_data.get('last_pkg', 'file_1')
+    pkg = PACKAGES.get(last_file_key, PACKAGES['file_1'])
 
     text = (
         "📸 **Screenshot Received Successfully!**\n\n"
-        f"🎉 Package: **{pkg['name']}**\n"
+        f"🎉 File: **{pkg['name']}**\n"
         "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
     )
     keyboard = InlineKeyboardMarkup([
@@ -245,8 +268,8 @@ async def handle_photo(update: Update, context):
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
 telegram_app.add_handler(CommandHandler("start", start))
-telegram_app.add_handler(CommandHandler("setphoto", set_photo))
-telegram_app.add_handler(CommandHandler("stats", stats_command))
+telegram_app.add_handler(CommandHandler("setphoto", set_photo_handler))
+telegram_app.add_handler(CommandHandler("file", set_photo_handler))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo))
 
