@@ -54,7 +54,7 @@ def increment_and_get_views(clip_id):
         new_views = row[0] + 1
         cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (new_views, clip_id))
     else:
-        new_views = 1250 # Starting base views agar pehli baar khule
+        new_views = 1 # Ab starting view 1 se shuru hoga jab koi pehli baar dekhega
         cursor.execute('INSERT INTO demo_stats (clip_id, views) VALUES (?, ?)', (clip_id, new_views))
         
     conn.commit()
@@ -66,7 +66,7 @@ def save_video_to_db(clip_id, file_id):
     cursor = conn.cursor()
     cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
     row = cursor.fetchone()
-    initial_views = row[1] if row else 1200
+    initial_views = row[1] if row else 0
     
     cursor.execute('''
         INSERT INTO demo_stats (clip_id, video_file_id, views) 
@@ -206,11 +206,11 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Demo video slides handler (1 to 30) with Real Incrementing Views
+    # Demo video slides handler (1 to 30) with Real Increasing Views from 0
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
         
-        # Har baar jab user clip dekhega, views database mein +1 ho jayenge
+        # Real view increment on each view
         current_views = increment_and_get_views(index)
         
         nav_buttons = []
@@ -230,7 +230,7 @@ async def button_handler(update: Update, context):
             f"🎬 **Demo Clip {index} / 30**\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
-            f"👁️ Views: **{current_views:,}** | ❤️ Likes: **{int(current_views/3):,}**"
+            f"👁️ Views: **{current_views:,}**"
         )
         
         try:
@@ -257,7 +257,7 @@ async def button_handler(update: Update, context):
                     reply_markup=keyboard
                 )
         else:
-            # Fallback agar video upload na ho
+            # Fallback if video not uploaded yet
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=DEFAULT_PHOTO,
@@ -370,7 +370,7 @@ telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_me
 # ==================== FLASK ROUTES ====================
 @app.route('/')
 def home():
-    return "Telegram Bot Webhook Server is Running with Real Database Views!"
+    return "Telegram Bot Webhook Server is Running!"
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
@@ -394,3 +394,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+    
