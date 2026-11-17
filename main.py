@@ -14,22 +14,61 @@ BUSINESS_NAME = "All Max Content Bot"
 DEMO_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 
-# Default welcome photo agar user set na kare
-WELCOME_PHOTO_FILE_ID = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
+DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== 8 PACKAGES CONFIGURATION ====================
+# ==================== 8 PACKAGES CONFIGURATION (With Individual Photos) ====================
 PACKAGES = {
-    "pkg_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1"},
-    "pkg_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+_AILkUGhVnVkMzBl"},
-    "pkg_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+qjTxEmHC-z4wMzE1"},
-    "pkg_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "link": "https://t.me/+LmzeU14SK_I0MGY9"},
-    "pkg_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl"},
-    "pkg_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9"},
-    "pkg_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+f9i3BlsoUeZiZmY1"},
-    "pkg_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1"},
+    "pkg_1": {
+        "name": "⭐ 01 All mix content VIP Access", 
+        "price": 249, 
+        "link": "https://t.me/+s4Zzmwni59diNjU1",
+        "photo": DEFAULT_PHOTO
+    },
+    "pkg_2": {
+        "name": "🔑 02 Rap & Big File VD", 
+        "price": 89, 
+        "link": "https://t.me/+_AILkUGhVnVkMzBl",
+        "photo": DEFAULT_PHOTO
+    },
+    "pkg_3": {
+        "name": "🔑 03 Mom and Son Real Sex", 
+        "price": 45, 
+        "link": "https://t.me/+qjTxEmHC-z4wMzE1",
+        "photo": DEFAULT_PHOTO
+    },
+    "pkg_4": {
+        "name": "🔞 04 Insta viral reels and sex", 
+        "price": 40, 
+        "link": "https://t.me/+LmzeU14SK_I0MGY9",
+        "photo": DEFAULT_PHOTO
+    },
+    "pkg_5": {
+        "name": "🔥 05 Ganga bath group join", 
+        "price": 199, 
+        "link": "https://t.me/+jMs1EZ3RLSc1Yjhl",
+        "photo": DEFAULT_PHOTO
+    },
+    "pkg_6": {
+        "name": "🔥 06 Bath camera hidden", 
+        "price": 55, 
+        "link": "https://t.me/+G4yBWASYMzYzOTc9",
+        "photo": DEFAULT_PHOTO
+    },
+    "pkg_7": {
+        "name": "🔥 07 CP girl real fuke", 
+        "price": 65, 
+        "link": "https://t.me/+f9i3BlsoUeZiZmY1",
+        "photo": DEFAULT_PHOTO
+    },
+    "pkg_8": {
+        "name": "❤️ 08 Sister and brother sex", 
+        "price": 30, 
+        "link": "https://t.me/+BYOIdmg4w3c2MjQ1",
+        "photo": DEFAULT_PHOTO
+    },
 }
 
 def get_main_menu_keyboard():
@@ -54,7 +93,6 @@ def generate_upi_qr(amount, pkg_name, order_id):
 
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
-    global WELCOME_PHOTO_FILE_ID
     reply_markup = get_main_menu_keyboard()
     caption = (
         "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
@@ -69,27 +107,40 @@ async def start(update: Update, context):
             pass
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            photo=WELCOME_PHOTO_FILE_ID,
+            photo=DEFAULT_PHOTO,
             caption=caption,
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
     else:
         await update.message.reply_photo(
-            photo=WELCOME_PHOTO_FILE_ID,
+            photo=DEFAULT_PHOTO,
             caption=caption,
             reply_markup=reply_markup,
             parse_mode="Markdown"
         )
 
 async def set_photo(update: Update, context):
-    global WELCOME_PHOTO_FILE_ID
-    if update.message.photo:
-        photo_file = update.message.photo[-1].file_id
-        WELCOME_PHOTO_FILE_ID = photo_file
-        await update.message.reply_text("✅ **Welcome Photo successfully update ho gayi hai!** Ab /start dabakar check karein.")
+    """
+    Kissi bhi package ke liye photo aise set karein:
+    Photo bhejte waqt caption mein likhein: /setphoto pkg_5
+    Agar sirf /setphoto likhenge toh main menu/default photo set ho jayegi.
+    """
+    global DEFAULT_PHOTO
+    if not update.message.photo:
+        await update.message.reply_text("⚠️ Kripya photo ke sath caption mein command likhein (Jaise: `/setphoto` ya `/setphoto pkg_1`)")
+        return
+
+    photo_file = update.message.photo[-1].file_id
+    args = context.args
+
+    if args and args[0] in PACKAGES:
+        pkg_key = args[0]
+        PACKAGES[pkg_key]["photo"] = photo_file
+        await update.message.reply_text(f"✅ **{PACKAGES[pkg_key]['name']}** ki banner photo successfully update ho gayi hai!")
     else:
-        await update.message.reply_text("⚠️ Kripya photo ke sath caption mein `/setphoto` likhkar bhejein.")
+        DEFAULT_PHOTO = photo_file
+        await update.message.reply_text("✅ **Main Menu & Default Photo** successfully update ho gayi hai!")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -104,7 +155,6 @@ async def button_handler(update: Update, context):
         pkg = PACKAGES[data]
         context.user_data['last_pkg'] = data
         
-        # Yahan package ke upar design, lines aur heavy emojis add kar diye gaye hain
         text = (
             "🔥💎 **SELECTED VIP PACKAGE** 💎🔥\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
@@ -122,9 +172,11 @@ async def button_handler(update: Update, context):
         except Exception:
             pass
             
-        await context.bot.send_message(
+        # Har package ki apni alag photo yahan send hogi
+        await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            text=text,
+            photo=pkg["photo"],
+            caption=text,
             reply_markup=keyboard,
             parse_mode="Markdown"
         )
@@ -221,4 +273,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
