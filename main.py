@@ -14,7 +14,7 @@ UPI_ID = "Puja6489@ptyes"
 BUSINESS_NAME = "All Max Content Bot"
 
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-ADMIN_USER_ID = 8776203848  # Aapki Admin ID (Aapke dekhne par view count nahi badhega)
+ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 
 # Default welcome photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
@@ -24,92 +24,109 @@ telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
 # ==================== DATABASE SETUP ====================
 def init_db():
-    conn = sqlite3.connect('bot_views.db')
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS demo_stats (
-            clip_id INTEGER PRIMARY KEY,
-            video_file_id TEXT,
-            views INTEGER DEFAULT 0,
-            custom_link TEXT
-        )
-    ''')
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS user_views (
-            user_id INTEGER,
-            clip_id INTEGER,
-            PRIMARY KEY (user_id, clip_id)
-        )
-    ''')
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS demo_stats (
+                clip_id INTEGER PRIMARY KEY,
+                video_file_id TEXT,
+                views INTEGER DEFAULT 0,
+                custom_link TEXT
+            )
+        ''')
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS user_views (
+                user_id INTEGER,
+                clip_id INTEGER,
+                PRIMARY KEY (user_id, clip_id)
+            )
+        ''')
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"DB Init Error: {e}")
 
 init_db()
 
 def get_clip_data(clip_id):
-    conn = sqlite3.connect('bot_views.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT video_file_id, views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT video_file_id, views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
+        row = cursor.fetchone()
+        conn.close()
+        return row
+    except Exception as e:
+        print(f"Get Clip Error: {e}")
+        return None
 
 def check_and_increment_view(user_id, clip_id):
-    conn = sqlite3.connect('bot_views.db')
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
-    row = cursor.fetchone()
-    
-    if not row:
-        cursor.execute('INSERT INTO demo_stats (clip_id, views) VALUES (?, 0)', (clip_id,))
-        conn.commit()
-        current_views = 0
-    else:
-        current_views = row[0]
-
-    if user_id != ADMIN_USER_ID:
-        cursor.execute('SELECT * FROM user_views WHERE user_id = ? AND clip_id = ?', (user_id, clip_id))
-        already_viewed = cursor.fetchone()
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
         
-        if not already_viewed:
-            current_views += 1
-            cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (current_views, clip_id))
-            cursor.execute('INSERT INTO user_views (user_id, clip_id) VALUES (?, ?)', (user_id, clip_id))
+        cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.execute('INSERT INTO demo_stats (clip_id, views) VALUES (?, 0)', (clip_id,))
             conn.commit()
-    
-    conn.close()
-    return current_views
+            current_views = 0
+        else:
+            current_views = row[0]
+
+        if user_id != ADMIN_USER_ID:
+            cursor.execute('SELECT * FROM user_views WHERE user_id = ? AND clip_id = ?', (user_id, clip_id))
+            already_viewed = cursor.fetchone()
+            
+            if not already_viewed:
+                current_views += 1
+                cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (current_views, clip_id))
+                cursor.execute('INSERT INTO user_views (user_id, clip_id) VALUES (?, ?)', (user_id, clip_id))
+                conn.commit()
+        
+        conn.close()
+        return current_views
+    except Exception as e:
+        print(f"View Increment Error: {e}")
+        return 0
 
 def save_video_to_db(clip_id, file_id):
-    conn = sqlite3.connect('bot_views.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
-    row = cursor.fetchone()
-    initial_views = row[0] if row else 0
-    existing_link = row[1] if row else None
-    
-    cursor.execute('''
-        INSERT INTO demo_stats (clip_id, video_file_id, views, custom_link) 
-        VALUES (?, ?, ?, ?) 
-        ON CONFLICT(clip_id) DO UPDATE SET video_file_id = excluded.video_file_id
-    ''', (clip_id, file_id, initial_views, existing_link))
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT views, custom_link FROM demo_stats WHERE clip_id = ?', (clip_id,))
+        row = cursor.fetchone()
+        initial_views = row[0] if row else 0
+        existing_link = row[1] if row else None
+        
+        cursor.execute('''
+            INSERT INTO demo_stats (clip_id, video_file_id, views, custom_link) 
+            VALUES (?, ?, ?, ?) 
+            ON CONFLICT(clip_id) DO UPDATE SET video_file_id = excluded.video_file_id
+        ''', (clip_id, file_id, initial_views, existing_link))
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Save Video Error: {e}")
 
 def save_link_to_db(clip_id, link):
-    conn = sqlite3.connect('bot_views.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
-    row = cursor.fetchone()
-    
-    if not row:
-        cursor.execute('INSERT INTO demo_stats (clip_id, views, custom_link) VALUES (?, 0, ?)', (clip_id, link))
-    else:
-        cursor.execute('UPDATE demo_stats SET custom_link = ? WHERE clip_id = ?', (link, clip_id))
-    
-    conn.commit()
-    conn.close()
+    try:
+        conn = sqlite3.connect('bot_views.db')
+        cursor = conn.cursor()
+        cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+        row = cursor.fetchone()
+        
+        if not row:
+            cursor.execute('INSERT INTO demo_stats (clip_id, views, custom_link) VALUES (?, 0, ?)', (clip_id, link))
+        else:
+            cursor.execute('UPDATE demo_stats SET custom_link = ? WHERE clip_id = ?', (link, clip_id))
+        
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        print(f"Save Link Error: {e}")
 
 # ==================== 8 FILES CONFIGURATION ====================
 PACKAGES = {
@@ -134,228 +151,216 @@ def get_main_menu_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 def generate_upi_qr(amount, pkg_name, order_id):
-    upi_uri = f"upi://pay?pa={UPI_ID}&pn={BUSINESS_NAME}&am={amount}&cu=INR&tn=Order_{order_id}"
-    qr = qrcode.QRCode(version=1, box_size=10, border=2)
-    qr.add_data(upi_uri)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    filename = f"qr_{order_id}.png"
-    img.save(filename)
-    return filename
+    try:
+        upi_uri = f"upi://pay?pa={UPI_ID}&pn={BUSINESS_NAME}&am={amount}&cu=INR&tn=Order_{order_id}"
+        qr = qrcode.QRCode(version=1, box_size=10, border=2)
+        qr.add_data(upi_uri)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+        filename = f"qr_{order_id}.png"
+        img.save(filename)
+        return filename
+    except Exception as e:
+        print(f"QR Gen Error: {e}")
+        return None
 
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
-    reply_markup = get_main_menu_keyboard()
-    caption = (
-        "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
-        "✨ Aapka yahan swagat hai! Niche diye gaye files mein se apna pasandida option select karein:\n"
-    )
-    
-    if update.callback_query:
-        query = update.callback_query
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=DEFAULT_PHOTO,
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-    else:
-        await update.message.reply_photo(
-            photo=DEFAULT_PHOTO,
-            caption=caption,
-            reply_markup=reply_markup,
-            parse_mode="Markdown"
-        )
-
-async def process_photo_setting(update: Update, context):
-    global DEFAULT_PHOTO
-    if not update.message.photo:
-        await update.message.reply_text("⚠️ Kripya photo ke sath command likhein.")
-        return
-
-    photo_file = update.message.photo[-1].file_id
-    caption_text = (update.message.caption or "").strip().lower()
-
-    file_key = None
-    numbers = re.findall(r'\d+', caption_text)
-    
-    if numbers:
-        num = int(numbers[0])
-        if 1 <= num <= 8:
-            file_key = f"file_{num}"
-
-    for key in PACKAGES.keys():
-        if key in caption_text or key.replace("_", "") in caption_text.replace("_", ""):
-            file_key = key
-            break
-
-    if file_key and file_key in PACKAGES:
-        PACKAGES[file_key]["photo"] = photo_file
-        await update.message.reply_text(f"✅ **{PACKAGES[file_key]['name']}** ki alag photo successfully update ho gayi hai!")
-    else:
-        DEFAULT_PHOTO = photo_file
-        await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
-
-async def process_video_setting(update: Update, context):
-    if not update.message.video:
-        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2`", parse_mode="Markdown")
-        return
-
-    video_file_id = update.message.video.file_id
-    caption_text = (update.message.caption or "").strip()
-    
-    numbers = re.findall(r'\d+', caption_text)
-    clip_num = 1
-    if numbers:
-        clip_num = int(numbers[-1])
-
-    if 1 <= clip_num <= 10:
-        save_video_to_db(clip_num, video_file_id)
-        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
-    else:
-        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 2`).")
-
-async def set_demo_link_handler(update: Update, context):
-    args = context.args
-    if not args or len(args) < 2:
-        await update.message.reply_text("⚠️ Sahi tarika: `/setdemolink 1 https://t.me/your_link`", parse_mode="Markdown")
-        return
-    
-    clip_num_str = args[0]
-    link = args[1]
-    
-    if not clip_num_str.isdigit() or not (1 <= int(clip_num_str) <= 10):
-        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka clip number dein.")
-        return
-        
-    clip_num = int(clip_num_str)
-    save_link_to_db(clip_num, link)
-    await update.message.reply_text(f"✅ **Demo Clip {clip_num}** ka custom link successfully set ho gaya hai:\n🔗 `{link}`", parse_mode="Markdown")
-
-async def button_handler(update: Update, context):
-    query = update.callback_query
-    await query.answer()
-    user_id = query.from_user.id
-    data = query.data
-
-    if data == "main_menu":
-        await start(update, context)
-        return
-
-    if data.startswith("demo_"):
-        index = int(data.replace("demo_", ""))
-        
-        current_views = check_and_increment_view(user_id, index)
-        clip_data = get_clip_data(index)
-        video_file_id = clip_data[0] if clip_data else None
-        custom_link = clip_data[2] if clip_data and len(clip_data) > 2 else None
-        
-        nav_buttons = []
-        
-        # Agar custom link set hai toh pehle wo button dikhega
-        if custom_link:
-            nav_buttons.append([InlineKeyboardButton("🔥 Join VIP Channel / Link", url=custom_link)])
-        
-        # Next / Back buttons row
-        row = []
-        if index > 1:
-            row.append(InlineKeyboardButton("⬅️ Back", callback_data=f"demo_{index - 1}"))
-        if index < 10:
-            row.append(InlineKeyboardButton("➡️ Next Clip", callback_data=f"demo_{index + 1}"))
-            
-        if row:
-            nav_buttons.append(row)
-            
-        nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
-        keyboard = InlineKeyboardMarkup(nav_buttons)
-        
-        text = (
-            f"🎬 **Demo Clip {index} / 10**\n"
-            "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
-            f"👁️ Views: **{current_views:,}**"
+    try:
+        reply_markup = get_main_menu_keyboard()
+        caption = (
+            "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
+            "✨ Aapka yahan swagat hai! Niche diye gaye files mein se apna pasandida option select karein:\n"
         )
         
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
-            
-        if video_file_id:
+        if update.callback_query:
+            query = update.callback_query
             try:
-                await context.bot.send_video(
-                    chat_id=query.message.chat_id,
-                    video=video_file_id,
-                    caption=text,
-                    reply_markup=keyboard,
-                    parse_mode="Markdown"
-                )
-            except Exception as e:
-                await context.bot.send_message(
-                    chat_id=query.message.chat_id,
-                    text=f"❌ Error sending video: {str(e)}",
-                    reply_markup=keyboard
-                )
-        else:
+                await query.message.delete()
+            except Exception:
+                pass
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=DEFAULT_PHOTO,
-                caption=text + f"\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo {index} use karein)*",
-                reply_markup=keyboard,
+                caption=caption,
+                reply_markup=reply_markup,
                 parse_mode="Markdown"
             )
-        return
+        else:
+            await update.message.reply_photo(
+                photo=DEFAULT_PHOTO,
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode="Markdown"
+            )
+    except Exception as e:
+        print(f"Start Error: {e}")
 
-    if data in PACKAGES:
-        pkg = PACKAGES[data]
-        context.user_data['last_pkg'] = data
+async def process_photo_setting(update: Update, context):
+    try:
+        global DEFAULT_PHOTO
+        if not update.message.photo:
+            await update.message.reply_text("⚠️ Kripya photo ke sath command likhein.")
+            return
+
+        photo_file = update.message.photo[-1].file_id
+        caption_text = (update.message.caption or "").strip().lower()
+
+        file_key = None
+        numbers = re.findall(r'\d+', caption_text)
         
-        text = (
-            "🔥💎 **SELECTED VIP FILE** 💎🔥\n"
-            "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"📦 **{pkg['name']}**\n"
-            f"💰 Price: **Rs.{pkg['price']}**\n\n"
-            "✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
-        )
-        keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton("💳 Pay Now (UPI QR)", callback_data=f"pay_{data}")],
-            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-        ])
+        if numbers:
+            num = int(numbers[0])
+            if 1 <= num <= 8:
+                file_key = f"file_{num}"
+
+        for key in PACKAGES.keys():
+            if key in caption_text or key.replace("_", "") in caption_text.replace("_", ""):
+                file_key = key
+                break
+
+        if file_key and file_key in PACKAGES:
+            PACKAGES[file_key]["photo"] = photo_file
+            await update.message.reply_text(f"✅ **{PACKAGES[file_key]['name']}** ki alag photo successfully update ho gayi hai!")
+        else:
+            DEFAULT_PHOTO = photo_file
+            await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+async def process_video_setting(update: Update, context):
+    try:
+        if not update.message.video:
+            await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2`", parse_mode="Markdown")
+            return
+
+        video_file_id = update.message.video.file_id
+        caption_text = (update.message.caption or "").strip()
         
-        try:
-            await query.message.delete()
-        except Exception:
-            pass
+        numbers = re.findall(r'\d+', caption_text)
+        clip_num = 1
+        if numbers:
+            clip_num = int(numbers[-1])
+
+        if 1 <= clip_num <= 10:
+            save_video_to_db(clip_num, video_file_id)
+            await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
+        else:
+            await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 2`).")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error: {str(e)}")
+
+async def set_demo_link_handler(update: Update, context):
+    try:
+        text = update.message.text or ""
+        parts = text.split()
+        
+        if context.args and len(context.args) >= 2:
+            clip_num_str = context.args[0]
+            link = context.args[1]
+        elif len(parts) >= 3:
+            clip_num_str = parts[1]
+            link = parts[2]
+        else:
+            await update.message.reply_text("⚠️ Sahi tarika: `/setdemolink 1 https://t.me/your_link`", parse_mode="Markdown")
+            return
+        
+        if not clip_num_str.isdigit() or not (1 <= int(clip_num_str) <= 10):
+            await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka clip number dein.")
+            return
             
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=pkg["photo"],
-            caption=text,
-            reply_markup=keyboard,
-            parse_mode="Markdown"
-        )
+        clip_num = int(clip_num_str)
+        save_link_to_db(clip_num, link)
+        await update.message.reply_text(f"✅ **Demo Clip {clip_num}** ka custom link successfully set ho gaya hai:\n🔗 `{link}`", parse_mode="Markdown")
+    except Exception as e:
+        await update.message.reply_text(f"❌ Error setting link: {str(e)}")
 
-    elif data.startswith("pay_"):
-        file_key = data.replace("pay_", "")
-        pkg = PACKAGES[file_key]
-        context.user_data['last_pkg'] = file_key
-        
-        try:
-            qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
-            caption = (
-                "🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n"
+async def button_handler(update: Update, context):
+    try:
+        query = update.callback_query
+        await query.answer()
+        user_id = query.from_user.id
+        data = query.data
+
+        if data == "main_menu":
+            await start(update, context)
+            return
+
+        if data.startswith("demo_"):
+            index = int(data.replace("demo_", ""))
+            
+            current_views = check_and_increment_view(user_id, index)
+            clip_data = get_clip_data(index)
+            video_file_id = clip_data[0] if clip_data else None
+            custom_link = clip_data[2] if clip_data and len(clip_data) > 2 else None
+            
+            nav_buttons = []
+            
+            if custom_link:
+                nav_buttons.append([InlineKeyboardButton("🔥 Join VIP Channel / Link", url=custom_link)])
+            
+            row = []
+            if index > 1:
+                row.append(InlineKeyboardButton("⬅️ Back", callback_data=f"demo_{index - 1}"))
+            if index < 10:
+                row.append(InlineKeyboardButton("➡️ Next Clip", callback_data=f"demo_{index + 1}"))
+                
+            if row:
+                nav_buttons.append(row)
+                
+            nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+            keyboard = InlineKeyboardMarkup(nav_buttons)
+            
+            text = (
+                f"🎬 **Demo Clip {index} / 10**\n"
+                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
+                f"👁️ Views: **{current_views:,}**"
+            )
+            
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
+                
+            if video_file_id:
+                try:
+                    await context.bot.send_video(
+                        chat_id=query.message.chat_id,
+                        video=video_file_id,
+                        caption=text,
+                        reply_markup=keyboard,
+                        parse_mode="Markdown"
+                    )
+                except Exception as e:
+                    await context.bot.send_message(
+                        chat_id=query.message.chat_id,
+                        text=f"❌ Error sending video: {str(e)}",
+                        reply_markup=keyboard
+                    )
+            else:
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=DEFAULT_PHOTO,
+                    caption=text + f"\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo {index} use karein)*",
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+            return
+
+        if data in PACKAGES:
+            pkg = PACKAGES[data]
+            context.user_data['last_pkg'] = data
+            
+            text = (
+                "🔥💎 **SELECTED VIP FILE** 💎🔥\n"
                 "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
                 f"📦 **{pkg['name']}**\n"
                 f"💰 Price: **Rs.{pkg['price']}**\n\n"
-                f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki aapko turant link mil sake."
+                "✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
             )
             keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("💳 Pay Now (UPI QR)", callback_data=f"pay_{data}")],
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ])
             
@@ -364,49 +369,86 @@ async def button_handler(update: Update, context):
             except Exception:
                 pass
                 
-            with open(qr_file_path, 'rb') as photo:
-                await context.bot.send_photo(
-                    chat_id=query.message.chat_id,
-                    photo=photo,
-                    caption=caption,
-                    reply_markup=keyboard,
-                    parse_mode="Markdown"
-                )
-            if os.path.exists(qr_file_path):
-                os.remove(qr_file_path)
-        except Exception as e:
-            await context.bot.send_message(
+            await context.bot.send_photo(
                 chat_id=query.message.chat_id,
-                text=f"❌ Error generating QR code: {str(e)}"
+                photo=pkg["photo"],
+                caption=text,
+                reply_markup=keyboard,
+                parse_mode="Markdown"
             )
 
+        elif data.startswith("pay_"):
+            file_key = data.replace("pay_", "")
+            pkg = PACKAGES[file_key]
+            context.user_data['last_pkg'] = file_key
+            
+            try:
+                qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
+                caption = (
+                    "🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n"
+                    "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                    f"📦 **{pkg['name']}**\n"
+                    f"💰 Price: **Rs.{pkg['price']}**\n\n"
+                    f"1️⃣ Is QR Code ko scan karke **Rs.{pkg['price']}** pay karein (`{UPI_ID}`).\n"
+                    f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki aapko turant link mil sake."
+                )
+                keyboard = InlineKeyboardMarkup([
+                    [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+                ])
+                
+                try:
+                    await query.message.delete()
+                except Exception:
+                    pass
+                    
+                with open(qr_file_path, 'rb') as photo:
+                    await context.bot.send_photo(
+                        chat_id=query.message.chat_id,
+                        photo=photo,
+                        caption=caption,
+                        reply_markup=keyboard,
+                        parse_mode="Markdown"
+                    )
+                if qr_file_path and os.path.exists(qr_file_path):
+                    os.remove(qr_file_path)
+            except Exception as e:
+                await context.bot.send_message(
+                    chat_id=query.message.chat_id,
+                    text=f"❌ Error generating QR code: {str(e)}"
+                )
+    except Exception as e:
+        print(f"Button Handler Error: {e}")
+
 async def handle_media(update: Update, context):
-    caption_text = (update.message.caption or "").lower()
-    
-    if update.message.video and "setdemo" in caption_text:
-        await process_video_setting(update, context)
-        return
+    try:
+        caption_text = (update.message.caption or "").lower()
         
-    if update.message.photo and ("setphoto" in caption_text or "file" in caption_text or any(f"file_{i}" in caption_text or f" {i} " in f" {caption_text} " for i in range(1, 9))):
-        await process_photo_setting(update, context)
-        return
-    elif update.message.photo and not caption_text:
-        await process_photo_setting(update, context)
-        return
+        if update.message.video and "setdemo" in caption_text:
+            await process_video_setting(update, context)
+            return
+            
+        if update.message.photo and ("setphoto" in caption_text or "file" in caption_text or any(f"file_{i}" in caption_text or f" {i} " in f" {caption_text} " for i in range(1, 9))):
+            await process_photo_setting(update, context)
+            return
+        elif update.message.photo and not caption_text:
+            await process_photo_setting(update, context)
+            return
 
-    last_file_key = context.user_data.get('last_pkg', 'file_1')
-    pkg = PACKAGES.get(last_file_key, PACKAGES['file_1'])
+        last_file_key = context.user_data.get('last_pkg', 'file_1')
+        pkg = PACKAGES.get(last_file_key, PACKAGES['file_1'])
 
-    text = (
-        "📸 **Screenshot Received Successfully!**\n\n"
-        f"🎉 File: **{pkg['name']}**\n"
-        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
-    )
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
-        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-    ])
-    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+        text = (
+            "📸 **Screenshot Received Successfully!**\n\n"
+            f"🎉 File: **{pkg['name']}**\n"
+            "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
+            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+        ])
+        await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    except Exception as e:
+        print(f"Handle Media Error: {e}")
 
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
@@ -423,15 +465,19 @@ def home():
 
 @app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
-    
-    async def run_update():
-        async with telegram_app:
-            await telegram_app.process_update(update)
+    try:
+        json_data = request.get_json(force=True)
+        update = Update.de_json(json_data, telegram_app.bot)
+        
+        async def run_update():
+            async with telegram_app:
+                await telegram_app.process_update(update)
 
-    asyncio.run(run_update())
-    return "OK", 200
+        asyncio.run(run_update())
+        return "OK", 200
+    except Exception as e:
+        print(f"Webhook Error: {e}")
+        return "OK", 200
 
 # ==================== MAIN RUNNER ====================
 if __name__ == '__main__':
