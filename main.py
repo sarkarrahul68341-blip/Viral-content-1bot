@@ -88,15 +88,12 @@ def save_video_to_db(clip_id, file_id):
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
     
-    # Check if clip already exists
     cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
     row = cursor.fetchone()
     
     if row is None:
-        # Insert new if not exists
         cursor.execute('INSERT INTO demo_stats (clip_id, video_file_id, views) VALUES (?, ?, 0)', (clip_id, file_id))
     else:
-        # Update video file id keeping existing views
         cursor.execute('UPDATE demo_stats SET video_file_id = ? WHERE clip_id = ?', (file_id, clip_id))
         
     conn.commit()
@@ -221,13 +218,12 @@ async def process_video_setting(update: Update, context):
             video_file_id = context.user_data['last_video_file_id']
             caption_text = update.message.text or update.message.caption or ""
         else:
-            await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 1` likhein!", parse_mode="Markdown")
+            await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 1` (1 se 10 tak) likhein!", parse_mode="Markdown")
             return
     else:
         video_file_id = media_file.file_id
         context.user_data['last_video_file_id'] = video_file_id
 
-    # Extract clip number
     clip_num = 1
     match = re.search(r'setdemo\s*(\d+)', caption_text, re.IGNORECASE)
     if match:
