@@ -23,8 +23,8 @@ PERMANENT_BUTTON_NAME = "Join Channel"
 # Welcome (Main Menu) ki photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# 🌟 Saare 8 packages par yehi premium VIP gold photo set rahegi (Bina kisi error ke)
-PACKAGE_PHOTO = "https://images.unsplash.com/photo-1533158307587-828f0a76ef46"
+# 🌟 GitHub par upload ki gayi aapki nayi photo ka naam
+PACKAGE_PHOTO = "VIP New.jpg"
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
@@ -244,7 +244,7 @@ async def button_handler(update: Update, context):
     if data in PACKAGES:
         pkg = PACKAGES[data]
         context.user_data['last_pkg'] = data
-        pkg_photo = pkg["photo"]
+        pkg_photo_path = pkg["photo"]
         
         text = (
             "🔥💎 **SELECTED VIP FILE** 💎🔥\n"
@@ -263,13 +263,31 @@ async def button_handler(update: Update, context):
         except Exception:
             pass
             
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=pkg_photo,
-            caption=text,
-            reply_markup=keyboard,
-            parse_mode="Markdown"
-        )
+        try:
+            if os.path.exists(pkg_photo_path):
+                with open(pkg_photo_path, 'rb') as photo_file:
+                    await context.bot.send_photo(
+                        chat_id=query.message.chat_id,
+                        photo=photo_file,
+                        caption=text,
+                        reply_markup=keyboard,
+                        parse_mode="Markdown"
+                    )
+            else:
+                await context.bot.send_photo(
+                    chat_id=query.message.chat_id,
+                    photo=DEFAULT_PHOTO,
+                    caption=text,
+                    reply_markup=keyboard,
+                    parse_mode="Markdown"
+                )
+        except Exception as e:
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=text + f"\n\n*(Error: {str(e)})*",
+                reply_markup=keyboard,
+                parse_mode="Markdown"
+            )
         return
 
     elif data.startswith("pay_"):
@@ -367,4 +385,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
