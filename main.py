@@ -87,15 +87,18 @@ def check_and_increment_view(user_id, clip_id):
 def save_video_to_db(clip_id, file_id):
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
+    
+    # Check if clip already exists
     cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
     row = cursor.fetchone()
-    initial_views = row[1] if row else 0
     
-    cursor.execute('''
-        INSERT INTO demo_stats (clip_id, video_file_id, views) 
-        VALUES (?, ?, ?) 
-        ON CONFLICT(clip_id) DO UPDATE SET video_file_id = excluded.video_file_id
-    ''', (clip_id, file_id, initial_views))
+    if row is None:
+        # Insert new if not exists
+        cursor.execute('INSERT INTO demo_stats (clip_id, video_file_id, views) VALUES (?, ?, 0)', (clip_id, file_id))
+    else:
+        # Update video file id keeping existing views
+        cursor.execute('UPDATE demo_stats SET video_file_id = ? WHERE clip_id = ?', (file_id, clip_id))
+        
     conn.commit()
     conn.close()
 
@@ -193,7 +196,6 @@ async def process_video_setting(update: Update, context):
     media_file = None
     caption_text = ""
     
-    # 1. Check current message for media
     if update.message.video:
         media_file = update.message.video
         caption_text = update.message.caption or ""
@@ -204,7 +206,6 @@ async def process_video_setting(update: Update, context):
         media_file = update.message.animation
         caption_text = update.message.caption or ""
     
-    # 2. Check if replying to a media message
     if not media_file and update.message.reply_to_message:
         replied = update.message.reply_to_message
         if replied.video:
@@ -215,19 +216,18 @@ async def process_video_setting(update: Update, context):
             media_file = replied.animation
         caption_text = update.message.text or update.message.caption or ""
     
-    # 3. Fallback to last uploaded video in session
     if not media_file:
         if 'last_video_file_id' in context.user_data:
             video_file_id = context.user_data['last_video_file_id']
             caption_text = update.message.text or update.message.caption or ""
         else:
-            await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 2` likhein, ya video par **Reply** karke `/setdemo 2` likhein!", parse_mode="Markdown")
+            await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 1` likhein!", parse_mode="Markdown")
             return
     else:
         video_file_id = media_file.file_id
         context.user_data['last_video_file_id'] = video_file_id
 
-    # Extract clip number strictly
+    # Extract clip number
     clip_num = 1
     match = re.search(r'setdemo\s*(\d+)', caption_text, re.IGNORECASE)
     if match:
@@ -239,9 +239,9 @@ async def process_video_setting(update: Update, context):
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
-        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
+        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully update/save ho gayi hai!")
     else:
-        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 2`).")
+        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 1`).")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -383,7 +383,6 @@ async def button_handler(update: Update, context):
             )
 
 async def handle_media(update: Update, context):
-    # Save last uploaded video ID in user_data
     if update.message.video:
         context.user_data['last_video_file_id'] = update.message.video.file_id
     elif update.message.document:
@@ -450,3 +449,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+    
