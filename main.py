@@ -23,8 +23,8 @@ PERMANENT_BUTTON_NAME = "Join Channel"
 # Welcome (Main Menu) ki default photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# Sabhi 8 packages par Vip1.jpg set rahega
-PACKAGE_PHOTO = "Vip1.jpg"
+# Packages ke liye safe working image link (Crash nahi hoga)
+PACKAGE_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
@@ -174,7 +174,8 @@ async def process_photo_setting(update: Update, context):
 
 async def button_handler(update: Update, context):
     query = update.callback_query
-    await query.answer()
+    await query.answer()  # Sabse pehle query answer karna zaroori hai taaki loading spin ruk jaye
+    
     user_id = query.from_user.id
     data = query.data
 
@@ -270,6 +271,7 @@ async def button_handler(update: Update, context):
             reply_markup=keyboard,
             parse_mode="Markdown"
         )
+        return
 
     elif data.startswith("pay_"):
         file_key = data.replace("pay_", "")
@@ -310,6 +312,7 @@ async def button_handler(update: Update, context):
                 chat_id=query.message.chat_id,
                 text=f"❌ Error generating QR code: {str(e)}"
             )
+        return
 
 async def handle_media(update: Update, context):
     caption_text = (update.message.caption or "").lower()
