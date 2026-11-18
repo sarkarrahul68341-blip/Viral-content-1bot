@@ -23,8 +23,8 @@ PERMANENT_BUTTON_NAME = "Join Channel"
 # Welcome (Main Menu) ki default photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# Sabhi 8 packages ke liye direct working image URL (Isse error nahi aayega)
-PACKAGE_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
+# Sabhi 8 packages par Vip1.jpg set rahega
+PACKAGE_PHOTO = "Vip1.jpg"
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
@@ -365,3 +365,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+        
