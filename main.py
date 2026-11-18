@@ -16,8 +16,8 @@ BUSINESS_NAME = "All Max Content Bot"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 
-# Permanent Channel Button Link & Name
-PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zlyMTQ1"
+# Permanent Channel Button Link & Name (Updated with your new link)
+PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Channel"
 
 # Default welcome photo
