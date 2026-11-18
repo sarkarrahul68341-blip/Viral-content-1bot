@@ -20,23 +20,33 @@ ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Channel"
 
-# Default welcome photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# ==================== PERMANENT STORAGE (Videos & Photos) ====================
-PERMANENT_STORAGE = {
-    "videos": {i: None for i in range(1, 11)},  # Clip 1 se 10 tak
-    "photos": {
-        "default": DEFAULT_PHOTO,
-        "file_1": DEFAULT_PHOTO,
-        "file_2": DEFAULT_PHOTO,
-        "file_3": DEFAULT_PHOTO,
-        "file_4": DEFAULT_PHOTO,
-        "file_5": DEFAULT_PHOTO,
-        "file_6": DEFAULT_PHOTO,
-        "file_7": DEFAULT_PHOTO,
-        "file_8": DEFAULT_PHOTO,
-    }
+# ==================== 永久 PERMANENT STORAGE (Yahan apne File IDs paste karein) ====================
+# Jab aap bot par video/photo bhejenge, bot aapko file_id dega. Use yahan paste kar dena taaki kabhi na ude!
+PERMANENT_VIDEOS = {
+    1: None,  # Jaise: "BAACAgUAAxkBAA..."
+    2: None,
+    3: None,
+    4: None,
+    5: None,
+    6: None,
+    7: None,
+    8: None,
+    9: None,
+    10: None,
+}
+
+PERMANENT_PHOTOS = {
+    "default": DEFAULT_PHOTO,
+    "file_1": DEFAULT_PHOTO,
+    "file_2": DEFAULT_PHOTO,
+    "file_3": DEFAULT_PHOTO,
+    "file_4": DEFAULT_PHOTO,
+    "file_5": DEFAULT_PHOTO,
+    "file_6": DEFAULT_PHOTO,
+    "file_7": DEFAULT_PHOTO,
+    "file_8": DEFAULT_PHOTO,
 }
 
 # ==================== 8 FILES CONFIGURATION ====================
@@ -54,14 +64,13 @@ PACKAGES = {
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# ==================== DATABASE SETUP ====================
+# ==================== DATABASE FOR VIEWS ONLY ====================
 def init_db():
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
     cursor.execute('''
         CREATE TABLE IF NOT EXISTS demo_stats (
             clip_id INTEGER PRIMARY KEY,
-            video_file_id TEXT,
             views INTEGER DEFAULT 0
         )
     ''')
@@ -77,20 +86,13 @@ def init_db():
 
 init_db()
 
-def get_clip_data(clip_id):
-    video_id = PERMANENT_STORAGE["videos"].get(clip_id)
-    
+def get_clip_views(clip_id):
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT video_file_id, views FROM demo_stats WHERE clip_id = ?', (clip_id,))
+    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
     row = cursor.fetchone()
     conn.close()
-    
-    db_video_id = row[0] if row else None
-    views = row[1] if row else 0
-    
-    final_video_id = video_id if video_id else db_video_id
-    return final_video_id, views
+    return row[0] if row else 0
 
 def check_and_increment_view(user_id, clip_id):
     conn = sqlite3.connect('bot_views.db')
@@ -119,37 +121,8 @@ def check_and_increment_view(user_id, clip_id):
     conn.close()
     return current_views
 
-def save_video_to_db(clip_id, file_id):
-    PERMANENT_STORAGE["videos"][clip_id] = file_id
-    
-    conn = sqlite3.connect('bot_views.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
-    row = cursor.fetchone()
-    
-    if row is None:
-        cursor.execute('INSERT INTO demo_stats (clip_id, video_file_id, views) VALUES (?, ?, 0)', (clip_id, file_id))
-    else:
-        cursor.execute('UPDATE demo_stats SET video_file_id = ? WHERE clip_id = ?', (file_id, clip_id))
-        
-    conn.commit()
-    conn.close()
-
 def get_pkg_photo(file_key):
-    return PERMANENT_STORAGE["photos"].get(file_key, PERMANENT_STORAGE["photos"]["default"])
-
-def set_pkg_photo(file_key, photo_file):
-    PERMANENT_STORAGE["photos"][file_key] = photo_file
-
-def get_main_menu_keyboard():
-    keyboard = []
-    for key, pkg in PACKAGES.items():
-        keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
-    
-    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
-    
-    return InlineKeyboardMarkup(keyboard)
+    return PERMANENT_PHOTOS.get(file_key, PERMANENT_PHOTOS["default"])
 
 def generate_upi_qr(amount, pkg_name, order_id):
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={BUSINESS_NAME}&am={amount}&cu=INR&tn=Order_{order_id}"
@@ -163,12 +136,12 @@ def generate_upi_qr(amount, pkg_name, order_id):
 
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
-    reply_markup = get_main_menu_keyboard()
+    reply_markup = get_main_menu_keyboard() if 'get_main_menu_keyboard' in globals() else None
     caption = (
         "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
         "✨ Aapka yahan swagat hai! Niche diye gaye files mein se apna pasandida option select karein:\n"
     )
-    current_photo = PERMANENT_STORAGE["photos"]["default"]
+    current_photo = PERMANENT_PHOTOS["default"]
     
     if update.callback_query:
         query = update.callback_query
@@ -180,16 +153,26 @@ async def start(update: Update, context):
             chat_id=query.message.chat_id,
             photo=current_photo,
             caption=caption,
-            reply_markup=reply_markup,
+            reply_markup=get_main_menu_keyboard(),
             parse_mode="Markdown"
         )
     else:
         await update.message.reply_photo(
             photo=current_photo,
             caption=caption,
-            reply_markup=reply_markup,
+            reply_markup=get_main_menu_keyboard(),
             parse_mode="Markdown"
         )
+
+def get_main_menu_keyboard():
+    keyboard = []
+    for key, pkg in PACKAGES.items():
+        keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
+    
+    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
+    
+    return InlineKeyboardMarkup(keyboard)
 
 async def process_photo_setting(update: Update, context):
     if not update.message.photo:
@@ -213,11 +196,11 @@ async def process_photo_setting(update: Update, context):
             break
 
     if file_key and file_key in PACKAGES:
-        set_pkg_photo(file_key, photo_file)
-        await update.message.reply_text(f"✅ **{PACKAGES[file_key]['name']}** ki alag photo successfully save ho gayi hai!")
+        PERMANENT_PHOTOS[file_key] = photo_file
+        await update.message.reply_text(f"✅ **{PACKAGES[file_key]['name']}** ki photo save ho gayi!\n\n📋 **File ID (Isse code mein save kar lein):**\n`{photo_file}`", parse_mode="Markdown")
     else:
-        set_pkg_photo("default", photo_file)
-        await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully save ho gayi hai!")
+        PERMANENT_PHOTOS["default"] = photo_file
+        await update.message.reply_text(f"✅ **Main Menu** ki photo save ho gayi!\n\n📋 **File ID (Isse code mein save kar lein):**\n`{photo_file}`", parse_mode="Markdown")
 
 async def process_video_setting(update: Update, context):
     media_file = None
@@ -244,15 +227,10 @@ async def process_video_setting(update: Update, context):
         caption_text = update.message.text or update.message.caption or ""
     
     if not media_file:
-        if 'last_video_file_id' in context.user_data:
-            video_file_id = context.user_data['last_video_file_id']
-            caption_text = update.message.text or update.message.caption or ""
-        else:
-            await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 1` (1 se 10 tak) likhein!", parse_mode="Markdown")
-            return
+        await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 1` likhein!", parse_mode="Markdown")
+        return
     else:
         video_file_id = media_file.file_id
-        context.user_data['last_video_file_id'] = video_file_id
 
     clip_num = 1
     match = re.search(r'setdemo\s*(\d+)', caption_text, re.IGNORECASE)
@@ -264,8 +242,12 @@ async def process_video_setting(update: Update, context):
             clip_num = int(numbers[0])
 
     if 1 <= clip_num <= 10:
-        save_video_to_db(clip_num, video_file_id)
-        await update.message.reply_text(f"✅ **Demo Clip {clip_num} / 10** successfully save ho gayi hai!")
+        PERMANENT_VIDEOS[clip_num] = video_file_id
+        await update.message.reply_text(
+            f"✅ **Demo Clip {clip_num} / 10** save ho gayi hai!\n\n"
+            f"📋 **Is File ID ko apne code ke upar `PERMANENT_VIDEOS` mein daal dein taaki kabhi na ude:**\n\n`{video_file_id}`",
+            parse_mode="Markdown"
+        )
     else:
         await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 1`).")
 
@@ -281,7 +263,6 @@ async def button_handler(update: Update, context):
 
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
-        
         current_views = check_and_increment_view(user_id, index)
         
         nav_buttons = []
@@ -311,8 +292,8 @@ async def button_handler(update: Update, context):
         except Exception:
             pass
             
-        video_file_id, _ = get_clip_data(index)
-        default_p = get_pkg_photo("default")
+        video_file_id = PERMANENT_VIDEOS.get(index)
+        default_p = PERMANENT_PHOTOS["default"]
         
         if video_file_id:
             try:
@@ -410,21 +391,14 @@ async def button_handler(update: Update, context):
             )
 
 async def handle_media(update: Update, context):
-    if update.message.video:
-        context.user_data['last_video_file_id'] = update.message.video.file_id
-    elif update.message.document:
-        context.user_data['last_video_file_id'] = update.message.document.file_id
-
     caption_text = (update.message.caption or "").lower()
     
-    if "setdemo" in caption_text:
-        await process_video_setting(update, context)
-        return
-        
-    if update.message.photo and ("setphoto" in caption_text or "file" in caption_text or any(f"file_{i}" in caption_text or f" {i} " in f" {caption_text} " for i in range(1, 9))):
-        await process_photo_setting(update, context)
-        return
-    elif update.message.photo and not caption_text:
+    if "setdemo" in caption_text or update.message.video or update.message.document:
+        if "setdemo" in caption_text or update.message.video:
+            await process_video_setting(update, context)
+            return
+            
+    if update.message.photo:
         await process_photo_setting(update, context)
         return
 
@@ -476,3 +450,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+    
