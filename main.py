@@ -23,7 +23,7 @@ PERMANENT_BUTTON_NAME = "Join Channel"
 # Welcome (Main Menu) ki photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# 🌟 GitHub par upload ki gayi aapki nayi photo ka naam
+# 🌟 Saare 8 packages par VIP New.jpg set rahegi
 PACKAGE_PHOTO = "VIP New.jpg"
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
@@ -334,10 +334,10 @@ async def button_handler(update: Update, context):
 async def handle_media(update: Update, context):
     caption_text = (update.message.caption or "").lower()
     
-    if update.message.photo:
-        if "setphoto" in caption_text or not caption_text:
-            await process_photo_setting(update, context)
-            return
+    # Sirf tabhi welcome photo update hogi jab caption mein explicitly 'setphoto' likha ho
+    if update.message.photo and "setphoto" in caption_text:
+        await process_photo_setting(update, context)
+        return
 
     last_file_key = context.user_data.get('last_pkg', 'file_1')
     pkg = PACKAGES.get(last_file_key, PACKAGES['file_1'])
@@ -385,3 +385,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
+    
