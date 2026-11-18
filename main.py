@@ -23,8 +23,8 @@ PERMANENT_BUTTON_NAME = "Join Channel"
 # Welcome (Main Menu) ki default photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# Sabhi 8 packages par Vip1.jpg set kar diya hai
-PACKAGE_PHOTO = "Vip1.jpg"
+# Sabhi 8 packages ke liye direct working image URL (Isse error nahi aayega)
+PACKAGE_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
@@ -169,7 +169,7 @@ async def process_photo_setting(update: Update, context):
     await update.message.reply_text(
         f"✅ **Welcome (Main Menu) ki photo update ho gayi hai!**\n\n"
         f"📋 **Is File ID ko copy karke code mein `DEFAULT_PHOTO` par daal sakte hain:**\n\n`{photo_file}`",
-        parse_Markdown="Markdown"
+        parse_mode="Markdown"
     )
 
 async def button_handler(update: Update, context):
@@ -365,4 +365,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-            
