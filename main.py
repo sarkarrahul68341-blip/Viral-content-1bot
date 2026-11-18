@@ -190,20 +190,52 @@ async def process_photo_setting(update: Update, context):
         await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
 
 async def process_video_setting(update: Update, context):
-    # Ab yeh video ya document/animation kisi bhi format ko accept kar lega
-    media_file = update.message.video or update.message.document or (update.message.animation if hasattr(update.message, 'animation') else None)
+    media_file = None
+    caption_text = ""
     
+    # 1. Check current message for media
+    if update.message.video:
+        media_file = update.message.video
+        caption_text = update.message.caption or ""
+    elif update.message.document:
+        media_file = update.message.document
+        caption_text = update.message.caption or ""
+    elif hasattr(update.message, 'animation') and update.message.animation:
+        media_file = update.message.animation
+        caption_text = update.message.caption or ""
+    
+    # 2. Check if replying to a media message
+    if not media_file and update.message.reply_to_message:
+        replied = update.message.reply_to_message
+        if replied.video:
+            media_file = replied.video
+        elif replied.document:
+            media_file = replied.document
+        elif hasattr(replied, 'animation') and replied.animation:
+            media_file = replied.animation
+        caption_text = update.message.text or update.message.caption or ""
+    
+    # 3. Fallback to last uploaded video in session
     if not media_file:
-        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2`", parse_mode="Markdown")
-        return
+        if 'last_video_file_id' in context.user_data:
+            video_file_id = context.user_data['last_video_file_id']
+            caption_text = update.message.text or update.message.caption or ""
+        else:
+            await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 2` likhein, ya video par **Reply** karke `/setdemo 2` likhein!", parse_mode="Markdown")
+            return
+    else:
+        video_file_id = media_file.file_id
+        context.user_data['last_video_file_id'] = video_file_id
 
-    video_file_id = media_file.file_id if hasattr(media_file, 'file_id') else update.message.video.file_id
-    caption_text = (update.message.caption or "").strip()
-    
-    numbers = re.findall(r'\d+', caption_text)
+    # Extract clip number strictly
     clip_num = 1
-    if numbers:
-        clip_num = int(numbers[0])
+    match = re.search(r'setdemo\s*(\d+)', caption_text, re.IGNORECASE)
+    if match:
+        clip_num = int(match.group(1))
+    else:
+        numbers = re.findall(r'\d+', caption_text)
+        if numbers:
+            clip_num = int(numbers[0])
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
@@ -351,6 +383,12 @@ async def button_handler(update: Update, context):
             )
 
 async def handle_media(update: Update, context):
+    # Save last uploaded video ID in user_data
+    if update.message.video:
+        context.user_data['last_video_file_id'] = update.message.video.file_id
+    elif update.message.document:
+        context.user_data['last_video_file_id'] = update.message.document.file_id
+
     caption_text = (update.message.caption or "").lower()
     
     if "setdemo" in caption_text:
@@ -383,8 +421,7 @@ telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CommandHandler("file", process_photo_setting))
 telegram_app.add_handler(CommandHandler("setdemo", process_video_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
-# Filters mein ab photos aur videos dono ko handle_media par bhej diya hai
-telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.VIDEO, handle_media))
+telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.VIDEO | filters.TEXT, handle_media))
 
 # ==================== FLASK ROUTES ====================
 @app.route('/')
@@ -413,4 +450,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
