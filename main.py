@@ -22,19 +22,18 @@ PERMANENT_BUTTON_NAME = "Join Channel"
 
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# ==================== 永久 PERMANENT STORAGE (Yahan apne File IDs paste karein) ====================
-# Jab aap bot par video/photo bhejenge, bot aapko file_id dega. Use yahan paste kar dena taaki kabhi na ude!
+# ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
-    1: None,  # Jaise: "BAACAgUAAxkBAA..."
-    2: None,
-    3: None,
-    4: None,
-    5: None,
-    6: None,
-    7: None,
-    8: None,
-    9: None,
-    10: None,
+    1: "BAACAgUAAxkBAAIF1mr9OhyTVF2iSYJ4zZYxjH5AqKdYAAK1IQAC08jpV-yeriahxLGXPQQ",
+    2: "BAACAgUAAxkBAAIF2Gr9Oj41G_dAdis5uciBnfjUWRWRAAK3IQAC08jpVyGIegbxq4mgPQQ",
+    3: "BAACAgUAAxkBAAIF3Gr9P-LP6eT8P8RCe1BOa3oOMRdIAALEIQAC08jpV5UMTjGj4ED1PQQ",
+    4: "BAACAgUAAxkBAAIF82r9QqQR0P0JXC8lgC9ZJWcdhfa7AALRIQAC08jpVwuR50arGNMuPQQ",
+    5: "BAACAgUAAxkBAAIF9Wr9QroENszvSIbGapfoYUM6IeE1AALSIQAC08jpV0Inq7sUJmp0PQQ",
+    6: "BAACAgUAAxkBAAIF2mr9OlpY8-8Lba01XQKIkxt22V8gAAK4IQAC08jpV-WIhsT1ykHjPQQ",
+    7: "BAACAgUAAxkBAAIGKWr9Sdwq1TIWMRxNKTij6xxpVwWDAAL1IQAC08jpV2_6CG9awMplPQQ",
+    8: "BAACAgUAAxkBAAIGK2r9SimPlWBIXnA5-vOjgovjnwnVAAL4IQAC08jpV7WJKbV5SZk5PQQ",
+    9: "BAACAgUAAxkBAAIGMWr9SnaiUrhdJaPsyZciIbsiLzdiAAL5IQAC08jpVyy-uKqA2eLmPQQ",
+    10: "BAACAgUAAxkBAAIGPWr9SvKxI0Mk2KlITw5rCPYgc1HdAAL6IQAC08jpV0bXxX-172rIPQQ",
 }
 
 PERMANENT_PHOTOS = {
@@ -86,14 +85,6 @@ def init_db():
 
 init_db()
 
-def get_clip_views(clip_id):
-    conn = sqlite3.connect('bot_views.db')
-    cursor = conn.cursor()
-    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
-    row = cursor.fetchone()
-    conn.close()
-    return row[0] if row else 0
-
 def check_and_increment_view(user_id, clip_id):
     conn = sqlite3.connect('bot_views.db')
     cursor = conn.cursor()
@@ -136,7 +127,6 @@ def generate_upi_qr(amount, pkg_name, order_id):
 
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
-    reply_markup = get_main_menu_keyboard() if 'get_main_menu_keyboard' in globals() else None
     caption = (
         "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
         "✨ Aapka yahan swagat hai! Niche diye gaye files mein se apna pasandida option select karein:\n"
@@ -197,59 +187,10 @@ async def process_photo_setting(update: Update, context):
 
     if file_key and file_key in PACKAGES:
         PERMANENT_PHOTOS[file_key] = photo_file
-        await update.message.reply_text(f"✅ **{PACKAGES[file_key]['name']}** ki photo save ho gayi!\n\n📋 **File ID (Isse code mein save kar lein):**\n`{photo_file}`", parse_mode="Markdown")
+        await update.message.reply_text(f"✅ **{PACKAGES[file_key]['name']}** ki photo save ho gayi!\n\n📋 **File ID:**\n`{photo_file}`", parse_mode="Markdown")
     else:
         PERMANENT_PHOTOS["default"] = photo_file
-        await update.message.reply_text(f"✅ **Main Menu** ki photo save ho gayi!\n\n📋 **File ID (Isse code mein save kar lein):**\n`{photo_file}`", parse_mode="Markdown")
-
-async def process_video_setting(update: Update, context):
-    media_file = None
-    caption_text = ""
-    
-    if update.message.video:
-        media_file = update.message.video
-        caption_text = update.message.caption or ""
-    elif update.message.document:
-        media_file = update.message.document
-        caption_text = update.message.caption or ""
-    elif hasattr(update.message, 'animation') and update.message.animation:
-        media_file = update.message.animation
-        caption_text = update.message.caption or ""
-    
-    if not media_file and update.message.reply_to_message:
-        replied = update.message.reply_to_message
-        if replied.video:
-            media_file = replied.video
-        elif replied.document:
-            media_file = replied.document
-        elif hasattr(replied, 'animation') and replied.animation:
-            media_file = replied.animation
-        caption_text = update.message.text or update.message.caption or ""
-    
-    if not media_file:
-        await update.message.reply_text("⚠️ Kripya video ke sath caption mein `/setdemo 1` likhein!", parse_mode="Markdown")
-        return
-    else:
-        video_file_id = media_file.file_id
-
-    clip_num = 1
-    match = re.search(r'setdemo\s*(\d+)', caption_text, re.IGNORECASE)
-    if match:
-        clip_num = int(match.group(1))
-    else:
-        numbers = re.findall(r'\d+', caption_text)
-        if numbers:
-            clip_num = int(numbers[0])
-
-    if 1 <= clip_num <= 10:
-        PERMANENT_VIDEOS[clip_num] = video_file_id
-        await update.message.reply_text(
-            f"✅ **Demo Clip {clip_num} / 10** save ho gayi hai!\n\n"
-            f"📋 **Is File ID ko apne code ke upar `PERMANENT_VIDEOS` mein daal dein taaki kabhi na ude:**\n\n`{video_file_id}`",
-            parse_mode="Markdown"
-        )
-    else:
-        await update.message.reply_text("⚠️ Kripya 1 se 10 ke beech ka number dein (jaise `/setdemo 1`).")
+        await update.message.reply_text(f"✅ **Main Menu** ki photo save ho gayi!\n\n📋 **File ID:**\n`{photo_file}`", parse_mode="Markdown")
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -314,7 +255,7 @@ async def button_handler(update: Update, context):
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=default_p,
-                caption=text + f"\n\n*(Yeh video abhi upload nahi ki gayi hai. /setdemo {index} use karein)*",
+                caption=text + f"\n\n*(Yeh video abhi upload nahi ki gayi hai.)*",
                 reply_markup=keyboard,
                 parse_mode="Markdown"
             )
@@ -391,13 +332,6 @@ async def button_handler(update: Update, context):
             )
 
 async def handle_media(update: Update, context):
-    caption_text = (update.message.caption or "").lower()
-    
-    if "setdemo" in caption_text or update.message.video or update.message.document:
-        if "setdemo" in caption_text or update.message.video:
-            await process_video_setting(update, context)
-            return
-            
     if update.message.photo:
         await process_photo_setting(update, context)
         return
@@ -419,9 +353,8 @@ async def handle_media(update: Update, context):
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CommandHandler("file", process_photo_setting))
-telegram_app.add_handler(CommandHandler("setdemo", process_video_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.VIDEO | filters.TEXT, handle_media))
+telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.TEXT, handle_media))
 
 # ==================== FLASK ROUTES ====================
 @app.route('/')
@@ -450,4 +383,3 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
