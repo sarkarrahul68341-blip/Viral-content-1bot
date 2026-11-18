@@ -316,9 +316,8 @@ def webhook():
     update = Update.de_json(json_data, telegram_app.bot)
     
     async def run_update():
-        async x := telegram_app:
-            async with telegram_app:
-                await telegram_app.process_update(update)
+        async with telegram_app:
+            await telegram_app.process_update(update)
 
     asyncio.run(run_update())
     return "OK", 200
