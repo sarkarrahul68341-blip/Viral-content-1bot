@@ -20,8 +20,11 @@ ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Channel"
 
-# Default photo jo Welcome aur sabhi 1 to 8 packages par same dikhegi
+# Welcome (Main Menu) ki default photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
+
+# Sabhi 8 packages par Vip1.jpg set kar diya hai
+PACKAGE_PHOTO = "Vip1.jpg"
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
@@ -37,16 +40,21 @@ PERMANENT_VIDEOS = {
     10: "BAACAgUAAxkBAAIGPWr9SvKxI0Mk2KlITw5rCPYgc1HdAAL6IQAC08jpV0bXxX-172rIPQQ",
 }
 
-# ==================== 8 FILES CONFIGURATION (Same Photo for All) ====================
+# Dynamic storage for Welcome Photo
+DYNAMIC_STORAGE = {
+    "welcome_photo": DEFAULT_PHOTO
+}
+
+# ==================== 8 FILES CONFIGURATION ====================
 PACKAGES = {
-    "file_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": DEFAULT_PHOTO},
-    "file_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": DEFAULT_PHOTO},
-    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": DEFAULT_PHOTO},
-    "file_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": DEFAULT_PHOTO},
-    "file_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": DEFAULT_PHOTO},
-    "file_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": DEFAULT_PHOTO},
-    "file_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": DEFAULT_PHOTO},
-    "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": DEFAULT_PHOTO},
+    "file_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
+    "file_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
+    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
+    "file_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
+    "file_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
+    "file_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
+    "file_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
+    "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
 }
 
 app = Flask(__name__)
@@ -117,6 +125,7 @@ async def start(update: Update, context):
         "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
         "✨ Aapka yahan swagat hai! Niche diye gaye files mein se apna pasandida option select karein:\n"
     )
+    current_photo = DYNAMIC_STORAGE["welcome_photo"]
     
     if update.callback_query:
         query = update.callback_query
@@ -126,14 +135,14 @@ async def start(update: Update, context):
             pass
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            photo=DEFAULT_PHOTO,
+            photo=current_photo,
             caption=caption,
             reply_markup=get_main_menu_keyboard(),
             parse_mode="Markdown"
         )
     else:
         await update.message.reply_photo(
-            photo=DEFAULT_PHOTO,
+            photo=current_photo,
             caption=caption,
             reply_markup=get_main_menu_keyboard(),
             parse_mode="Markdown"
@@ -148,6 +157,20 @@ def get_main_menu_keyboard():
     keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
+
+async def process_photo_setting(update: Update, context):
+    if not update.message.photo:
+        await update.message.reply_text("⚠️ Kripya photo ke sath `/setphoto` likhein.")
+        return
+
+    photo_file = update.message.photo[-1].file_id
+    DYNAMIC_STORAGE["welcome_photo"] = photo_file
+
+    await update.message.reply_text(
+        f"✅ **Welcome (Main Menu) ki photo update ho gayi hai!**\n\n"
+        f"📋 **Is File ID ko copy karke code mein `DEFAULT_PHOTO` par daal sakte hain:**\n\n`{photo_file}`",
+        parse_Markdown="Markdown"
+    )
 
 async def button_handler(update: Update, context):
     query = update.callback_query
@@ -191,6 +214,7 @@ async def button_handler(update: Update, context):
             pass
             
         video_file_id = PERMANENT_VIDEOS.get(index)
+        current_photo = DYNAMIC_STORAGE["welcome_photo"]
         
         if video_file_id:
             try:
@@ -210,7 +234,7 @@ async def button_handler(update: Update, context):
         else:
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
-                photo=DEFAULT_PHOTO,
+                photo=current_photo,
                 caption=text + f"\n\n*(Yeh video abhi upload nahi ki gayi hai.)*",
                 reply_markup=keyboard,
                 parse_mode="Markdown"
@@ -220,6 +244,7 @@ async def button_handler(update: Update, context):
     if data in PACKAGES:
         pkg = PACKAGES[data]
         context.user_data['last_pkg'] = data
+        pkg_photo = pkg["photo"]
         
         text = (
             "🔥💎 **SELECTED VIP FILE** 💎🔥\n"
@@ -240,7 +265,7 @@ async def button_handler(update: Update, context):
             
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
-            photo=pkg["photo"],
+            photo=pkg_photo,
             caption=text,
             reply_markup=keyboard,
             parse_mode="Markdown"
@@ -287,6 +312,13 @@ async def button_handler(update: Update, context):
             )
 
 async def handle_media(update: Update, context):
+    caption_text = (update.message.caption or "").lower()
+    
+    if update.message.photo:
+        if "setphoto" in caption_text or not caption_text:
+            await process_photo_setting(update, context)
+            return
+
     last_file_key = context.user_data.get('last_pkg', 'file_1')
     pkg = PACKAGES.get(last_file_key, PACKAGES['file_1'])
 
@@ -302,6 +334,7 @@ async def handle_media(update: Update, context):
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
 telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.TEXT, handle_media))
 
@@ -332,4 +365,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-    
+            
