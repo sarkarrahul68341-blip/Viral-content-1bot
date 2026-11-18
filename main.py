@@ -1,6 +1,5 @@
 import os
 import asyncio
-import sqlite3
 import re
 import qrcode
 from flask import Flask, request
@@ -58,42 +57,6 @@ PACKAGES = {
 
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
-
-# ==================== DATABASE FOR VIEWS (FIXED) ====================
-def init_db():
-    conn = sqlite3.connect('bot_views.db', timeout=10)
-    cursor = conn.cursor()
-    cursor.execute('''
-        CREATE TABLE IF NOT EXISTS demo_stats (
-            clip_id INTEGER PRIMARY KEY,
-            views INTEGER DEFAULT 120
-        )
-    ''')
-    conn.commit()
-    conn.close()
-
-init_db()
-
-def check_and_increment_view(user_id, clip_id):
-    conn = sqlite3.connect('bot_views.db', timeout=10)
-    cursor = conn.cursor()
-    
-    cursor.execute('SELECT views FROM demo_stats WHERE clip_id = ?', (clip_id,))
-    row = cursor.fetchone()
-    
-    if not row:
-        # Agar pehli baar clip khul rahi hai toh base views 150 se shuru hoga taaki 0 na dikhe
-        initial_views = 150 + clip_id * 15
-        cursor.execute('INSERT INTO demo_stats (clip_id, views) VALUES (?, ?)', (clip_id, initial_views))
-        conn.commit()
-        current_views = initial_views
-    else:
-        current_views = row[0] + 1  # Har click par view badhega
-        cursor.execute('UPDATE demo_stats SET views = ? WHERE clip_id = ?', (current_views, clip_id))
-        conn.commit()
-    
-    conn.close()
-    return current_views
 
 def generate_upi_qr(amount, pkg_name, order_id):
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={BUSINESS_NAME}&am={amount}&cu=INR&tn=Order_{order_id}"
@@ -170,7 +133,6 @@ async def button_handler(update: Update, context):
 
     if data.startswith("demo_"):
         index = int(data.replace("demo_", ""))
-        current_views = check_and_increment_view(user_id, index)
         
         nav_buttons = []
         row = []
@@ -190,8 +152,7 @@ async def button_handler(update: Update, context):
         text = (
             f"🎬 **Demo Clip {index} / 10**\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!\n\n"
-            f" Views: **{current_views:,}**"
+            f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!"
         )
         
         try:
@@ -310,5 +271,64 @@ async def button_handler(update: Update, context):
                 )
             if os.path.exists(qr_file_path):
                 os.remove(qr_file_path)
-        except Exception
+        except Exception as e:
+            await context.bot.send_message(
+                chat_id=query.message.chat_id,
+                text=f"❌ Error generating QR code: {str(e)}"
+            )
+        return
+
+async def handle_media(update: Update, context):
+    caption_text = (update.message.caption or "").lower()
     
+    if update.message.photo and "setphoto" in caption_text:
+        await process_photo_setting(update, context)
+        return
+
+    last_file_key = context.user_data.get('last_pkg', 'file_1')
+    pkg = PACKAGES.get(last_file_key, PACKAGES['file_1'])
+
+    text = (
+        "📸 **Screenshot Received Successfully!**\n\n"
+        f"🎉 File: **{pkg['name']}**\n"
+        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
+    )
+    keyboard = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
+        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+    ])
+    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+
+telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
+telegram_app.add_handler(CallbackQueryHandler(button_handler))
+telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.TEXT, handle_media))
+
+# ==================== FLASK ROUTES ====================
+@app.route('/')
+def home():
+    return "Telegram Bot Webhook Server is Running!"
+
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
+def webhook():
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, telegram_app.bot)
+    
+    async def run_update():
+        async with telegram_app:
+            await telegram_app.process_update(update)
+
+    asyncio.run(run_update())
+    return "OK", 200
+
+# ==================== MAIN RUNNER ====================
+if __name__ == '__main__':
+    RENDER_EXTERNAL_URL = os.getenv("RENDER_EXTERNAL_URL")
+    if RENDER_EXTERNAL_URL:
+        import urllib.request
+        webhook_url = f"{RENDER_EXTERNAL_URL}/{TELEGRAM_BOT_TOKEN}"
+        urllib.request.urlopen(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/setWebhook?url={webhook_url}")
+
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host='0.0.0.0', port=port)
+        
