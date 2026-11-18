@@ -20,11 +20,11 @@ ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Channel"
 
-# Welcome (Main Menu) ki default photo
+# Welcome (Main Menu) ki photo
 DEFAULT_PHOTO = "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe"
 
-# GitHub par jo photo upload ki hai uska naam yahan hai
-PACKAGE_PHOTO = "Vip1.jpg"
+# 🌟 Saare 8 packages par yehi premium VIP gold photo set rahegi (Bina kisi error ke)
+PACKAGE_PHOTO = "https://images.unsplash.com/photo-1533158307587-828f0a76ef46"
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
@@ -244,7 +244,7 @@ async def button_handler(update: Update, context):
     if data in PACKAGES:
         pkg = PACKAGES[data]
         context.user_data['last_pkg'] = data
-        pkg_photo_path = pkg["photo"]
+        pkg_photo = pkg["photo"]
         
         text = (
             "🔥💎 **SELECTED VIP FILE** 💎🔥\n"
@@ -263,33 +263,13 @@ async def button_handler(update: Update, context):
         except Exception:
             pass
             
-        # Local file Vip1.jpg ko open karke bhejenge taaki error na aaye
-        try:
-            if os.path.exists(pkg_photo_path):
-                with open(pkg_photo_path, 'rb') as photo_file:
-                    await context.bot.send_photo(
-                        chat_id=query.message.chat_id,
-                        photo=photo_file,
-                        caption=text,
-                        reply_markup=keyboard,
-                        parse_mode="Markdown"
-                    )
-            else:
-                # Agar file nahi mili toh default photo bhej do
-                await context.bot.send_photo(
-                    chat_id=query.message.chat_id,
-                    photo=DEFAULT_PHOTO,
-                    caption=text,
-                    reply_markup=keyboard,
-                    parse_mode="Markdown"
-                )
-        except Exception as e:
-            await context.bot.send_message(
-                chat_id=query.message.chat_id,
-                text=text + f"\n\n*(Error sending photo: {str(e)})*",
-                reply_markup=keyboard,
-                parse_mode="Markdown"
-            )
+        await context.bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=pkg_photo,
+            caption=text,
+            reply_markup=keyboard,
+            parse_mode="Markdown"
+        )
         return
 
     elif data.startswith("pay_"):
