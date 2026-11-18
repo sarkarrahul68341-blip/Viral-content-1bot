@@ -102,8 +102,8 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
-    keyboard.append([InlineKeyboardButton("✨ ── 【 𝐂𝐥𝐢𝐜𝐤 𝐝𝐞𝐦𝐨 】 ── ✨", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("🆘 ── 𝐇𝐞𝐥𝐩 & 𝐬𝐮𝐩𝐩𝐨𝐫𝐭 ── 💬", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
 
@@ -279,9 +279,12 @@ async def button_handler(update: Update, context):
         return
 
 async def handle_media(update: Update, context):
+    if not update.message.photo:
+        return  # Agar text message bheja hai toh bot kuch nahi karega
+        
     caption_text = (update.message.caption or "").lower()
     
-    if update.message.photo and "setphoto" in caption_text:
+    if "setphoto" in caption_text:
         await process_photo_setting(update, context)
         return
 
@@ -302,7 +305,8 @@ async def handle_media(update: Update, context):
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.TEXT, handle_media))
+# Ab yeh sirf PHOTO par chalega, text message par nahi
+telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
 
 # ==================== FLASK ROUTES ====================
 @app.route('/')
@@ -331,4 +335,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-        
+    
