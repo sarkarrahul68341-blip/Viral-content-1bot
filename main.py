@@ -190,18 +190,20 @@ async def process_photo_setting(update: Update, context):
         await update.message.reply_text("✅ **Main Menu (Welcome)** ki photo successfully update ho gayi hai!")
 
 async def process_video_setting(update: Update, context):
-    if not update.message.video:
+    # Ab yeh video ya document/animation kisi bhi format ko accept kar lega
+    media_file = update.message.video or update.message.document or (update.message.animation if hasattr(update.message, 'animation') else None)
+    
+    if not media_file:
         await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2`", parse_mode="Markdown")
         return
 
-    video_file_id = update.message.video.file_id
+    video_file_id = media_file.file_id if hasattr(media_file, 'file_id') else update.message.video.file_id
     caption_text = (update.message.caption or "").strip()
     
-    # FIXED: Extracting clip number properly from caption
     numbers = re.findall(r'\d+', caption_text)
     clip_num = 1
     if numbers:
-        clip_num = int(numbers[0])  # Pehla number clip number mana jayega (jaise 2 in /setdemo 2)
+        clip_num = int(numbers[0])
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
@@ -234,10 +236,7 @@ async def button_handler(update: Update, context):
         if row:
             nav_buttons.append(row)
             
-        # Back to Main Menu button
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
-        
-        # Join Channel button
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
         
         keyboard = InlineKeyboardMarkup(nav_buttons)
@@ -354,7 +353,7 @@ async def button_handler(update: Update, context):
 async def handle_media(update: Update, context):
     caption_text = (update.message.caption or "").lower()
     
-    if update.message.video and "setdemo" in caption_text:
+    if "setdemo" in caption_text:
         await process_video_setting(update, context)
         return
         
@@ -384,7 +383,8 @@ telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CommandHandler("file", process_photo_setting))
 telegram_app.add_handler(CommandHandler("setdemo", process_video_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
-telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO, handle_media))
+# Filters mein ab photos aur videos dono ko handle_media par bhej diya hai
+telegram_app.add_handler(MessageHandler(filters.PHOTO | filters.VIDEO | filters.Document.VIDEO, handle_media))
 
 # ==================== FLASK ROUTES ====================
 @app.route('/')
