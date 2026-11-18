@@ -16,8 +16,8 @@ BUSINESS_NAME = "All Max Content Bot"
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 ADMIN_USER_ID = 8776203848  # Aapki Admin ID
 
-# Permanent Channel Button Link (Aapka exact link yahan set hai)
-PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
+# Permanent Channel Button Link & Name
+PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zlyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Channel"
 
 # Default welcome photo
@@ -191,16 +191,17 @@ async def process_photo_setting(update: Update, context):
 
 async def process_video_setting(update: Update, context):
     if not update.message.video:
-        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2` ya `/setdemo2`", parse_mode="Markdown")
+        await update.message.reply_text("⚠️ Kripya video ke sath command likhein, jaise: `/setdemo 2`", parse_mode="Markdown")
         return
 
     video_file_id = update.message.video.file_id
     caption_text = (update.message.caption or "").strip()
     
+    # FIXED: Extracting clip number properly from caption
     numbers = re.findall(r'\d+', caption_text)
     clip_num = 1
     if numbers:
-        clip_num = int(numbers[-1])
+        clip_num = int(numbers[0])  # Pehla number clip number mana jayega (jaise 2 in /setdemo 2)
 
     if 1 <= clip_num <= 10:
         save_video_to_db(clip_num, video_file_id)
@@ -236,7 +237,7 @@ async def button_handler(update: Update, context):
         # Back to Main Menu button
         nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         
-        # Join Channel button with exact URL
+        # Join Channel button
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
         
         keyboard = InlineKeyboardMarkup(nav_buttons)
@@ -412,4 +413,4 @@ if __name__ == '__main__':
 
     port = int(os.environ.get("PORT", 10000))
     app.run(host='0.0.0.0', port=port)
-                                                                                      
+    
