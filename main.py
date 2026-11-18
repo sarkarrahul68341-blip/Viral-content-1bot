@@ -102,8 +102,8 @@ def get_main_menu_keyboard():
     for key, pkg in PACKAGES.items():
         keyboard.append([InlineKeyboardButton(f"{pkg['name']} 🌟 ─── Rs.{pkg['price']}", callback_data=key)])
     
-    keyboard.append([InlineKeyboardButton("✨ ── 𝑾𝑨𝑻𝑪𝑯 𝑫𝑬𝑴𝑶 𝑵𝑶𝑾 ── ✨", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("🆘 ── 𝒉𝒆𝒍𝒑 & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("✨ ── 【 𝐂𝐥𝐢𝐜𝐤 𝐝𝐞𝐦𝐨 】 ── ✨", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("🆘 ── Help & 𝒔𝒖𝒑𝒑𝒐𝒓𝒕 ── 💬", url=SUPPORT_LINK)])
     
     return InlineKeyboardMarkup(keyboard)
 
