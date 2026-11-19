@@ -99,8 +99,8 @@ def get_main_menu_keyboard():
             InlineKeyboardButton(f"{btn_emoji} {pkg['name']} • {badge} 👉", callback_data=key)
         ])
 
-    keyboard.append([InlineKeyboardButton("🎬 ✨ ── Watch Free Demo Clips ── ✨ 🎥", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("🆘 💬 ── Help & Support Desk ── 💬 🆘", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("Ｆｒｅｅ ｄｅｍｏ Ｎｏｗ", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("💬 Help & Support Desk", url=SUPPORT_LINK)])
 
     return InlineKeyboardMarkup(keyboard)
 
@@ -425,3 +425,4 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
+    
