@@ -1,5 +1,6 @@
 import os
 import asyncio
+import threading
 import urllib.parse
 import qrcode
 from flask import Flask, request
@@ -58,10 +59,17 @@ PACKAGES = {
 app = Flask(__name__)
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
-# Global event loop for stable webhook execution
+# Dedicated background event loop thread
 loop = asyncio.new_event_loop()
-asyncio.set_event_loop(loop)
-loop.run_until_complete(telegram_app.initialize())
+
+
+def _start_loop(target_loop):
+    asyncio.set_event_loop(target_loop)
+    target_loop.run_forever()
+
+
+threading.Thread(target=_start_loop, args=(loop,), daemon=True).start()
+asyncio.run_coroutine_threadsafe(telegram_app.initialize(), loop).result(timeout=30)
 
 
 def generate_upi_qr(amount, pkg_name, order_id):
@@ -184,7 +192,6 @@ async def button_handler(update: Update, context):
         if row:
             nav_buttons.append(row)
 
-        # 10 number wali demo clip ke liye special button
         if index == 10:
             nav_buttons.append([
                 InlineKeyboardButton("🔥 Get Full VIP Access", callback_data="file_1")
@@ -373,6 +380,23 @@ telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
 
 
+def setup_webhook():
+    render_url = os.getenv("RENDER_EXTERNAL_URL")
+    if render_url:
+        clean_url = render_url.rstrip("/")
+        webhook_url = f"{clean_url}/{TELEGRAM_BOT_TOKEN}"
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                telegram_app.bot.set_webhook(url=webhook_url), loop
+            )
+            future.result(timeout=15)
+        except Exception as e:
+            print(f"Webhook setup error: {e}")
+
+
+setup_webhook()
+
+
 # ==================== FLASK ROUTES ====================
 @app.route("/")
 def home():
@@ -388,20 +412,7 @@ def webhook():
     return "OK", 200
 
 
-# ==================== MAIN RUNNER ====================
-def setup_webhook():
-    render_url = os.getenv("RENDER_EXTERNAL_URL")
-    if render_url:
-        clean_url = render_url.rstrip("/")
-        webhook_url = f"{clean_url}/{TELEGRAM_BOT_TOKEN}"
-        try:
-            loop.run_until_complete(telegram_app.bot.set_webhook(url=webhook_url))
-        except Exception as e:
-            print(f"Webhook setup error: {e}")
-
-
 if __name__ == "__main__":
-    setup_webhook()
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
         
