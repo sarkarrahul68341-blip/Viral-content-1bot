@@ -46,14 +46,14 @@ DYNAMIC_STORAGE = {
 
 # ==================== 8 FILES CONFIGURATION ====================
 PACKAGES = {
-    "file_1": {"name": "⭐ 01 All mix content VIP Access", "mrp": 499, "price": 249, "price_badge": "₹499 ➡️ 💎 ₹249", "btn_emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
-    "file_2": {"name": "🔑 02 Rap & Big File VD", "mrp": 199, "price": 89, "price_badge": "₹199 ➡️ ⚡ ₹89", "btn_emoji": "🎬", "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
-    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "mrp": 99, "price": 45, "price_badge": "₹99 ➡️ 🔥 ₹45", "btn_emoji": "💋", "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
-    "file_4": {"name": "🔞 04 Insta viral reels and sex", "mrp": 99, "price": 40, "price_badge": "₹99 ➡️ ✨ ₹40", "btn_emoji": "📱", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
-    "file_5": {"name": "🔥 05 Ganga bath group join", "mrp": 399, "price": 199, "price_badge": "₹399 ➡️ 👑 ₹199", "btn_emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
-    "file_6": {"name": "🔥 06 Bath camera hidden", "mrp": 129, "price": 55, "price_badge": "₹129 ➡️ 💥 ₹55", "btn_emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
-    "file_7": {"name": "🔥 07 CP girl real fuke", "mrp": 149, "price": 65, "price_badge": "₹149 ➡️ 🌟 ₹65", "btn_emoji": "✨", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
-    "file_8": {"name": "❤️ 08 Sister and brother sex", "mrp": 79, "price": 30, "price_badge": "₹79 ➡️ 💖 ₹30", "btn_emoji": "❤️", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
+    "file_1": {"name": "⭐ 01 All mix content VIP Access", "mrp": 499, "price": 249, "price_badge": "4̶9̶9̶ ➡️ 💎 ₹249", "btn_emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
+    "file_2": {"name": "🔑 02 Rap & Big File VD", "mrp": 199, "price": 89, "price_badge": "1̶9̶9̶ ➡️ ⚡ ₹89", "btn_emoji": "🎬", "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
+    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "mrp": 99, "price": 45, "price_badge": "9̶9̶ ➡️ 🔥 ₹45", "btn_emoji": "💋", "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
+    "file_4": {"name": "🔞 04 Insta viral reels and sex", "mrp": 99, "price": 40, "price_badge": "9̶9̶ ➡️ ✨ ₹40", "btn_emoji": "📱", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
+    "file_5": {"name": "🔥 05 Ganga bath group join", "mrp": 399, "price": 199, "price_badge": "3̶9̶9̶ ➡️ 👑 ₹199", "btn_emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
+    "file_6": {"name": "🔥 06 Bath camera hidden", "mrp": 129, "price": 55, "price_badge": "1̶2̶9̶ ➡️ 💥 ₹55", "btn_emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
+    "file_7": {"name": "🔥 07 CP girl real fuke", "mrp": 149, "price": 65, "price_badge": "1̶4̶9̶ ➡️ 🌟 ₹65", "btn_emoji": "✨", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
+    "file_8": {"name": "❤️ 08 Sister and brother sex", "mrp": 79, "price": 30, "price_badge": "7̶9̶ ➡️ 💖 ₹30", "btn_emoji": "❤️", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
 }
 
 app = Flask(__name__)
@@ -100,7 +100,7 @@ def get_main_menu_keyboard():
         ])
 
     keyboard.append([InlineKeyboardButton("🅵🆁🅴🅴   __   🅳🅴🅼🅾", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("💬 Help & Support Desk", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("💬 Help & Support", url=SUPPORT_LINK)])
 
     return InlineKeyboardMarkup(keyboard)
 
@@ -200,7 +200,7 @@ async def button_handler(update: Update, context):
 
         if index == 10:
             nav_buttons.append([
-                InlineKeyboardButton("🔥👑 Get Full VIP Access • ₹499 ➡️ 💎 ₹249 🚀", callback_data="file_1")
+                InlineKeyboardButton("🔥👑 Get Full VIP Access • 4̶9̶9̶ ➡️ 💎 ₹249 🚀", callback_data="file_1")
             ])
 
         nav_buttons.append([InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")])
@@ -437,4 +437,3 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-            
