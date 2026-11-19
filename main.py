@@ -187,70 +187,57 @@ async def button_handler(update: Update, context):
             await query.answer("⛔ Sirf admin hi approve ya reject kar sakta hai.", show_alert=True)
             return
 
-        action, target_user_str, file_key = data.split("_", 2)
-        target_user_id = int(target_user_str)
-        pkg = PACKAGES.get(file_key, PACKAGES["file_1"])
-        price_str = format_price(pkg)
+        parts = data.split("_", 2)
+        if len(parts) == 3:
+            action, target_user_str, file_key = parts
+            target_user_id = int(target_user_str)
+            pkg = PACKAGES.get(file_key, PACKAGES["file_1"])
+            price_str = format_price(pkg)
 
-        if action == "approve":
-            user_msg = (
-                "✅ **Payment Approved!**\n\n"
-                f"📦 **Package:** {pkg['name']}\n"
-                f"💸 **Price:** **{price_str}**\n"
-                "🎉 Aapka payment verify ho gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
-            )
-            user_keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
-                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-            ])
-            try:
+            if action == "approve":
                 await context.bot.send_message(
                     chat_id=target_user_id,
-                    text=user_msg,
-                    reply_markup=user_keyboard,
+                    text=(
+                        "✅ **Payment Approved!**\n\n"
+                        f"📦 **Package:** {pkg['name']}\n"
+                        f"💸 **Offer Price:** **{price_str}**\n"
+                        "✨ Aapka payment verify ho gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
+                    ),
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
+                        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+                    ]),
                     parse_mode="Markdown"
                 )
-            except Exception as e:
-                await context.bot.send_message(
-                    chat_id=ADMIN_USER_ID,
-                    text=f"⚠️ User ko message bhejne mein error aaya: {str(e)}"
-                )
-
-            try:
-                await query.edit_message_caption(
-                    caption=(query.message.caption or "") + "\n\n✅ **APPROVED & LINK SENT**",
-                    parse_mode="Markdown"
-                )
-            except Exception:
-                pass
-        else:
-            reject_msg = (
-                "❌ **Payment Screenshot Rejected!**\n\n"
-                f"📦 **Package:** {pkg['name']}\n"
-                f"💸 **Required Amount:** **{price_str}**\n"
-                "⚠️ Kripya sahi payment ka clear screenshot bhejein ya help ke liye Support se sampark karein."
-            )
-            reject_keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("💬 Help & Support Desk", url=SUPPORT_LINK)],
-                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
-            ])
-            try:
+                try:
+                    await query.edit_message_caption(
+                        caption=(query.message.caption or "") + "\n\n✅ **APPROVED**",
+                        parse_mode="Markdown"
+                    )
+                except Exception:
+                    pass
+            else:
                 await context.bot.send_message(
                     chat_id=target_user_id,
-                    text=reject_msg,
-                    reply_markup=reject_keyboard,
+                    text=(
+                        "❌ **Payment Screenshot Rejected!**\n\n"
+                        f"📦 **Package:** {pkg['name']}\n"
+                        f"💸 **Offer Price:** **{price_str}**\n"
+                        "⚠️ Kripya sahi payment ka clear screenshot bhejein ya help ke liye Support se sampark karein."
+                    ),
+                    reply_markup=InlineKeyboardMarkup([
+                        [InlineKeyboardButton("💬 Help & Support Desk", url=SUPPORT_LINK)],
+                        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+                    ]),
                     parse_mode="Markdown"
                 )
-            except Exception:
-                pass
-
-            try:
-                await query.edit_message_caption(
-                    caption=(query.message.caption or "") + "\n\n❌ **REJECTED**",
-                    parse_mode="Markdown"
-                )
-            except Exception:
-                pass
+                try:
+                    await query.edit_message_caption(
+                        caption=(query.message.caption or "") + "\n\n❌ **REJECTED**",
+                        parse_mode="Markdown"
+                    )
+                except Exception:
+                    pass
         return
 
     if data.startswith("demo_"):
@@ -327,7 +314,7 @@ async def button_handler(update: Update, context):
 
     if data in PACKAGES:
         pkg = PACKAGES[data]
-        context.user_data["last_pkg"] = data
+        context.user_data["selected_pkg"] = data
         pkg_photo_path = pkg["photo"]
         price_str = format_price(pkg)
 
@@ -382,7 +369,8 @@ async def button_handler(update: Update, context):
             await query.message.reply_text("⚠️ Package nahi mila.")
             return
 
-        context.user_data["last_pkg"] = file_key
+        context.user_data["selected_pkg"] = file_key
+        context.user_data["qr_generated_for"] = file_key
         qr_file_path = None
         price_str = format_price(pkg)
 
@@ -437,13 +425,11 @@ async def handle_media(update: Update, context):
         await process_photo_setting(update, context)
         return
 
-    user = update.effective_user
-    last_file_key = context.user_data.get("last_pkg")
-
-    if not last_file_key or last_file_key not in PACKAGES:
+    qr_pkg_key = context.user_data.get("qr_generated_for")
+    if not qr_pkg_key or qr_pkg_key not in PACKAGES:
         await update.message.reply_text(
-            "⚠️ **Pehle Package Select Karein!**\n\n"
-            "Kripya pehle Main Menu se apna package chunein aur **Pay Now** par click karke QR code se payment karein, uske baad screenshot bhejein.",
+            "⚠️ **Direct Photo Allowed Nahi Hai!**\n\n"
+            "Kripya pehle Main Menu se apna package chunein aur **Pay Now** par click karke QR code generate karein, uske baad payment screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ]),
@@ -451,43 +437,42 @@ async def handle_media(update: Update, context):
         )
         return
 
-    pkg = PACKAGES[last_file_key]
+    pkg = PACKAGES[qr_pkg_key]
     price_str = format_price(pkg)
+    user = update.effective_user
     photo_id = update.message.photo[-1].file_id
 
     await update.message.reply_text(
         "⏳ **Screenshot Verification Pending!**\n\n"
         f"📦 **Package:** {pkg['name']}\n"
-        f"💸 **Price:** **{price_str}**\n"
-        "✨ Aapka payment screenshot admin ke paas check hone ke liye bhej diya gaya hai. Approve hote hi aapko VIP link mil jayega.",
+        f"💸 **Offer Price:** **{price_str}**\n"
+        "✨ Aapka screenshot admin ke paas bhej diya gaya hai. Approve hone ke baad hi link milega.",
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
         ]),
         parse_mode="Markdown"
     )
 
-    admin_caption = (
-        "📥 **New Payment Screenshot For Review**\n\n"
-        f"👤 **User:** {user.full_name} (`{user.id}`)\n"
-        f"📦 **Package:** {pkg['name']}\n"
-        f"💸 **Price:** **{price_str}**"
-    )
-    admin_keyboard = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ Approve & Send Link", callback_data=f"approve_{user.id}_{last_file_key}"),
-            InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{last_file_key}")
-        ]
-    ])
     try:
         await context.bot.send_photo(
             chat_id=ADMIN_USER_ID,
             photo=photo_id,
-            caption=admin_caption,
-            reply_markup=admin_keyboard,
+            caption=(
+                "📥 **Payment Screenshot For Verification**\n\n"
+                f"👤 **User:** {user.full_name} (`{user.id}`)\n"
+                f"📦 **Package:** {pkg['name']}\n"
+                f"💸 **Offer Price:** **{price_str}**"
+            ),
+            reply_markup=InlineKeyboardMarkup([
+                [
+                    InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user.id}_{qr_pkg_key}"),
+                    InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{qr_pkg_key}")
+                ]
+            ]),
             parse_mode="Markdown"
         )
     except Exception as e:
-        print(f"Admin notification error: {e}")
+        print(f"Admin send error: {e}")
 
 
 telegram_app.add_handler(CommandHandler("start", start))
@@ -495,6 +480,23 @@ telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
+
+
+def setup_webhook():
+    render_url = os.getenv("RENDER_EXTERNAL_URL")
+    if render_url:
+        clean_url = render_url.rstrip("/")
+        webhook_url = f"{clean_url}/{TELEGRAM_BOT_TOKEN}"
+        try:
+            future = asyncio.run_coroutine_threadsafe(
+                telegram_app.bot.set_webhook(url=webhook_url), loop
+            )
+            future.result(timeout=15)
+        except Exception as e:
+            print(f"Webhook setup error: {e}")
+
+
+setup_webhook()
 
 
 # ==================== FLASK ROUTES ====================
@@ -505,12 +507,4 @@ def home():
 
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
-    future = asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop)
-    future.result(timeout=30)
-    return "OK", 200
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get
+    json_d
