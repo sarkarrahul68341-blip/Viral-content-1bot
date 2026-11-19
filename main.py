@@ -495,11 +495,12 @@ async def handle_media(update: Update, context):
                 InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{qr_pkg_key}")
             ]
         ])
+        admin_caption = (
+            "📥 **Payment Screenshot Verification**\n\n"
+            f"👤 **User:** {user.full_name} (`{user.id}`)\n"
+            f"📦 **Package:** {pkg['name']}\n"
+            f"💸 **Offer Price:** **{price_str}**"
+        )
         await context.bot.send_photo(
             chat_id=ADMIN_USER_ID,
-            photo=photo_obj.file_id,
-            caption=(
-                "📥 **Payment Screenshot Verification**\n\n"
-                f"👤 **User:** {user.full_name} (`{user.id}`)\n"
-                f"📦 **Package:** {pkg['name']}\n"
-                f"💸
+     
