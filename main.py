@@ -389,6 +389,7 @@ async def button_handler(update: Update, context):
             await query.message.reply_text("⚠️ Package nahi mila.")
             return
 
+        # Bank issue ya retry ke liye user jab chahe QR generate kar sake
         context.user_data["selected_pkg"] = file_key
         context.user_data["qr_generated_for"] = file_key
         qr_file_path = None
@@ -451,7 +452,7 @@ async def handle_media(update: Update, context):
             "⚠️ **Direct Photo Allowed Nahi Hai!**\n\n"
             "Kripya pehle Main Menu se package chunein aur **Pay Now** par click karke QR code generate karein, uske baad payment screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ]),
             parse_mode="Markdown"
         )
@@ -464,7 +465,7 @@ async def handle_media(update: Update, context):
             "⛔ **Screenshot Already Used (1 Day Limit)!**\n\n"
             "Ek screenshot sirf **1 din (24 ghante)** ke liye hi valid hai. Kripya naya payment karke naya screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ]),
             parse_mode="Markdown"
         )
@@ -500,6 +501,4 @@ async def handle_media(update: Update, context):
             reply_markup=InlineKeyboardMarkup([
                 [
                     InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user.id}_{qr_pkg_key}"),
-                    InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{qr_pkg_key}")
-                ]
-            ])
+                    InlineKeyboardButton("❌ Reject", callback_dat
