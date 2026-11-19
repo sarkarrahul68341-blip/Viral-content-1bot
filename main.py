@@ -16,7 +16,7 @@ BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
 ADMIN_USER_ID = 8776203848
 
-# Permanent Channel Button Link & Name
+# Permanent Channel Button Link & Name (Single Emoji)
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "📢 Join VIP Channel"
 
@@ -44,16 +44,16 @@ DYNAMIC_STORAGE = {
     "welcome_photo": DEFAULT_PHOTO
 }
 
-# ==================== 8 FILES CONFIGURATION (SINGLE OFFER & SINGLE EMOJI) ====================
+# ==================== 8 FILES CONFIGURATION (SINGLE OFFER, SINGLE EMOJI & SIZE) ====================
 PACKAGES = {
-    "file_1": {"name": "01 All mix content VIP Access", "mrp": 499, "price": 249, "emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
-    "file_2": {"name": "02 Rap & Big File VD", "mrp": 199, "price": 89, "emoji": "🎬", "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
-    "file_3": {"name": "03 Mom and Son Real Sex", "mrp": 99, "price": 45, "emoji": "🔥", "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
-    "file_4": {"name": "04 Insta viral reels and sex", "mrp": 99, "price": 40, "emoji": "📱", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
-    "file_5": {"name": "05 Ganga bath group join", "mrp": 399, "price": 199, "emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
-    "file_6": {"name": "06 Bath camera hidden", "mrp": 129, "price": 55, "emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
-    "file_7": {"name": "07 CP girl real fuke", "mrp": 149, "price": 65, "emoji": "🌟", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
-    "file_8": {"name": "08 Sister and brother sex", "mrp": 79, "price": 30, "emoji": "💖", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
+    "file_1": {"name": "01 All mix content VIP Access", "size": "4.5 GB", "mrp": 499, "price": 249, "emoji": "💎", "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
+    "file_2": {"name": "02 Rap & Big File VD", "size": "2.2 GB", "mrp": 199, "price": 89, "emoji": "⚡", "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
+    "file_3": {"name": "03 Mom and Son Real Sex", "size": "950 MB", "mrp": 99, "price": 45, "emoji": "🔥", "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
+    "file_4": {"name": "04 Insta viral reels and sex", "size": "800 MB", "mrp": 99, "price": 40, "emoji": "✨", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
+    "file_5": {"name": "05 Ganga bath group join", "size": "3.8 GB", "mrp": 399, "price": 199, "emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
+    "file_6": {"name": "06 Bath camera hidden", "size": "1.4 GB", "mrp": 129, "price": 55, "emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
+    "file_7": {"name": "07 CP girl real fuke", "size": "1.6 GB", "mrp": 149, "price": 65, "emoji": "🌟", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
+    "file_8": {"name": "08 Sister and brother sex", "size": "650 MB", "mrp": 79, "price": 30, "emoji": "❤️", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
 }
 
 app = Flask(__name__)
@@ -97,10 +97,12 @@ def generate_upi_qr(amount, pkg_name, order_id):
 def get_main_menu_keyboard():
     keyboard = []
     for key, pkg in PACKAGES.items():
-        emoji = pkg.get("emoji", "✨")
+        emoji = pkg.get("emoji", "💎")
+        size_str = pkg.get("size", "")
         price_badge = format_price_button(pkg)
+        size_part = f" [{size_str}]" if size_str else ""
         keyboard.append([
-            InlineKeyboardButton(f"{emoji} {pkg['name']} • {price_badge}", callback_data=key)
+            InlineKeyboardButton(f"{emoji} {pkg['name']}{size_part} • {price_badge}", callback_data=key)
         ])
 
     keyboard.append([InlineKeyboardButton("🎬 Watch Demo Videos", callback_data="demo_1")])
@@ -186,6 +188,79 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
+    # Admin Approval / Rejection Buttons for Payment Screenshot
+    if data.startswith("approve_") or data.startswith("reject_"):
+        if user_id != ADMIN_USER_ID:
+            await query.answer("⛔ Sirf admin hi approve ya reject kar sakta hai.", show_alert=True)
+            return
+
+        action, target_user_str, file_key = data.split("_", 2)
+        target_user_id = int(target_user_str)
+        pkg = PACKAGES.get(file_key, PACKAGES["file_1"])
+        emoji = pkg.get("emoji", "💎")
+        price_str = format_price_text(pkg)
+
+        if action == "approve":
+            user_msg = (
+                "✅ **Payment Approved!**\n\n"
+                f"{emoji} **Package:** {pkg['name']}\n"
+                f"💸 **Price:** {price_str}\n"
+                "🎉 Aapka payment verify ho gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
+            )
+            user_keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+            ])
+            try:
+                await context.bot.send_message(
+                    chat_id=target_user_id,
+                    text=user_msg,
+                    reply_markup=user_keyboard,
+                    parse_mode="Markdown"
+                )
+            except Exception as e:
+                await context.bot.send_message(
+                    chat_id=ADMIN_USER_ID,
+                    text=f"⚠️ User ko message bhejne mein error aaya: {str(e)}"
+                )
+
+            try:
+                await query.edit_message_caption(
+                    caption=(query.message.caption or "") + "\n\n✅ **APPROVED & LINK SENT**",
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+        else:
+            reject_msg = (
+                "❌ **Payment Screenshot Rejected!**\n\n"
+                f"{emoji} **Package:** {pkg['name']}\n"
+                f"💸 **Required Amount:** {price_str}\n"
+                "⚠️ Kripya sahi payment ka clear screenshot bhejein ya help ke liye Support se sampark karein."
+            )
+            reject_keyboard = InlineKeyboardMarkup([
+                [InlineKeyboardButton("💬 Help & Support", url=SUPPORT_LINK)],
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+            ])
+            try:
+                await context.bot.send_message(
+                    chat_id=target_user_id,
+                    text=reject_msg,
+                    reply_markup=reject_keyboard,
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+
+            try:
+                await query.edit_message_caption(
+                    caption=(query.message.caption or "") + "\n\n❌ **REJECTED**",
+                    parse_mode="Markdown"
+                )
+            except Exception:
+                pass
+        return
+
     if data.startswith("demo_"):
         try:
             index = int(data.replace("demo_", ""))
@@ -266,14 +341,18 @@ async def button_handler(update: Update, context):
         pkg = PACKAGES[data]
         context.user_data["last_pkg"] = data
         pkg_photo_path = pkg["photo"]
-        emoji = pkg.get("emoji", "✨")
+        emoji = pkg.get("emoji", "💎")
+        size_str = pkg.get("size", "")
         price_str = format_price_text(pkg)
         price_btn = format_price_button(pkg)
+
+        size_line = f"📦 **Size:** {size_str}\n" if size_str else ""
 
         text = (
             "🔥 **SELECTED VIP PACKAGE** 🔥\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"{emoji} **Package:** {pkg['name']}\n"
+            f"{size_line}"
             f"💸 **Offer Price:** {price_str}\n\n"
             "✨ **Payment karne ke liye niche diye gaye button par click karein:**"
         )
@@ -323,8 +402,10 @@ async def button_handler(update: Update, context):
 
         context.user_data["last_pkg"] = file_key
         qr_file_path = None
-        emoji = pkg.get("emoji", "✨")
+        emoji = pkg.get("emoji", "💎")
+        size_str = pkg.get("size", "")
         price_str = format_price_text(pkg)
+        size_line = f"📦 **Size:** {size_str}\n" if size_str else ""
 
         try:
             qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
@@ -332,9 +413,10 @@ async def button_handler(update: Update, context):
                 "📱 **SCAN & PAY INSTRUCTIONS** 📱\n"
                 "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
                 f"{emoji} **Package:** {pkg['name']}\n"
+                f"{size_line}"
                 f"💸 **Amount to Pay:** {price_str}\n\n"
                 f"1️⃣ Is QR Code ko scan karke **₹{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki aapko turant link mil sake."
+                f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki verification ke baad aapko link mil sake."
             )
             keyboard = InlineKeyboardMarkup([
                 [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
@@ -377,22 +459,46 @@ async def handle_media(update: Update, context):
         await process_photo_setting(update, context)
         return
 
+    user = update.effective_user
     last_file_key = context.user_data.get("last_pkg", "file_1")
     pkg = PACKAGES.get(last_file_key, PACKAGES["file_1"])
-    emoji = pkg.get("emoji", "✨")
+    emoji = pkg.get("emoji", "💎")
     price_str = format_price_text(pkg)
+    photo_id = update.message.photo[-1].file_id
 
-    text = (
-        "📸 **Screenshot Received Successfully!**\n\n"
+    await update.message.reply_text(
+        "⏳ **Screenshot Verification Pending!**\n\n"
         f"{emoji} **Package:** {pkg['name']}\n"
-        f"💸 **Offer Price:** {price_str}\n"
-        "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
+        f"💸 **Price:** {price_str}\n"
+        "✨ Aapka payment screenshot admin ke paas check hone ke liye bhej diya gaya hai. Approve hote hi aapko VIP link mil jayega.",
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+        ]),
+        parse_mode="Markdown"
     )
-    keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
-        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+
+    admin_caption = (
+        "📥 **New Payment Screenshot For Review**\n\n"
+        f"👤 **User:** {user.full_name} (`{user.id}`)\n"
+        f"{emoji} **Package:** {pkg['name']}\n"
+        f"💸 **Price:** {price_str}"
+    )
+    admin_keyboard = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ Approve & Send Link", callback_data=f"approve_{user.id}_{last_file_key}"),
+            InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{last_file_key}")
+        ]
     ])
-    await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
+    try:
+        await context.bot.send_photo(
+            chat_id=ADMIN_USER_ID,
+            photo=photo_id,
+            caption=admin_caption,
+            reply_markup=admin_keyboard,
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        print(f"Admin notification error: {e}")
 
 
 telegram_app.add_handler(CommandHandler("start", start))
@@ -409,32 +515,4 @@ def setup_webhook():
         webhook_url = f"{clean_url}/{TELEGRAM_BOT_TOKEN}"
         try:
             future = asyncio.run_coroutine_threadsafe(
-                telegram_app.bot.set_webhook(url=webhook_url), loop
-            )
-            future.result(timeout=15)
-        except Exception as e:
-            print(f"Webhook setup error: {e}")
-
-
-setup_webhook()
-
-
-# ==================== FLASK ROUTES ====================
-@app.route("/")
-def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-
-@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
-def webhook():
-    json_data = request.get_json(force=True)
-    update = Update.de_json(json_data, telegram_app.bot)
-    future = asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop)
-    future.result(timeout=30)
-    return "OK", 200
-
-
-if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))
-    app.run(host="0.0.0.0", port=port)
-    
+                telegra
