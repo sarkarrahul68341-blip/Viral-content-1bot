@@ -96,7 +96,7 @@ def get_main_menu_keyboard():
         badge = format_price(pkg)
         btn_emoji = pkg.get("btn_emoji", "✨")
         keyboard.append([
-            InlineKeyboardButton(f"{btn_emoji} {pkg['name']} • {badge}", callback_data=key)
+            InlineKeyboardButton(f"{btn_emoji} {pkg['name']} • {badge} 👉", callback_data=key)
         ])
 
     keyboard.append([InlineKeyboardButton("Ｆｒｅｅ ｄｅｍｏ Ｎｏｗ", callback_data="demo_1")])
@@ -108,7 +108,7 @@ def get_main_menu_keyboard():
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
     caption = (
-        "❤️ **Welcome to All Max Content Bot!**\n\n"
+        "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
         "🔥 **Special Discount Offer Chal Raha Hai!** Niche diye gaye packages mein se apna pasandida option select karein:\n"
     )
     current_photo = DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO)
@@ -182,7 +182,6 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Admin Approval / Rejection Buttons for Payment Screenshot
     if data.startswith("approve_") or data.startswith("reject_"):
         if user_id != ADMIN_USER_ID:
             await query.answer("⛔ Sirf admin hi approve ya reject kar sakta hai.", show_alert=True)
@@ -263,19 +262,19 @@ async def button_handler(update: Update, context):
         nav_buttons = []
         row = []
         if index > 1:
-            row.append(InlineKeyboardButton("⬅️ Prev Clip", callback_data=f"demo_{index - 1}"))
+            row.append(InlineKeyboardButton("⬅️ 🎬 Prev Clip", callback_data=f"demo_{index - 1}"))
         if index < 10:
-            row.append(InlineKeyboardButton("Next Clip ➡️", callback_data=f"demo_{index + 1}"))
+            row.append(InlineKeyboardButton("Next Clip 🎬 ➡️", callback_data=f"demo_{index + 1}"))
 
         if row:
             nav_buttons.append(row)
 
         if index == 10:
             nav_buttons.append([
-                InlineKeyboardButton("👑 Get Full VIP Access • ₹499 ➡️ 💎 ₹249", callback_data="file_1")
+                InlineKeyboardButton("🔥👑 Get Full VIP Access • ₹499 ➡️ 💎 ₹249 🚀", callback_data="file_1")
             ])
 
-        nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
+        nav_buttons.append([InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")])
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
 
         keyboard = InlineKeyboardMarkup(nav_buttons)
@@ -333,15 +332,15 @@ async def button_handler(update: Update, context):
         price_str = format_price(pkg)
 
         text = (
-            "🔥 **SELECTED VIP PACKAGE**\n"
+            "🔥💎 **SELECTED VIP PACKAGE** 💎🔥\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"📦 **Package:** {pkg['name']}\n"
             f"💸 **Offer Price:** **{price_str}**\n\n"
-            "✨ **Payment karne ke liye niche diye gaye button par click karein:**"
+            "✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
         )
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"💳 Pay Now • {price_str}", callback_data=f"pay_{data}")],
-            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+            [InlineKeyboardButton(f"💳 ⚡ Pay Now • {price_str} 🔥", callback_data=f"pay_{data}")],
+            [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
         ])
 
         try:
@@ -390,7 +389,7 @@ async def button_handler(update: Update, context):
         try:
             qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
             caption = (
-                "📱 **SCAN & PAY INSTRUCTIONS**\n"
+                "🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n"
                 "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
                 f"📦 **Package:** {pkg['name']}\n"
                 f"💸 **Amount to Pay:** **{price_str}**\n\n"
@@ -398,7 +397,7 @@ async def button_handler(update: Update, context):
                 f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki verification ke baad aapko link mil sake."
             )
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+                [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
             ])
 
             try:
@@ -498,21 +497,20 @@ telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
 
 
-def setup_webhook():
-    render_url = os.getenv("RENDER_EXTERNAL_URL")
-    if render_url:
-        clean_url = render_url.rstrip("/")
-        webhook_url = f"{clean_url}/{TELEGRAM_BOT_TOKEN}"
-        try:
-            future = asyncio.run_coroutine_threadsafe(
-                telegram_app.bot.set_webhook(url=webhook_url), loop
-            )
-            future.result(timeout=15)
-        except Exception as e:
-            print(f"Webhook setup error: {e}")
+# ==================== FLASK ROUTES ====================
+@app.route("/")
+def home():
+    return "Telegram Bot Webhook Server is Running!"
 
 
-setup_webhook()
+@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
+def webhook():
+    json_data = request.get_json(force=True)
+    update = Update.de_json(json_data, telegram_app.bot)
+    future = asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop)
+    future.result(timeout=30)
+    return "OK", 200
 
 
-# ===============
+if __name__ == "__main__":
+    port = int(os.environ.get
