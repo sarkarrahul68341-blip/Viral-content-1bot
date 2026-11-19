@@ -61,6 +61,8 @@ telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 
 # Dedicated background event loop thread
 loop = asyncio.new_event_loop()
+_initialized = False
+_init_lock = threading.Lock()
 
 
 def _start_loop(target_loop):
@@ -69,7 +71,22 @@ def _start_loop(target_loop):
 
 
 threading.Thread(target=_start_loop, args=(loop,), daemon=True).start()
-asyncio.run_coroutine_threadsafe(telegram_app.initialize(), loop).result(timeout=30)
+
+
+def ensure_bot_ready():
+    global _initialized
+    if _initialized:
+        return
+    with _init_lock:
+        if _initialized:
+            return
+        try:
+            future = asyncio.run_coroutine_threadsafe(telegram_app.initialize(), loop)
+            future.result(timeout=30)
+            _initialized = True
+            setup_webhook()
+        except Exception as e:
+            print(f"Bot initialization error: {e}")
 
 
 def format_price_text(pkg):
@@ -188,7 +205,6 @@ async def button_handler(update: Update, context):
         await start(update, context)
         return
 
-    # Admin Approval / Rejection Buttons for Payment Screenshot
     if data.startswith("approve_") or data.startswith("reject_"):
         if user_id != ADMIN_USER_ID:
             await query.answer("⛔ Sirf admin hi approve ya reject kar sakta hai.", show_alert=True)
@@ -505,14 +521,4 @@ telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
-telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
-
-
-def setup_webhook():
-    render_url = os.getenv("RENDER_EXTERNAL_URL")
-    if render_url:
-        clean_url = render_url.rstrip("/")
-        webhook_url = f"{clean_url}/{TELEGRAM_BOT_TOKEN}"
-        try:
-            future = asyncio.run_coroutine_threadsafe(
-                telegra
+telegram_app.add_han
