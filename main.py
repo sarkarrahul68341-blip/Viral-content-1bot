@@ -492,7 +492,7 @@ async def handle_media(update: Update, context):
         admin_keyboard = InlineKeyboardMarkup([
             [
                 InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user.id}_{qr_pkg_key}"),
-                InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{qr_pkg_key}")
+                InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{qr_pkg_key}"),
             ]
         ])
         admin_caption = (
@@ -503,4 +503,4 @@ async def handle_media(update: Update, context):
         )
         await context.bot.send_photo(
             chat_id=ADMIN_USER_ID,
-     
+    
