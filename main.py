@@ -18,7 +18,7 @@ ADMIN_USER_ID = 8776203848
 
 # Permanent Channel Button Link & Name
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
-PERMANENT_BUTTON_NAME = "📢 Join VIP Channel 🚀"
+PERMANENT_BUTTON_NAME = "📢 Join VIP Channel"
 
 # Welcome (Main Menu) ki photo
 DEFAULT_PHOTO = "AgACAgUAAxkBAAIKmWr-ocEknsMPFV0Ua2SDhjUpjx8SAAKzEmsbhy35V-O7-QS5ebgsAQADAgADeAADPQQ"
@@ -44,16 +44,16 @@ DYNAMIC_STORAGE = {
     "welcome_photo": DEFAULT_PHOTO
 }
 
-# ==================== 8 FILES CONFIGURATION ====================
+# ==================== 8 FILES CONFIGURATION (SINGLE OFFER & SINGLE EMOJI) ====================
 PACKAGES = {
-    "file_1": {"name": "⭐ 01 All mix content VIP Access", "mrp": 499, "price": 249, "price_badge": "₹499 ➡️ 💎 ₹249", "btn_emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
-    "file_2": {"name": "🔑 02 Rap & Big File VD", "mrp": 199, "price": 89, "price_badge": "₹199 ➡️ ⚡ ₹89", "btn_emoji": "🎬", "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
-    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "mrp": 99, "price": 45, "price_badge": "₹99 ➡️ 🔥 ₹45", "btn_emoji": "💋", "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
-    "file_4": {"name": "🔞 04 Insta viral reels and sex", "mrp": 99, "price": 40, "price_badge": "₹99 ➡️ ✨ ₹40", "btn_emoji": "📱", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
-    "file_5": {"name": "🔥 05 Ganga bath group join", "mrp": 399, "price": 199, "price_badge": "₹399 ➡️ 👑 ₹199", "btn_emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
-    "file_6": {"name": "🔥 06 Bath camera hidden", "mrp": 129, "price": 55, "price_badge": "₹129 ➡️ 💥 ₹55", "btn_emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
-    "file_7": {"name": "🔥 07 CP girl real fuke", "mrp": 149, "price": 65, "price_badge": "₹149 ➡️ 🌟 ₹65", "btn_emoji": "✨", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
-    "file_8": {"name": "❤️ 08 Sister and brother sex", "mrp": 79, "price": 30, "price_badge": "₹79 ➡️ 💖 ₹30", "btn_emoji": "❤️", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
+    "file_1": {"name": "01 All mix content VIP Access", "mrp": 499, "price": 249, "emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
+    "file_2": {"name": "02 Rap & Big File VD", "mrp": 199, "price": 89, "emoji": "🎬", "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
+    "file_3": {"name": "03 Mom and Son Real Sex", "mrp": 99, "price": 45, "emoji": "🔥", "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
+    "file_4": {"name": "04 Insta viral reels and sex", "mrp": 99, "price": 40, "emoji": "📱", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
+    "file_5": {"name": "05 Ganga bath group join", "mrp": 399, "price": 199, "emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
+    "file_6": {"name": "06 Bath camera hidden", "mrp": 129, "price": 55, "emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
+    "file_7": {"name": "07 CP girl real fuke", "mrp": 149, "price": 65, "emoji": "🌟", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
+    "file_8": {"name": "08 Sister and brother sex", "mrp": 79, "price": 30, "emoji": "💖", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
 }
 
 app = Flask(__name__)
@@ -72,10 +72,12 @@ threading.Thread(target=_start_loop, args=(loop,), daemon=True).start()
 asyncio.run_coroutine_threadsafe(telegram_app.initialize(), loop).result(timeout=30)
 
 
-def format_price(pkg):
-    badge = pkg.get("price_badge", f"💎 ₹{pkg['price']}")
-    price = pkg["price"]
-    return f"{badge} (Rs.{price})"
+def format_price_text(pkg):
+    return f"₹{pkg['mrp']} ➡️ **₹{pkg['price']}**"
+
+
+def format_price_button(pkg):
+    return f"₹{pkg['mrp']} ➡️ ₹{pkg['price']}"
 
 
 def generate_upi_qr(amount, pkg_name, order_id):
@@ -95,14 +97,14 @@ def generate_upi_qr(amount, pkg_name, order_id):
 def get_main_menu_keyboard():
     keyboard = []
     for key, pkg in PACKAGES.items():
-        badge = pkg.get("price_badge", f"💎 ₹{pkg['price']}")
-        btn_emoji = pkg.get("btn_emoji", "✨")
+        emoji = pkg.get("emoji", "✨")
+        price_badge = format_price_button(pkg)
         keyboard.append([
-            InlineKeyboardButton(f"{btn_emoji} {pkg['name']} • {badge} 👉", callback_data=key)
+            InlineKeyboardButton(f"{emoji} {pkg['name']} • {price_badge}", callback_data=key)
         ])
 
-    keyboard.append([InlineKeyboardButton("🎬 ✨── Free Demo Now ── ✨", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("── 💬 Help Support ──", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("🎬 Watch Demo Videos", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("💬 Help & Support", url=SUPPORT_LINK)])
 
     return InlineKeyboardMarkup(keyboard)
 
@@ -193,19 +195,23 @@ async def button_handler(update: Update, context):
         nav_buttons = []
         row = []
         if index > 1:
-            row.append(InlineKeyboardButton("⬅️ 🎬 Prev Clip", callback_data=f"demo_{index - 1}"))
+            row.append(InlineKeyboardButton("⬅️ Prev Clip", callback_data=f"demo_{index - 1}"))
         if index < 10:
-            row.append(InlineKeyboardButton("Next Clip 🎬 ➡️", callback_data=f"demo_{index + 1}"))
+            row.append(InlineKeyboardButton("Next Clip ➡️", callback_data=f"demo_{index + 1}"))
 
         if row:
             nav_buttons.append(row)
 
         if index == 10:
+            vip_pkg = PACKAGES["file_1"]
             nav_buttons.append([
-                InlineKeyboardButton("🔥👑 Get Full VIP Access • ₹499 ➡️ 💎 ₹249 🚀", callback_data="file_1")
+                InlineKeyboardButton(
+                    f"🔥 Get Full VIP Access • {format_price_button(vip_pkg)}",
+                    callback_data="file_1"
+                )
             ])
 
-        nav_buttons.append([InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")])
+        nav_buttons.append([InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")])
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
 
         keyboard = InlineKeyboardMarkup(nav_buttons)
@@ -260,18 +266,20 @@ async def button_handler(update: Update, context):
         pkg = PACKAGES[data]
         context.user_data["last_pkg"] = data
         pkg_photo_path = pkg["photo"]
-        price_str = format_price(pkg)
+        emoji = pkg.get("emoji", "✨")
+        price_str = format_price_text(pkg)
+        price_btn = format_price_button(pkg)
 
         text = (
-            "🔥💎 **SELECTED VIP PACKAGE** 💎🔥\n"
+            "🔥 **SELECTED VIP PACKAGE** 🔥\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"📦 **Package:** {pkg['name']}\n"
-            f"💸 **Offer Price:** **{price_str}**\n\n"
-            "✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
+            f"{emoji} **Package:** {pkg['name']}\n"
+            f"💸 **Offer Price:** {price_str}\n\n"
+            "✨ **Payment karne ke liye niche diye gaye button par click karein:**"
         )
         keyboard = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"💳 ⚡ Pay Now • {price_str} 🔥", callback_data=f"pay_{data}")],
-            [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
+            [InlineKeyboardButton(f"💳 Pay Now • {price_btn}", callback_data=f"pay_{data}")],
+            [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
         ])
 
         try:
@@ -315,20 +323,21 @@ async def button_handler(update: Update, context):
 
         context.user_data["last_pkg"] = file_key
         qr_file_path = None
-        price_str = format_price(pkg)
+        emoji = pkg.get("emoji", "✨")
+        price_str = format_price_text(pkg)
 
         try:
             qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
             caption = (
-                "🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n"
+                "📱 **SCAN & PAY INSTRUCTIONS** 📱\n"
                 "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                f"📦 **Package:** {pkg['name']}\n"
-                f"💸 **Amount to Pay:** **{price_str}**\n\n"
+                f"{emoji} **Package:** {pkg['name']}\n"
+                f"💸 **Amount to Pay:** {price_str}\n\n"
                 f"1️⃣ Is QR Code ko scan karke **₹{pkg['price']}** pay karein (`{UPI_ID}`).\n"
                 f"2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien taaki aapko turant link mil sake."
             )
             keyboard = InlineKeyboardMarkup([
-                [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
             ])
 
             try:
@@ -370,17 +379,18 @@ async def handle_media(update: Update, context):
 
     last_file_key = context.user_data.get("last_pkg", "file_1")
     pkg = PACKAGES.get(last_file_key, PACKAGES["file_1"])
-    price_str = format_price(pkg)
+    emoji = pkg.get("emoji", "✨")
+    price_str = format_price_text(pkg)
 
     text = (
         "📸 **Screenshot Received Successfully!**\n\n"
-        f"🎉 **Package:** {pkg['name']}\n"
-        f"💸 **Offer Price:** **{price_str}**\n"
+        f"{emoji} **Package:** {pkg['name']}\n"
+        f"💸 **Offer Price:** {price_str}\n"
         "✨ Aapka payment screenshot mil gaya hai. Niche diye gaye button se apna VIP Access link kholen:"
     )
     keyboard = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🔗 🔓 Access VIP Content Link 🚀", url=pkg["link"])],
-        [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
+        [InlineKeyboardButton("🔗 Access VIP Content Link", url=pkg["link"])],
+        [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
     ])
     await update.message.reply_text(text, reply_markup=keyboard, parse_mode="Markdown")
 
@@ -427,4 +437,4 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-            
+    
