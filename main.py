@@ -101,8 +101,8 @@ def get_main_menu_keyboard():
             InlineKeyboardButton(f"{btn_emoji} {pkg['name']} • {badge} 👉", callback_data=key)
         ])
 
-    keyboard.append([InlineKeyboardButton("🎬 ✨ ── Watch Free Demo Clips ── ✨ 🎥", callback_data="demo_1")])
-    keyboard.append([InlineKeyboardButton("🆘 💬 ── Help & Support Desk ── 💬 🆘", url=SUPPORT_LINK)])
+    keyboard.append([InlineKeyboardButton("🎬 ✨── Free Demo Now ── ✨", callback_data="demo_1")])
+    keyboard.append([InlineKeyboardButton("── 💬 Help Support ──", url=SUPPORT_LINK)])
 
     return InlineKeyboardMarkup(keyboard)
 
