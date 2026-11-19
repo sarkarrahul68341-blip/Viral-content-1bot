@@ -18,7 +18,7 @@ ADMIN_USER_ID = 8776203848
 
 # Permanent Channel Button Link & Name
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
-PERMANENT_BUTTON_NAME = "📢 Join VIP Channel 🚀"
+PERMANENT_BUTTON_NAME = "Join Demo 2"
 
 # Welcome (Main Menu) ki photo
 DEFAULT_PHOTO = "AgACAgUAAxkBAAIKmWr-ocEknsMPFV0Ua2SDhjUpjx8SAAKzEmsbhy35V-O7-QS5ebgsAQADAgADeAADPQQ"
@@ -256,7 +256,7 @@ async def button_handler(update: Update, context):
 
     if data in PACKAGES:
         pkg = PACKAGES[data]
-        context.user_data["last_pkg"] = data
+        context.user_data["selected_pkg"] = data
         pkg_photo_path = pkg["photo"]
         price_str = format_price(pkg)
 
@@ -311,7 +311,8 @@ async def button_handler(update: Update, context):
             await query.message.reply_text("⚠️ Package nahi mila.")
             return
 
-        context.user_data["last_pkg"] = file_key
+        context.user_data["selected_pkg"] = file_key
+        context.user_data["qr_generated_for"] = file_key
         qr_file_path = None
         price_str = format_price(pkg)
 
@@ -366,8 +367,19 @@ async def handle_media(update: Update, context):
         await process_photo_setting(update, context)
         return
 
-    last_file_key = context.user_data.get("last_pkg", "file_1")
-    pkg = PACKAGES.get(last_file_key, PACKAGES["file_1"])
+    qr_pkg_key = context.user_data.get("qr_generated_for")
+    if not qr_pkg_key or qr_pkg_key not in PACKAGES:
+        await update.message.reply_text(
+            "⚠️ **Direct Photo Allowed Nahi Hai!**\n\n"
+            "Kripya pehle Main Menu se package chunein aur **Pay Now** par click karke QR code generate karein, uske baad payment screenshot bhejein.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+            ]),
+            parse_mode="Markdown"
+        )
+        return
+
+    pkg = PACKAGES[qr_pkg_key]
     price_str = format_price(pkg)
 
     text = (
@@ -425,4 +437,4 @@ def webhook():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 10000))
     app.run(host="0.0.0.0", port=port)
-    
+            
