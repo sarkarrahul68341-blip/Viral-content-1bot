@@ -1,4 +1,5 @@
 import os
+import time
 import asyncio
 import threading
 import urllib.parse
@@ -25,6 +26,10 @@ DEFAULT_PHOTO = "AgACAgUAAxkBAAIKmWr-ocEknsMPFV0Ua2SDhjUpjx8SAAKzEmsbhy35V-O7-QS
 
 # Saare 8 packages par VIP New.jpg set rahegi
 PACKAGE_PHOTO = "VIP New.jpg"
+
+# 1 screenshot ki validity: 1 day = 24 hours = 86400 seconds
+SCREENSHOT_VALIDITY_SECONDS = 24 * 60 * 60
+USED_SCREENSHOTS = {}  # {file_unique_id: timestamp}
 
 # ==================== PERMANENT STORAGE (Videos Set) ====================
 PERMANENT_VIDEOS = {
@@ -74,6 +79,22 @@ asyncio.run_coroutine_threadsafe(telegram_app.initialize(), loop).result(timeout
 
 def format_price(pkg):
     return pkg.get("price_badge", f"💎 ₹{pkg['price']}")
+
+
+def is_screenshot_already_used_today(file_unique_id):
+    now = time.time()
+    expired_keys = [
+        k for k, ts in USED_SCREENSHOTS.items()
+        if (now - ts) >= SCREENSHOT_VALIDITY_SECONDS
+    ]
+    for k in expired_keys:
+        del USED_SCREENSHOTS[k]
+
+    if file_unique_id in USED_SCREENSHOTS:
+        return True
+
+    USED_SCREENSHOTS[file_unique_id] = now
+    return False
 
 
 def generate_upi_qr(amount, pkg_name, order_id):
@@ -311,6 +332,7 @@ async def button_handler(update: Update, context):
             await query.message.reply_text("⚠️ Package nahi mila.")
             return
 
+        # Bank issue ya retry ke liye user jab chahe QR generate kar sake
         context.user_data["selected_pkg"] = file_key
         context.user_data["qr_generated_for"] = file_key
         qr_file_path = None
@@ -378,6 +400,21 @@ async def handle_media(update: Update, context):
             parse_mode="Markdown"
         )
         return
+
+    # 1 screenshot sirf 1 din (24 ghante) ke liye valid
+    photo_unique_id = update.message.photo[-1].file_unique_id
+    if is_screenshot_already_used_today(photo_unique_id):
+        await update.message.reply_text(
+            "⛔ **Screenshot Already Used (1 Day Limit)!**\n\n"
+            "Ek screenshot sirf **1 din (24 ghante)** ke liye hi valid hai. Kripya naya payment karke naya screenshot bhejein.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]
+            ]),
+            parse_mode="Markdown"
+        )
+        return
+
+    context.user_data.pop("qr_generated_for", None)
 
     pkg = PACKAGES[qr_pkg_key]
     price_str = format_price(pkg)
