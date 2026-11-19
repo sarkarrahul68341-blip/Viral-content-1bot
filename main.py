@@ -131,7 +131,7 @@ def get_main_menu_keyboard():
 # ==================== HANDLERS ====================
 async def start(update: Update, context):
     caption = (
-        "❤️ **Welcome to All Max Content Bot!** ❤️\n\n"
+        "❤️ **Welcome to All Max Content Bot!**\n\n"
         "🔥 **Special Discount Offer Chal Raha Hai!** Niche diye gaye packages mein se apna pasandida option select karein:\n"
     )
     current_photo = DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO)
@@ -297,7 +297,7 @@ async def button_handler(update: Update, context):
             vip_pkg = PACKAGES["file_1"]
             nav_buttons.append([
                 InlineKeyboardButton(
-                    f"🔥 Get Full VIP Access • {format_price_button(vip_pkg)}",
+                    f"💎 Get Full VIP Access • {format_price_button(vip_pkg)}",
                     callback_data="file_1"
                 )
             ])
@@ -317,7 +317,7 @@ async def button_handler(update: Update, context):
             text = (
                 f"🎬 **Demo Clip {index} / 10**\n"
                 "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                f"✨ Yeh hamari demo clip number {index} hai. Quality check karein!"
+                f"🎥 Yeh hamari demo clip number {index} hai. Quality check karein!"
             )
 
         try:
@@ -347,7 +347,7 @@ async def button_handler(update: Update, context):
             await context.bot.send_photo(
                 chat_id=query.message.chat_id,
                 photo=current_photo,
-                caption=text + "\n\n*(Yeh video abhi upload nahi ki gayi hai.)*",
+                caption=text + "\n\n⚠️ *(Yeh video abhi upload nahi ki gayi hai.)*",
                 reply_markup=keyboard,
                 parse_mode="Markdown"
             )
@@ -365,7 +365,7 @@ async def button_handler(update: Update, context):
         size_line = f"📦 **Size:** {size_str}\n" if size_str else ""
 
         text = (
-            "🔥 **SELECTED VIP PACKAGE** 🔥\n"
+            "🔥 **SELECTED VIP PACKAGE**\n"
             "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
             f"{emoji} **Package:** {pkg['name']}\n"
             f"{size_line}"
@@ -426,7 +426,7 @@ async def button_handler(update: Update, context):
         try:
             qr_file_path = generate_upi_qr(pkg["price"], pkg["name"], user_id)
             caption = (
-                "📱 **SCAN & PAY INSTRUCTIONS** 📱\n"
+                "📱 **SCAN & PAY INSTRUCTIONS**\n"
                 "▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
                 f"{emoji} **Package:** {pkg['name']}\n"
                 f"{size_line}"
@@ -521,4 +521,4 @@ telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
-telegram_app.add_han
+telegram_app.add_handler(
