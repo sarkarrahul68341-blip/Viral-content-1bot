@@ -139,11 +139,29 @@ async def handle_keypad_text(update: Update, context):
     if not update.message or not update.message.text:
         return
     if update.message.text.strip() == "📸 Payment Proof":
-        await update.message.reply_text(
-            "📸 **Payment Proof**\n\nNiche diye gaye button se payment proof dekhein:",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)]]),
+        proof_text = "📸 **Payment Proof**\n\nNiche diye gaye button se payment proof dekhein:"
+        proof_markup = InlineKeyboardMarkup([[InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)]])
+        last_msg_id = context.user_data.get("proof_msg_id")
+
+        if last_msg_id:
+            try:
+                await context.bot.edit_message_text(
+                    chat_id=update.effective_chat.id,
+                    message_id=last_msg_id,
+                    text=proof_text,
+                    reply_markup=proof_markup,
+                    parse_mode="Markdown",
+                )
+                return
+            except Exception:
+                pass
+
+        sent = await update.message.reply_text(
+            proof_text,
+            reply_markup=proof_markup,
             parse_mode="Markdown",
         )
+        context.user_data["proof_msg_id"] = sent.message_id
 
 
 async def process_photo_setting(update: Update, context):
