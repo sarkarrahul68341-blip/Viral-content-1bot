@@ -5,26 +5,13 @@ import threading
 import urllib.parse
 import qrcode
 from flask import Flask, request
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-)
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    MessageHandler,
-    filters,
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9210267090:AAFGulP572uIzyKPEGVa01y7HuR9xt2adio")
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-PAYMENT_PROOF_LINK = os.getenv("PAYMENT_PROOF_LINK", "https://t.me/+FGl3NB1yXsxiNjE9")
 ADMIN_USER_ID = 8776203848
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
@@ -100,13 +87,6 @@ def generate_upi_qr(amount, order_id):
     return filename
 
 
-def get_bottom_keypad():
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("📸 Payment Proof")]],
-        resize_keyboard=True,
-    )
-
-
 def get_main_menu_keyboard():
     keyboard = [
         [InlineKeyboardButton(f"{pkg['btn_emoji']} {pkg['name']} • {format_price(pkg)} 👉", callback_data=key)]
@@ -120,29 +100,15 @@ def get_main_menu_keyboard():
 async def start(update: Update, context):
     caption = "❤️ **Welcome to All Max Content Bot!** ❤️\n\n🔥 **Special Discount Offer Chal Raha Hai!** Niche diye gaye packages mein se apna pasandida option select karein:\n"
     photo = DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO)
-    keypad = get_bottom_keypad()
     if update.callback_query:
         query = update.callback_query
         try:
             await query.message.delete()
         except Exception:
             pass
-        await context.bot.send_message(chat_id=query.message.chat_id, text="👇 Niche keypad par Payment Proof button hai:", reply_markup=keypad)
         await context.bot.send_photo(chat_id=query.message.chat_id, photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
     else:
-        await update.message.reply_text("👇 Niche keypad par Payment Proof button hai:", reply_markup=keypad)
         await update.message.reply_photo(photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
-
-
-async def handle_keypad_text(update: Update, context):
-    if not update.message or not update.message.text:
-        return
-    if update.message.text.strip() == "📸 Payment Proof":
-        await update.message.reply_text(
-            "📸 **Payment Proof**\n\nNiche diye gaye button se payment proof dekhein:",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)]]),
-            parse_mode="Markdown",
-        )
 
 
 async def process_photo_setting(update: Update, context):
@@ -346,7 +312,6 @@ telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_keypad_text))
 
 render_url = os.getenv("RENDER_EXTERNAL_URL")
 if render_url:
