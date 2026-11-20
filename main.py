@@ -67,17 +67,17 @@ def format_price(pkg):
 
 def build_catalog_text():
     lines = [
-        "❤️ **Namaste / Hello ji!** ❤️",
+        "❤️ Namaste / Hello ji! ❤️",
         "",
         "Hamare paas abhi yeh sabhi packages aur offers uplabdh hain:",
         "",
     ]
     for pkg in PACKAGES.values():
-        lines.append(f"{pkg['btn_emoji']} **{pkg['name']}** — {format_price(pkg)}")
+        lines.append(f"{pkg['btn_emoji']} {pkg['name']} — {format_price(pkg)}")
     lines.extend([
         "",
-        "🎬 **Free Demo:** Niche button se Free Demo bhi dekh sakte hain.",
-        "✨ Kisi bhi package ko lene ke liye niche **Main Menu** open karein:",
+        "🎬 Free Demo: Niche button se Free Demo bhi dekh sakte hain.",
+        "✨ Kisi bhi package ko lene ke liye niche Main Menu open karein:",
     ])
     return "\n".join(lines)
 
@@ -217,11 +217,10 @@ async def handle_text_message(update: Update, context):
             try:
                 await context.bot.send_message(
                     chat_id=target_user_id,
-                    text=f"📩 **Admin Reply:**\n\n{reply_text}",
+                    text=f"📩 Admin Reply:\n\n{reply_text}",
                     reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]]),
-                    parse_mode="Markdown",
                 )
-                await update.message.reply_text(f"✅ Reply user `{target_user_id}` ko bhej diya gaya hai.", parse_mode="Markdown")
+                await update.message.reply_text(f"✅ Reply user {target_user_id} ko bhej diya gaya hai.")
             except Exception as e:
                 await update.message.reply_text(f"❌ Reply bhejne mein error aaya: {e}")
             return
@@ -234,7 +233,6 @@ async def handle_text_message(update: Update, context):
             [InlineKeyboardButton("📋 Open Main Menu", callback_data="main_menu")],
             [InlineKeyboardButton("🅵🆁🅴🅴   __   🅳🅴🅼🅾", callback_data="demo_1")],
         ]),
-        parse_mode="Markdown",
     )
     remember_bot_message(context, sent.message_id)
 
@@ -272,8 +270,7 @@ async def button_handler(update: Update, context):
             context.user_data["replying_to_user"] = target_user_id
             await context.bot.send_message(
                 chat_id=ADMIN_USER_ID,
-                text=f"✍️ User (`{target_user_id}`) ke liye apna reply message likh kar bhejein:",
-                parse_mode="Markdown",
+                text=f"✍️ User ({target_user_id}) ke liye apna reply message likh kar bhejein:",
             )
         return
 
@@ -437,4 +434,8 @@ async def handle_media(update: Update, context):
             "❌ Sorry ji, abhi tak aapki payment receive nahi hui hai. Kripya pehle package select karke Pay Now se payment karein, uske baad screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
         )
-        remember_bot_message(context, sent.me
+        remember_bot_message(context, sent.message_id)
+        return
+
+    photo_obj = update.message.photo[-1]
+    if is_expired_or_old_screenshot(update.message) or is_screenshot_already_used_today(photo
