@@ -308,15 +308,7 @@ async def button_handler(update: Update, context):
         pkg = PACKAGES[data]
         context.user_data["selected_pkg"] = data
         price_str = format_price(pkg)
-        text = (
-            f"🔥💎 **SELECTED VIP PACKAGE** 💎🔥\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"📦 **Package:** {pkg['name']}\n"
-            f"💸 **Offer Price:** **{price_str}**\n\n"
-            f"⚠️ **Pehle niche Pay Now dabayein aur payment karne ke baad hi screenshot bhejein.**\n"
-            f"Bina payment/QR ke screenshot bhejne par **aapne koi payment nahi kiya hai** maana jayega.\n\n"
-            f"✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
-        )
+        text = f"🔥💎 **SELECTED VIP PACKAGE** 💎🔥\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n📦 **Package:** {pkg['name']}\n💸 **Offer Price:** **{price_str}**\n\n✨ **Payment karne ke liye niche diye gaye button par click karein:** 👇"
         keyboard = InlineKeyboardMarkup([
             [InlineKeyboardButton(f"💳 ⚡ Pay Now • {price_str} 🔥", callback_data=f"pay_{data}")],
             [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
@@ -369,7 +361,7 @@ async def handle_media(update: Update, context):
     qr_pkg_key = context.user_data.get("qr_generated_for")
     if not qr_pkg_key or qr_pkg_key not in PACKAGES:
         await update.message.reply_text(
-            "❌ **Aapne koi payment nahi kiya hai!**\n\nKripya pehle Main Menu se plan select karein aur **Pay Now** par click karke payment ke baad screenshot bhejein.",
+            "❌ **Aapne koi payment nahi kiya hai!**\n\nKripya pehle Main Menu se package chunein aur **Pay Now** par click karke QR code generate karein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
             parse_mode="Markdown"
         )
@@ -378,7 +370,7 @@ async def handle_media(update: Update, context):
     photo_obj = update.message.photo[-1]
     if is_expired_or_old_screenshot(update.message) or is_screenshot_already_used_today(photo_obj.file_unique_id):
         await update.message.reply_text(
-            "❌ **Aapne koi payment nahi kiya hai!**\n\nYeh screenshot expired / purana ya pehle se use kiya hua hai. Kripya plan select karke naya payment karein aur fresh screenshot bhejein.",
+            "❌ **Aapne koi payment nahi kiya hai!**\n\nYeh screenshot expired / purana ya pehle se use kiya hua hai. Kripya naya payment karke fresh screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
             parse_mode="Markdown"
         )
@@ -434,4 +426,17 @@ render_url = os.getenv("RENDER_EXTERNAL_URL")
 if render_url:
     try:
         asyncio.run_coroutine_threadsafe(
-            telegram_
+            telegram_app.bot.set_webhook(url=f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"), loop
+        ).result(timeout=15)
+    except Exception as e:
+        print(f"Webhook setup error: {e}")
+
+
+@app.route("/")
+def home():
+    return "Telegram Bot Webhook Server is Running!"
+
+
+@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
+def webhook():
+   
