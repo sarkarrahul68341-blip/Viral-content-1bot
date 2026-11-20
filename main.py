@@ -24,7 +24,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9210267090:AAFGulP572uIzyK
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-PAYMENT_PROOF_LINK = os.getenv("PAYMENT_PROOF_LINK", SUPPORT_LINK)
+PAYMENT_PROOF_LINK = os.getenv("PAYMENT_PROOF_LINK", "https://t.me/+FGl3NB1yXsxiNjE9")
 ADMIN_USER_ID = 8776203848
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
@@ -372,4 +372,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-            
