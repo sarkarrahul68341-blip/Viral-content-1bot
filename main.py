@@ -5,27 +5,13 @@ import threading
 import urllib.parse
 import qrcode
 from flask import Flask, request
-from telegram import (
-    Update,
-    InlineKeyboardButton,
-    InlineKeyboardMarkup,
-    ReplyKeyboardMarkup,
-    KeyboardButton,
-)
-from telegram.ext import (
-    Application,
-    CommandHandler,
-    CallbackQueryHandler,
-    MessageHandler,
-    filters,
-)
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9210267090:AAFGulP572uIzyKPEGVa01y7HuR9xt2adio")
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-PAYMENT_PROOF_LINK = os.getenv("PAYMENT_PROOF_LINK", "https://t.me/+FGl3NB1yXsxiNjE9")
-PAYMENT_PROOF_CHAT_ID = os.getenv("PAYMENT_PROOF_CHAT_ID", "-1003812138504")
 ADMIN_USER_ID = 8776203848
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
@@ -88,18 +74,6 @@ def is_screenshot_already_used_today(file_unique_id):
     return False
 
 
-def is_expired_or_old_screenshot(message):
-    if not message:
-        return False
-    if getattr(message, "forward_date", None) or getattr(message, "forward_origin", None):
-        return True
-    if getattr(message, "date", None):
-        age_seconds = time.time() - message.date.timestamp()
-        if age_seconds > SCREENSHOT_VALIDITY_SECONDS:
-            return True
-    return False
-
-
 def generate_upi_qr(amount, order_id):
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
     encoded_note = urllib.parse.quote(f"Order_{order_id}")
@@ -111,13 +85,6 @@ def generate_upi_qr(amount, order_id):
     filename = f"qr_{order_id}.png"
     img.save(filename)
     return filename
-
-
-def get_bottom_keypad():
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("📸 Payment Proof")]],
-        resize_keyboard=True,
-    )
 
 
 def get_main_menu_keyboard():
@@ -133,78 +100,15 @@ def get_main_menu_keyboard():
 async def start(update: Update, context):
     caption = "❤️ **Welcome to All Max Content Bot!** ❤️\n\n🔥 **Special Discount Offer Chal Raha Hai!** Niche diye gaye packages mein se apna pasandida option select karein:\n"
     photo = DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO)
-    keypad = get_bottom_keypad()
-
-    old_proof_id = context.user_data.pop("proof_msg_id", None)
-    if old_proof_id:
-        try:
-            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=old_proof_id)
-        except Exception:
-            pass
-
     if update.callback_query:
         query = update.callback_query
         try:
             await query.message.delete()
         except Exception:
             pass
-        sent_menu = await context.bot.send_photo(
-            chat_id=query.message.chat_id,
-            photo=photo,
-            caption=caption,
-            reply_markup=get_main_menu_keyboard(),
-            parse_mode="Markdown",
-        )
-        context.user_data["main_menu_msg_id"] = sent_menu.message_id
+        await context.bot.send_photo(chat_id=query.message.chat_id, photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
     else:
-        await update.message.reply_text("👇 Niche keypad par Payment Proof button hai:", reply_markup=keypad)
-        sent_menu = await update.message.reply_photo(
-            photo=photo,
-            caption=caption,
-            reply_markup=get_main_menu_keyboard(),
-            parse_mode="Markdown",
-        )
-        context.user_data["main_menu_msg_id"] = sent_menu.message_id
-
-
-async def handle_keypad_text(update: Update, context):
-    if not update.message or not update.message.text:
-        return
-    if update.message.text.strip() == "📸 Payment Proof":
-        try:
-            await update.message.delete()
-        except Exception:
-            pass
-
-        last_menu_id = context.user_data.pop("main_menu_msg_id", None)
-        if last_menu_id:
-            try:
-                await context.bot.delete_message(
-                    chat_id=update.effective_chat.id,
-                    message_id=last_menu_id,
-                )
-            except Exception:
-                pass
-
-        last_msg_id = context.user_data.get("proof_msg_id")
-        if last_msg_id:
-            try:
-                await context.bot.delete_message(
-                    chat_id=update.effective_chat.id,
-                    message_id=last_msg_id,
-                )
-            except Exception:
-                pass
-
-        sent = await update.message.reply_text(
-            "📸 **Payment Proof**\n\nNiche diye gaye button se payment proof dekhein:",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)],
-                [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")],
-            ]),
-            parse_mode="Markdown",
-        )
-        context.user_data["proof_msg_id"] = sent.message_id
+        await update.message.reply_photo(photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
 
 
 async def process_photo_setting(update: Update, context):
@@ -361,16 +265,16 @@ async def handle_media(update: Update, context):
     qr_pkg_key = context.user_data.get("qr_generated_for")
     if not qr_pkg_key or qr_pkg_key not in PACKAGES:
         await update.message.reply_text(
-            "❌ **Aapne koi payment nahi kiya hai!**\n\nKripya pehle Main Menu se package chunein aur **Pay Now** par click karke QR code generate karein.",
+            "⚠️ **Direct Photo Allowed Nahi Hai!**\n\nKripya pehle Main Menu se package chunein aur **Pay Now** par click karke QR code generate karein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
             parse_mode="Markdown"
         )
         return
 
     photo_obj = update.message.photo[-1]
-    if is_expired_or_old_screenshot(update.message) or is_screenshot_already_used_today(photo_obj.file_unique_id):
+    if is_screenshot_already_used_today(photo_obj.file_unique_id):
         await update.message.reply_text(
-            "❌ **Aapne koi payment nahi kiya hai!**\n\nYeh screenshot expired / purana ya pehle se use kiya hua hai. Kripya naya payment karke fresh screenshot bhejein.",
+            "⛔ **Screenshot Already Used (1 Day Limit)!**\n\nEk screenshot sirf **1 din (24 ghante)** ke liye hi valid hai.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
             parse_mode="Markdown"
         )
@@ -386,18 +290,6 @@ async def handle_media(update: Update, context):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]]),
         parse_mode="Markdown"
     )
-
-    if PAYMENT_PROOF_CHAT_ID:
-        try:
-            proof_target = int(PAYMENT_PROOF_CHAT_ID) if PAYMENT_PROOF_CHAT_ID.lstrip("-").isdigit() else PAYMENT_PROOF_CHAT_ID
-            await context.bot.send_photo(
-                chat_id=proof_target,
-                photo=photo_obj.file_id,
-                caption=f"📸 **New Payment Proof**\n\n📦 **Package:** {pkg['name']}\n💸 **Price:** **{price_str}**",
-                parse_mode="Markdown"
-            )
-        except Exception as e:
-            print(f"Payment proof send error: {e}")
 
     try:
         admin_kb = InlineKeyboardMarkup([[
@@ -420,7 +312,6 @@ telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
-telegram_app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_keypad_text))
 
 render_url = os.getenv("RENDER_EXTERNAL_URL")
 if render_url:
@@ -439,4 +330,10 @@ def home():
 
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def webhook():
-   
+    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
+    asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop).result(timeout=30)
+    return "OK", 200
+
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
