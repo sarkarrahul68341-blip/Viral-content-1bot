@@ -74,6 +74,18 @@ def is_screenshot_already_used_today(file_unique_id):
     return False
 
 
+def is_expired_or_old_screenshot(message):
+    if not message:
+        return False
+    if getattr(message, "forward_date", None) or getattr(message, "forward_origin", None):
+        return True
+    if getattr(message, "date", None):
+        age_seconds = time.time() - message.date.timestamp()
+        if age_seconds > SCREENSHOT_VALIDITY_SECONDS:
+            return True
+    return False
+
+
 def generate_upi_qr(amount, order_id):
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
     encoded_note = urllib.parse.quote(f"Order_{order_id}")
@@ -265,18 +277,16 @@ async def handle_media(update: Update, context):
     qr_pkg_key = context.user_data.get("qr_generated_for")
     if not qr_pkg_key or qr_pkg_key not in PACKAGES:
         await update.message.reply_text(
-            "⚠️ **Direct Photo Allowed Nahi Hai!**\n\nKripya pehle Main Menu se package chunein aur **Pay Now** par click karke QR code generate karein.",
+            "❌ Sorry ji, abhi tak aapki payment receive nahi hui hai. Kripya pehle package select karke Pay Now se payment karein, uske baad screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
-            parse_mode="Markdown"
         )
         return
 
     photo_obj = update.message.photo[-1]
-    if is_screenshot_already_used_today(photo_obj.file_unique_id):
+    if is_expired_or_old_screenshot(update.message) or is_screenshot_already_used_today(photo_obj.file_unique_id):
         await update.message.reply_text(
-            "⛔ **Screenshot Already Used (1 Day Limit)!**\n\nEk screenshot sirf **1 din (24 ghante)** ke liye hi valid hai.",
+            "❌ Sorry ji, abhi tak aapki payment receive nahi hui hai. Kripya pehle package select karke Pay Now se payment karein, uske baad screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
-            parse_mode="Markdown"
         )
         return
 
@@ -337,3 +347,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    
