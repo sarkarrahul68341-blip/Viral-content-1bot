@@ -222,7 +222,7 @@ async def button_handler(update: Update, context):
                     parse_mode="Markdown"
                 )
                 try:
-                    await query.edit_message_caption(caption=(query.message.caption or "") + "\n\n❌ **REJECTED**", parse_mode="Markdown")
+                    await query.message.delete()
                 except Exception:
                     pass
         return
@@ -390,4 +390,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-                                    
