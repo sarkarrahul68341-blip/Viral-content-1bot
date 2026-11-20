@@ -115,12 +115,27 @@ async def start(update: Update, context):
     if update.callback_query:
         query = update.callback_query
         try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        try:
             await query.message.delete()
         except Exception:
             pass
-        await context.bot.send_photo(chat_id=query.message.chat_id, photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
+        await context.bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=photo,
+            caption=caption,
+            reply_markup=get_main_menu_keyboard(),
+            parse_mode="Markdown",
+        )
     else:
-        await update.message.reply_photo(photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
+        await update.message.reply_photo(
+            photo=photo,
+            caption=caption,
+            reply_markup=get_main_menu_keyboard(),
+            parse_mode="Markdown",
+        )
 
 
 async def process_photo_setting(update: Update, context):
@@ -210,6 +225,10 @@ async def button_handler(update: Update, context):
         keyboard = InlineKeyboardMarkup(nav_buttons)
         text = f"🎬 **Demo Clip {index} / 10**\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n✨ Yeh hamari demo clip number {index} hai."
         try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        try:
             await query.message.delete()
         except Exception:
             pass
@@ -229,6 +248,10 @@ async def button_handler(update: Update, context):
             [InlineKeyboardButton(f"💳 ⚡ Pay Now • {price_str} 🔥", callback_data=f"pay_{data}")],
             [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
         ])
+        try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
         try:
             await query.message.delete()
         except Exception:
@@ -253,6 +276,10 @@ async def button_handler(update: Update, context):
             qr_file_path = generate_upi_qr(pkg["price"], user_id)
             caption = f"🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n📦 **Package:** {pkg['name']}\n💸 **Amount to Pay:** **{price_str}**\n\n1️⃣ Is QR Code ko scan karke **₹{pkg['price']}** pay karein (`{UPI_ID}`).\n2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien. Approve hone ke baad link milega."
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]])
+            try:
+                await query.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                pass
             try:
                 await query.message.delete()
             except Exception:
