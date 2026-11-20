@@ -122,17 +122,37 @@ async def start(update: Update, context):
     caption = "❤️ **Welcome to All Max Content Bot!** ❤️\n\n🔥 **Special Discount Offer Chal Raha Hai!** Niche diye gaye packages mein se apna pasandida option select karein:\n"
     photo = DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO)
     keypad = get_bottom_keypad()
+
+    old_proof_id = context.user_data.pop("proof_msg_id", None)
+    if old_proof_id:
+        try:
+            await context.bot.delete_message(chat_id=update.effective_chat.id, message_id=old_proof_id)
+        except Exception:
+            pass
+
     if update.callback_query:
         query = update.callback_query
         try:
             await query.message.delete()
         except Exception:
             pass
-        await context.bot.send_message(chat_id=query.message.chat_id, text="👇 Niche keypad par Payment Proof button hai:", reply_markup=keypad)
-        await context.bot.send_photo(chat_id=query.message.chat_id, photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
+        sent_menu = await context.bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=photo,
+            caption=caption,
+            reply_markup=get_main_menu_keyboard(),
+            parse_mode="Markdown",
+        )
+        context.user_data["main_menu_msg_id"] = sent_menu.message_id
     else:
         await update.message.reply_text("👇 Niche keypad par Payment Proof button hai:", reply_markup=keypad)
-        await update.message.reply_photo(photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
+        sent_menu = await update.message.reply_photo(
+            photo=photo,
+            caption=caption,
+            reply_markup=get_main_menu_keyboard(),
+            parse_mode="Markdown",
+        )
+        context.user_data["main_menu_msg_id"] = sent_menu.message_id
 
 
 async def handle_keypad_text(update: Update, context):
@@ -143,6 +163,16 @@ async def handle_keypad_text(update: Update, context):
             await update.message.delete()
         except Exception:
             pass
+
+        last_menu_id = context.user_data.pop("main_menu_msg_id", None)
+        if last_menu_id:
+            try:
+                await context.bot.delete_message(
+                    chat_id=update.effective_chat.id,
+                    message_id=last_menu_id,
+                )
+            except Exception:
+                pass
 
         last_msg_id = context.user_data.get("proof_msg_id")
         if last_msg_id:
@@ -404,4 +434,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-        
