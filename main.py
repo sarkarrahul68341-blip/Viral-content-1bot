@@ -139,26 +139,24 @@ async def handle_keypad_text(update: Update, context):
     if not update.message or not update.message.text:
         return
     if update.message.text.strip() == "📸 Payment Proof":
-        proof_text = "📸 **Payment Proof**\n\nNiche diye gaye button se payment proof dekhein:"
-        proof_markup = InlineKeyboardMarkup([[InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)]])
-        last_msg_id = context.user_data.get("proof_msg_id")
+        try:
+            await update.message.delete()
+        except Exception:
+            pass
 
+        last_msg_id = context.user_data.get("proof_msg_id")
         if last_msg_id:
             try:
-                await context.bot.edit_message_text(
+                await context.bot.delete_message(
                     chat_id=update.effective_chat.id,
                     message_id=last_msg_id,
-                    text=proof_text,
-                    reply_markup=proof_markup,
-                    parse_mode="Markdown",
                 )
-                return
             except Exception:
                 pass
 
         sent = await update.message.reply_text(
-            proof_text,
-            reply_markup=proof_markup,
+            "📸 **Payment Proof**\n\nNiche diye gaye button se payment proof dekhein:",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)]]),
             parse_mode="Markdown",
         )
         context.user_data["proof_msg_id"] = sent.message_id
@@ -403,3 +401,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    
