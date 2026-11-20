@@ -12,6 +12,7 @@ TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9210267090:AAFGulP572uIzyK
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
+PAYMENT_PROOF_CHAT_ID = os.getenv("PAYMENT_PROOF_CHAT_ID", "-1003812138504")
 ADMIN_USER_ID = 8776203848
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
@@ -86,6 +87,30 @@ def is_expired_or_old_screenshot(message):
     return False
 
 
+async def delete_tracked_bot_messages(context, chat_id, exclude_msg_id=None):
+    msg_ids = context.user_data.pop("bot_msg_ids", [])
+    kept_ids = []
+    for mid in msg_ids:
+        if exclude_msg_id and mid == exclude_msg_id:
+            kept_ids.append(mid)
+            continue
+        try:
+            await context.bot.delete_message(chat_id=chat_id, message_id=mid)
+        except Exception:
+            pass
+    context.user_data["bot_msg_ids"] = kept_ids
+
+
+def remember_bot_message(context, message_id):
+    if not message_id:
+        return
+    msg_ids = context.user_data.setdefault("bot_msg_ids", [])
+    if message_id not in msg_ids:
+        msg_ids.append(message_id)
+    if len(msg_ids) > 15:
+        context.user_data["bot_msg_ids"] = msg_ids[-15:]
+
+
 def generate_upi_qr(amount, order_id):
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
     encoded_note = urllib.parse.quote(f"Order_{order_id}")
@@ -114,28 +139,34 @@ async def start(update: Update, context):
     photo = DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO)
     if update.callback_query:
         query = update.callback_query
+        chat_id = query.message.chat_id
         try:
             await query.message.edit_reply_markup(reply_markup=None)
         except Exception:
             pass
+        await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
         try:
             await query.message.delete()
         except Exception:
             pass
-        await context.bot.send_photo(
-            chat_id=query.message.chat_id,
+        sent = await context.bot.send_photo(
+            chat_id=chat_id,
             photo=photo,
             caption=caption,
             reply_markup=get_main_menu_keyboard(),
             parse_mode="Markdown",
         )
+        remember_bot_message(context, sent.message_id)
     else:
-        await update.message.reply_photo(
+        chat_id = update.effective_chat.id
+        await delete_tracked_bot_messages(context, chat_id)
+        sent = await update.message.reply_photo(
             photo=photo,
             caption=caption,
             reply_markup=get_main_menu_keyboard(),
             parse_mode="Markdown",
         )
+        remember_bot_message(context, sent.message_id)
 
 
 async def process_photo_setting(update: Update, context):
@@ -162,6 +193,7 @@ async def button_handler(update: Update, context):
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
+    chat_id = query.message.chat_id
     data = query.data
 
     if data == "main_menu":
@@ -228,15 +260,17 @@ async def button_handler(update: Update, context):
             await query.message.edit_reply_markup(reply_markup=None)
         except Exception:
             pass
+        await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
         try:
             await query.message.delete()
         except Exception:
             pass
         video_file_id = PERMANENT_VIDEOS.get(index)
         if video_file_id:
-            await context.bot.send_video(chat_id=query.message.chat_id, video=video_file_id, caption=text, reply_markup=keyboard, parse_mode="Markdown")
+            sent = await context.bot.send_video(chat_id=chat_id, video=video_file_id, caption=text, reply_markup=keyboard, parse_mode="Markdown")
         else:
-            await context.bot.send_photo(chat_id=query.message.chat_id, photo=DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO), caption=text, reply_markup=keyboard, parse_mode="Markdown")
+            sent = await context.bot.send_photo(chat_id=chat_id, photo=DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO), caption=text, reply_markup=keyboard, parse_mode="Markdown")
+        remember_bot_message(context, sent.message_id)
         return
 
     if data in PACKAGES:
@@ -252,15 +286,17 @@ async def button_handler(update: Update, context):
             await query.message.edit_reply_markup(reply_markup=None)
         except Exception:
             pass
+        await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
         try:
             await query.message.delete()
         except Exception:
             pass
         if pkg["photo"] and os.path.exists(pkg["photo"]):
             with open(pkg["photo"], "rb") as photo_file:
-                await context.bot.send_photo(chat_id=query.message.chat_id, photo=photo_file, caption=text, reply_markup=keyboard, parse_mode="Markdown")
+                sent = await context.bot.send_photo(chat_id=chat_id, photo=photo_file, caption=text, reply_markup=keyboard, parse_mode="Markdown")
         else:
-            await context.bot.send_photo(chat_id=query.message.chat_id, photo=DEFAULT_PHOTO, caption=text, reply_markup=keyboard, parse_mode="Markdown")
+            sent = await context.bot.send_photo(chat_id=chat_id, photo=DEFAULT_PHOTO, caption=text, reply_markup=keyboard, parse_mode="Markdown")
+        remember_bot_message(context, sent.message_id)
         return
 
     if data.startswith("pay_"):
@@ -280,12 +316,14 @@ async def button_handler(update: Update, context):
                 await query.message.edit_reply_markup(reply_markup=None)
             except Exception:
                 pass
+            await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
             try:
                 await query.message.delete()
             except Exception:
                 pass
             with open(qr_file_path, "rb") as photo:
-                await context.bot.send_photo(chat_id=query.message.chat_id, photo=photo, caption=caption, reply_markup=keyboard, parse_mode="Markdown")
+                sent = await context.bot.send_photo(chat_id=chat_id, photo=photo, caption=caption, reply_markup=keyboard, parse_mode="Markdown")
+            remember_bot_message(context, sent.message_id)
         finally:
             if qr_file_path and os.path.exists(qr_file_path):
                 try:
@@ -301,20 +339,25 @@ async def handle_media(update: Update, context):
         await process_photo_setting(update, context)
         return
 
+    chat_id = update.effective_chat.id
     qr_pkg_key = context.user_data.get("qr_generated_for")
     if not qr_pkg_key or qr_pkg_key not in PACKAGES:
-        await update.message.reply_text(
+        await delete_tracked_bot_messages(context, chat_id)
+        sent = await update.message.reply_text(
             "❌ Sorry ji, abhi tak aapki payment receive nahi hui hai. Kripya pehle package select karke Pay Now se payment karein, uske baad screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
         )
+        remember_bot_message(context, sent.message_id)
         return
 
     photo_obj = update.message.photo[-1]
     if is_expired_or_old_screenshot(update.message) or is_screenshot_already_used_today(photo_obj.file_unique_id):
-        await update.message.reply_text(
+        await delete_tracked_bot_messages(context, chat_id)
+        sent = await update.message.reply_text(
             "❌ Sorry ji, abhi tak aapki payment receive nahi hui hai. Kripya pehle package select karke Pay Now se payment karein, uske baad screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
         )
+        remember_bot_message(context, sent.message_id)
         return
 
     context.user_data.pop("qr_generated_for", None)
@@ -322,11 +365,13 @@ async def handle_media(update: Update, context):
     price_str = format_price(pkg)
     user = update.effective_user
 
-    await update.message.reply_text(
+    await delete_tracked_bot_messages(context, chat_id)
+    sent = await update.message.reply_text(
         f"⏳ **Screenshot Verification Pending!**\n\n📦 **Package:** {pkg['name']}\n💸 **Offer Price:** **{price_str}**\n✨ Approve hone ke baad link milega.",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]]),
         parse_mode="Markdown"
     )
+    remember_bot_message(context, sent.message_id)
 
     try:
         admin_kb = InlineKeyboardMarkup([[
