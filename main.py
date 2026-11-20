@@ -156,7 +156,10 @@ async def handle_keypad_text(update: Update, context):
 
         sent = await update.message.reply_text(
             "📸 **Payment Proof**\n\nNiche diye gaye button se payment proof dekhein:",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)]]),
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("📸 Open Payment Proof", url=PAYMENT_PROOF_LINK)],
+                [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")],
+            ]),
             parse_mode="Markdown",
         )
         context.user_data["proof_msg_id"] = sent.message_id
@@ -401,4 +404,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
+        
