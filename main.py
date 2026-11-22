@@ -1,6 +1,5 @@
 import os
 import time
-import uuid
 import asyncio
 import threading
 import urllib.parse
@@ -10,13 +9,11 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.error import BadRequest
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
-if not TELEGRAM_BOT_TOKEN:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN missing hai! Render Environment mein token set karein.")
-
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9210267090:AAFGulP572uIzyKPEGVa01y7HuR9xt2adio").strip()
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
+PAYMENT_PROOF_CHAT_ID = os.getenv("PAYMENT_PROOF_CHAT_ID", "-1003812138504")
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "8776203848"))
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
@@ -111,53 +108,48 @@ def remember_bot_message(context, message_id):
     msg_ids = context.user_data.setdefault("bot_msg_ids", [])
     if message_id not in msg_ids:
         msg_ids.append(message_id)
-    if len(msg_ids) > 20:
-        context.user_data["bot_msg_ids"] = msg_ids[-20:]
+    if len(msg_ids) > 15:
+        context.user_data["bot_msg_ids"] = msg_ids[-15:]
 
 
-async def clear_previous_view(context, chat_id, query_message=None):
-    exclude_id = query_message.message_id if query_message else None
-    if query_message:
-        try:
-            await query_message.edit_reply_markup(reply_markup=None)
-        except Exception:
-            pass
-    await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=exclude_id)
-    if query_message:
-        try:
-            await query_message.delete()
-        except Exception:
-            pass
-
-
-async def send_photo_or_text(context, chat_id, photo, caption, reply_markup):
+async def send_photo_safe(context, chat_id, photo, caption, reply_markup):
     if photo:
         try:
             if os.path.exists(photo):
-                with open(photo, "rb") as f:
+                with open(photo, "rb") as photo_file:
                     return await context.bot.send_photo(
-                        chat_id=chat_id, photo=f, caption=caption, reply_markup=reply_markup, parse_mode="Markdown"
+                        chat_id=chat_id,
+                        photo=photo_file,
+                        caption=caption,
+                        reply_markup=reply_markup,
+                        parse_mode="Markdown",
                     )
             return await context.bot.send_photo(
-                chat_id=chat_id, photo=photo, caption=caption, reply_markup=reply_markup, parse_mode="Markdown"
+                chat_id=chat_id,
+                photo=photo,
+                caption=caption,
+                reply_markup=reply_markup,
+                parse_mode="Markdown",
             )
         except BadRequest as e:
-            print(f"Photo send fallback to text: {e}")
+            print(f"Photo fallback to text: {e}")
     return await context.bot.send_message(
-        chat_id=chat_id, text=caption, reply_markup=reply_markup, parse_mode="Markdown"
+        chat_id=chat_id,
+        text=caption,
+        reply_markup=reply_markup,
+        parse_mode="Markdown",
     )
 
 
 def generate_upi_qr(amount, order_id):
-    unique_tag = f"{order_id}_{uuid.uuid4().hex[:6]}"
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
-    encoded_note = urllib.parse.quote(f"Order_{unique_tag}")
+    encoded_note = urllib.parse.quote(f"Order_{order_id}")
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(upi_uri)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    filename = f"qr_{unique_tag}.png"
+    filename = f"qr_{order_id}.png"
     img.save(filename)
     return filename
 
@@ -178,13 +170,21 @@ async def start(update: Update, context):
     if update.callback_query:
         query = update.callback_query
         chat_id = query.message.chat_id
-        await clear_previous_view(context, chat_id, query.message)
-        sent = await send_photo_or_text(context, chat_id, photo, caption, get_main_menu_keyboard())
+        try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+        sent = await send_photo_safe(context, chat_id, photo, caption, get_main_menu_keyboard())
         remember_bot_message(context, sent.message_id)
     else:
         chat_id = update.effective_chat.id
-        await clear_previous_view(context, chat_id)
-        sent = await send_photo_or_text(context, chat_id, photo, caption, get_main_menu_keyboard())
+        await delete_tracked_bot_messages(context, chat_id)
+        sent = await send_photo_safe(context, chat_id, photo, caption, get_main_menu_keyboard())
         remember_bot_message(context, sent.message_id)
 
 
@@ -275,7 +275,15 @@ async def button_handler(update: Update, context):
         nav_buttons.append([InlineKeyboardButton(PERMANENT_BUTTON_NAME, url=PERMANENT_CHANNEL_LINK)])
         keyboard = InlineKeyboardMarkup(nav_buttons)
         text = f"🎬 **Demo Clip {index} / 10**\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n✨ Yeh hamari demo clip number {index} hai."
-        await clear_previous_view(context, chat_id, query.message)
+        try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
         video_file_id = PERMANENT_VIDEOS.get(index)
         if video_file_id:
             try:
@@ -284,7 +292,7 @@ async def button_handler(update: Update, context):
                 sent = await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard, parse_mode="Markdown")
         else:
             fallback_photo = DYNAMIC_STORAGE.get("welcome_photo") or (PACKAGE_PHOTO if os.path.exists(PACKAGE_PHOTO) else "")
-            sent = await send_photo_or_text(context, chat_id, fallback_photo, text, keyboard)
+            sent = await send_photo_safe(context, chat_id, fallback_photo, text, keyboard)
         remember_bot_message(context, sent.message_id)
         return
 
@@ -297,9 +305,17 @@ async def button_handler(update: Update, context):
             [InlineKeyboardButton(f"💳 ⚡ Pay Now • {price_str} 🔥", callback_data=f"pay_{data}")],
             [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
         ])
-        await clear_previous_view(context, chat_id, query.message)
+        try:
+            await query.message.edit_reply_markup(reply_markup=None)
+        except Exception:
+            pass
+        await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
         pkg_photo = pkg["photo"] if (pkg["photo"] and os.path.exists(pkg["photo"])) else DYNAMIC_STORAGE.get("welcome_photo", "")
-        sent = await send_photo_or_text(context, chat_id, pkg_photo, text, keyboard)
+        sent = await send_photo_safe(context, chat_id, pkg_photo, text, keyboard)
         remember_bot_message(context, sent.message_id)
         return
 
@@ -316,7 +332,15 @@ async def button_handler(update: Update, context):
             qr_file_path = generate_upi_qr(pkg["price"], user_id)
             caption = f"🚨📱 **SCAN & PAY INSTRUCTIONS** 📱🚨\n▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n📦 **Package:** {pkg['name']}\n💸 **Amount to Pay:** **{price_str}**\n\n1️⃣ Is QR Code ko scan karke **₹{pkg['price']}** pay karein (`{UPI_ID}`).\n2️⃣ Payment karne ke baad is chat mein **Payment ka Screenshot** bhejien. Approve hone ke baad link milega."
             keyboard = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]])
-            await clear_previous_view(context, chat_id, query.message)
+            try:
+                await query.message.edit_reply_markup(reply_markup=None)
+            except Exception:
+                pass
+            await delete_tracked_bot_messages(context, chat_id, exclude_msg_id=query.message.message_id)
+            try:
+                await query.message.delete()
+            except Exception:
+                pass
             with open(qr_file_path, "rb") as photo:
                 sent = await context.bot.send_photo(chat_id=chat_id, photo=photo, caption=caption, reply_markup=keyboard, parse_mode="Markdown")
             remember_bot_message(context, sent.message_id)
@@ -338,23 +362,20 @@ async def handle_media(update: Update, context):
     chat_id = update.effective_chat.id
     qr_pkg_key = context.user_data.get("qr_generated_for")
     if not qr_pkg_key or qr_pkg_key not in PACKAGES:
-        await clear_previous_view(context, chat_id)
+        await delete_tracked_bot_messages(context, chat_id)
         sent = await update.message.reply_text(
-            "❌ **Payment Rejected!**\n\nSirf payment ka screenshot hi bhej sakte hain. Kripya pehle package select karke Pay Now se payment karein.",
+            "❌ Sorry ji, abhi tak aapki payment receive nahi hui hai. Kripya pehle package select karke Pay Now se payment karein, uske baad screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
-            parse_mode="Markdown"
         )
         remember_bot_message(context, sent.message_id)
         return
 
     photo_obj = update.message.photo[-1]
     if is_expired_or_old_screenshot(update.message) or is_screenshot_already_used_today(photo_obj.file_unique_id):
-        context.user_data.pop("qr_generated_for", None)
-        await clear_previous_view(context, chat_id)
+        await delete_tracked_bot_messages(context, chat_id)
         sent = await update.message.reply_text(
-            "❌ **Payment Rejected!**\n\nSirf fresh payment ka screenshot hi bhej sakte hain. Purana ya duplicate photo allowed nahi hai.",
+            "❌ Sorry ji, abhi tak aapki payment receive nahi hui hai. Kripya pehle package select karke Pay Now se payment karein, uske baad screenshot bhejein.",
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back to Main Menu", callback_data="main_menu")]]),
-            parse_mode="Markdown"
         )
         remember_bot_message(context, sent.message_id)
         return
@@ -364,7 +385,7 @@ async def handle_media(update: Update, context):
     price_str = format_price(pkg)
     user = update.effective_user
 
-    await clear_previous_view(context, chat_id)
+    await delete_tracked_bot_messages(context, chat_id)
     sent = await update.message.reply_text(
         f"⏳ **Screenshot Verification Pending!**\n\n📦 **Package:** {pkg['name']}\n💸 **Offer Price:** **{price_str}**\n✨ Approve hone ke baad link milega.",
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]]),
@@ -388,32 +409,12 @@ async def handle_media(update: Update, context):
         print(f"Admin send error: {e}")
 
 
-async def error_handler(update: object, context):
-    print(f"Bot error: {context.error}")
-
-
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
-telegram_app.add_error_handler(error_handler)
 
 render_url = os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com"
 try:
-    asyncio.run_coroutine_threadsafe(
-        telegram_app.bot.set_webhook(url=f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"), loop
-    ).result(timeout=15)
-except Exception as e:
-    print(f"Webhook setup error: {e}")
-
-
-@app.route("/")
-def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-
-@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    asyncio.run_coroutine_threadsafe(telegram_app.proce
+    asyncio.run_coroutine
