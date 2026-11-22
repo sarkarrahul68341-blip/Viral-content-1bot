@@ -1,6 +1,5 @@
-import os
+Import os
 import time
-import uuid
 import asyncio
 import threading
 import urllib.parse
@@ -9,10 +8,7 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-if not TELEGRAM_BOT_TOKEN:
-    raise RuntimeError("TELEGRAM_BOT_TOKEN environment variable set karein.")
-
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9210267090:AAFGulP572uIzyKPEGVa01y7HuR9xt2adio")
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
@@ -126,13 +122,13 @@ def set_single_bot_message(context, message_id):
 
 def generate_upi_qr(amount, order_id):
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
-    encoded_note = urllib.parse.quote(f"Order_{order_id}_{uuid.uuid4().hex[:6]}")
+    encoded_note = urllib.parse.quote(f"Order_{order_id}")
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(upi_uri)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    filename = f"qr_{order_id}_{uuid.uuid4().hex[:6]}.png"
+    filename = f"qr_{order_id}.png"
     img.save(filename)
     return filename
 
