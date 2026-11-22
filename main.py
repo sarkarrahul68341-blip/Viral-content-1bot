@@ -125,7 +125,7 @@ def set_single_bot_message(context, message_id):
         context.user_data["bot_msg_ids"] = [message_id]
 
 
-async def send_photo_or_text(context, update, chat_id, photo, caption, reply_markup):
+async def send_photo_or_text(context, chat_id, photo, caption, reply_markup):
     if photo:
         try:
             if os.path.exists(photo):
@@ -174,12 +174,12 @@ async def start(update: Update, context):
         query = update.callback_query
         chat_id = query.message.chat_id
         await replace_bot_message(context, chat_id, query.message)
-        sent = await send_photo_or_text(context, update, chat_id, photo, caption, get_main_menu_keyboard())
+        sent = await send_photo_or_text(context, chat_id, photo, caption, get_main_menu_keyboard())
         set_single_bot_message(context, sent.message_id)
     else:
         chat_id = update.effective_chat.id
         await replace_bot_message(context, chat_id)
-        sent = await send_photo_or_text(context, update, chat_id, photo, caption, get_main_menu_keyboard())
+        sent = await send_photo_or_text(context, chat_id, photo, caption, get_main_menu_keyboard())
         set_single_bot_message(context, sent.message_id)
 
 
@@ -279,7 +279,7 @@ async def button_handler(update: Update, context):
                 sent = await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard, parse_mode="Markdown")
         else:
             fallback_photo = DYNAMIC_STORAGE.get("welcome_photo") or (PACKAGE_PHOTO if os.path.exists(PACKAGE_PHOTO) else "")
-            sent = await send_photo_or_text(context, update, chat_id, fallback_photo, text, keyboard)
+            sent = await send_photo_or_text(context, chat_id, fallback_photo, text, keyboard)
         set_single_bot_message(context, sent.message_id)
         return
 
@@ -294,7 +294,7 @@ async def button_handler(update: Update, context):
         ])
         await replace_bot_message(context, chat_id, query.message)
         pkg_photo = pkg["photo"] if (pkg["photo"] and os.path.exists(pkg["photo"])) else DYNAMIC_STORAGE.get("welcome_photo", "")
-        sent = await send_photo_or_text(context, update, chat_id, pkg_photo, text, keyboard)
+        sent = await send_photo_or_text(context, chat_id, pkg_photo, text, keyboard)
         set_single_bot_message(context, sent.message_id)
         return
 
@@ -415,4 +415,4 @@ def home():
 
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_js
+    update = Update.de_json(request.get_json(force=True), telegra
