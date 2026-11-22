@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import asyncio
 import threading
 import urllib.parse
@@ -90,6 +91,17 @@ def is_expired_or_old_screenshot(message):
     return False
 
 
+async def cleanup_previous_user_screenshots(context, chat_id, new_msg_id):
+    old_ids = context.user_data.pop("user_screenshot_ids", [])
+    for mid in old_ids:
+        if mid != new_msg_id:
+            try:
+                await context.bot.delete_message(chat_id=chat_id, message_id=mid)
+            except Exception:
+                pass
+    context.user_data["user_screenshot_ids"] = [new_msg_id] if new_msg_id else []
+
+
 async def delete_tracked_bot_messages(context, chat_id, exclude_msg_id=None):
     msg_ids = context.user_data.pop("bot_msg_ids", [])
     kept_ids = []
@@ -148,14 +160,15 @@ async def send_photo_or_text(context, chat_id, photo, caption, reply_markup):
 
 
 def generate_upi_qr(amount, order_id):
+    unique_tag = f"{order_id}_{uuid.uuid4().hex[:6]}"
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
-    encoded_note = urllib.parse.quote(f"Order_{order_id}")
+    encoded_note = urllib.parse.quote(f"Order_{unique_tag}")
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(upi_uri)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    filename = f"qr_{order_id}.png"
+    filename = f"qr_{unique_tag}.png"
     img.save(filename)
     return filename
 
@@ -334,6 +347,8 @@ async def handle_media(update: Update, context):
         return
 
     chat_id = update.effective_chat.id
+    await cleanup_previous_user_screenshots(context, chat_id, update.message.message_id)
+
     qr_pkg_key = context.user_data.get("qr_generated_for")
     if not qr_pkg_key or qr_pkg_key not in PACKAGES:
         await clear_previous_view(context, chat_id)
@@ -397,25 +412,4 @@ telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
 telegram_app.add_error_handler(error_handler)
 
-render_url = os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com"
-try:
-    asyncio.run_coroutine_threadsafe(
-        telegram_app.bot.set_webhook(url=f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"), loop
-    ).result(timeout=15)
-except Exception as e:
-    print(f"Webhook setup error: {e}")
-
-
-@app.route("/")
-def home():
-    return "Telegram Bot Webhook Server is Running!"
-
-
-@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
-def webhook():
-    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop).result(timeout=30)
-    return "OK", 200
-
-
-if 
+render_url = os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com
