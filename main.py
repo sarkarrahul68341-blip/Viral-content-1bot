@@ -43,7 +43,7 @@ PACKAGES = {
     "file_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "price_badge": "9̶9̶ ➡️ ✨ ₹40", "btn_emoji": "📱", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
     "file_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "price_badge": "3̶9̶9̶ ➡️ 👑 ₹199", "btn_emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
     "file_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "price_badge": "1̶2̶9̶ ➡️ 💥 ₹55", "btn_emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
-    "file_7": {"name": "🔥 07 CP girl real fuke", "price_badge": "1̶4̶9̶ ➡️ 🌟 ₹65", "btn_emoji": "✨", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
+    "file_7": {"name": "🔥 07 CP girl real fuke", "price": 65, "price_badge": "1̶4̶9̶ ➡️ 🌟 ₹65", "btn_emoji": "✨", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
     "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "price_badge": "7̶9̶ ➡️ 💖 ₹30", "btn_emoji": "❤️", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
 }
 
@@ -242,13 +242,19 @@ telegram_app.add_handler(CallbackQueryHandler(callback_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_video_id))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo_or_banner))
 
-render_url = os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com"
-try:
-    asyncio.run_coroutine_threadsafe(
-        telegram_app.bot.set_webhook(url=f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"), loop
-    ).result(timeout=15)
-except Exception as e:
-    print(f"Webhook setup error: {e}")
+
+def _register_webhook_async():
+    render_url = os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com"
+    webhook_url = f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"
+    try:
+        fut = asyncio.run_coroutine_threadsafe(telegram_app.bot.set_webhook(url=webhook_url), loop)
+        fut.result(timeout=20)
+        print(f"Webhook set: {webhook_url}")
+    except Exception as e:
+        print(f"Webhook setup error: {e}")
+
+
+threading.Thread(target=_register_webhook_async, daemon=True).start()
 
 
 @app.route("/")
@@ -265,3 +271,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    
