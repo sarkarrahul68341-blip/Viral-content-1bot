@@ -26,16 +26,8 @@ SCREENSHOT_VALIDITY_SECONDS = 24 * 60 * 60
 USED_SCREENSHOTS = {}
 
 PERMANENT_VIDEOS = {
-    1: "",
-    2: "",
-    3: "",
-    4: "",
-    5: "",
-    6: "",
-    7: "",
-    8: "",
-    9: "",
-    10: "",
+    1: "", 2: "", 3: "", 4: "", 5: "",
+    6: "", 7: "", 8: "", 9: "", 10: "",
 }
 
 DYNAMIC_STORAGE = {
@@ -465,4 +457,4 @@ def webhook():
         payload = request.get_json(force=True, silent=True) or {}
         if not payload:
             return "OK", 200
-        upd
+        update = Update.de_json(payload, te
