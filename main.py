@@ -1,5 +1,6 @@
 import os
 import time
+import uuid
 import asyncio
 import threading
 import urllib.parse
@@ -8,11 +9,14 @@ from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+if not TELEGRAM_BOT_TOKEN:
+    raise RuntimeError("TELEGRAM_BOT_TOKEN missing hai! Render Environment mein naya bot token set karein.")
+
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-ADMIN_USER_ID = 8776203848
+ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "8776203848"))
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
 DEFAULT_PHOTO = "AgACAgUAAxkBAAIKmWr-ocEknsMPFV0Ua2SDhjUpjx8SAAKzEmsbhy35V-O7-QS5ebgsAQADAgADeAADPQQ"
@@ -121,14 +125,15 @@ def set_single_bot_message(context, message_id):
 
 
 def generate_upi_qr(amount, order_id):
+    unique_tag = f"{order_id}_{uuid.uuid4().hex[:6]}"
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
-    encoded_note = urllib.parse.quote(f"Order_{order_id}")
+    encoded_note = urllib.parse.quote(f"Order_{unique_tag}")
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(upi_uri)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    filename = f"qr_{order_id}.png"
+    filename = f"qr_{unique_tag}.png"
     img.save(filename)
     return filename
 
@@ -369,9 +374,11 @@ telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
 render_url = os.getenv("RENDER_EXTERNAL_URL")
 if render_url:
     try:
+        webhook_url = f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"
         asyncio.run_coroutine_threadsafe(
-            telegram_app.bot.set_webhook(url=f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"), loop
+            telegram_app.bot.set_webhook(url=webhook_url), loop
         ).result(timeout=15)
+        print(f"Webhook set successfully: {render_url.rstrip('/')}/<token>")
     except Exception as e:
         print(f"Webhook setup error: {e}")
 
@@ -390,3 +397,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    
