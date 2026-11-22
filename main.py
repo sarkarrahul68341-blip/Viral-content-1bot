@@ -16,6 +16,7 @@ PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
 DEFAULT_PHOTO = os.getenv("DEFAULT_PHOTO", "").strip()
 PACKAGE_PHOTO = "VIP New.jpg"
+BANNER_PHOTO = os.getenv("BANNER_PHOTO", PACKAGE_PHOTO).strip()
 
 PERMANENT_VIDEOS = {
     1: "",
@@ -30,17 +31,20 @@ PERMANENT_VIDEOS = {
     10: "",
 }
 
-DYNAMIC_STORAGE = {"welcome_photo": DEFAULT_PHOTO}
+DYNAMIC_STORAGE = {
+    "welcome_photo": DEFAULT_PHOTO,
+    "banner_photo": BANNER_PHOTO,
+}
 
 PACKAGES = {
-    "file_1": {"name": "⭐ 01 All mix content VIP Access", "price_badge": "4̶9̶9̶ ➡️ 💎 ₹249", "btn_emoji": "👑"},
-    "file_2": {"name": "🔑 02 Rap & Big File VD", "price_badge": "1̶9̶9̶ ➡️ ⚡ ₹89", "btn_emoji": "🎬"},
-    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "price_badge": "9̶9̶ ➡️ 🔥 ₹45", "btn_emoji": "💋"},
-    "file_4": {"name": "🔞 04 Insta viral reels and sex", "price_badge": "9̶9̶ ➡️ ✨ ₹40", "btn_emoji": "📱"},
-    "file_5": {"name": "🔥 05 Ganga bath group join", "price_badge": "3̶9̶9̶ ➡️ 👑 ₹199", "btn_emoji": "🌊"},
-    "file_6": {"name": "🔥 06 Bath camera hidden", "price_badge": "1̶2̶9̶ ➡️ 💥 ₹55", "btn_emoji": "🎥"},
-    "file_7": {"name": "🔥 07 CP girl real fuke", "price_badge": "1̶4̶9̶ ➡️ 🌟 ₹65", "btn_emoji": "✨"},
-    "file_8": {"name": "❤️ 08 Sister and brother sex", "price_badge": "7̶9̶ ➡️ 💖 ₹30", "btn_emoji": "❤️"},
+    "file_1": {"name": "⭐ 01 All mix content VIP Access", "price": 249, "price_badge": "4̶9̶9̶ ➡️ 💎 ₹249", "btn_emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1", "photo": PACKAGE_PHOTO},
+    "file_2": {"name": "🔑 02 Rap & Big File VD", "price": 89, "price_badge": "1̶9̶9̶ ➡️ ⚡ ₹89", "btn_emoji": "🎬", "link": "https://t.me/+_AILkUGhVnVkMzBl", "photo": PACKAGE_PHOTO},
+    "file_3": {"name": "🔑 03 Mom and Son Real Sex", "price": 45, "price_badge": "9̶9̶ ➡️ 🔥 ₹45", "btn_emoji": "💋", "link": "https://t.me/+qjTxEmHC-z4wMzE1", "photo": PACKAGE_PHOTO},
+    "file_4": {"name": "🔞 04 Insta viral reels and sex", "price": 40, "price_badge": "9̶9̶ ➡️ ✨ ₹40", "btn_emoji": "📱", "link": "https://t.me/+LmzeU14SK_I0MGY9", "photo": PACKAGE_PHOTO},
+    "file_5": {"name": "🔥 05 Ganga bath group join", "price": 199, "price_badge": "3̶9̶9̶ ➡️ 👑 ₹199", "btn_emoji": "🌊", "link": "https://t.me/+jMs1EZ3RLSc1Yjhl", "photo": PACKAGE_PHOTO},
+    "file_6": {"name": "🔥 06 Bath camera hidden", "price": 55, "price_badge": "1̶2̶9̶ ➡️ 💥 ₹55", "btn_emoji": "🎥", "link": "https://t.me/+G4yBWASYMzYzOTc9", "photo": PACKAGE_PHOTO},
+    "file_7": {"name": "🔥 07 CP girl real fuke", "price_badge": "1̶4̶9̶ ➡️ 🌟 ₹65", "btn_emoji": "✨", "link": "https://t.me/+f9i3BlsoUeZiZmY1", "photo": PACKAGE_PHOTO},
+    "file_8": {"name": "❤️ 08 Sister and brother sex", "price": 30, "price_badge": "7̶9̶ ➡️ 💖 ₹30", "btn_emoji": "❤️", "link": "https://t.me/+BYOIdmg4w3c2MjQ1", "photo": PACKAGE_PHOTO},
 }
 
 app = Flask(__name__)
@@ -55,6 +59,10 @@ def _start_loop(target_loop):
 
 threading.Thread(target=_start_loop, args=(loop,), daemon=True).start()
 asyncio.run_coroutine_threadsafe(telegram_app.initialize(), loop).result(timeout=30)
+
+
+def format_price(pkg):
+    return pkg.get("price_badge", f"💎 ₹{pkg['price']}")
 
 
 async def send_photo_safe(context, chat_id, photo, caption, reply_markup):
@@ -77,7 +85,7 @@ async def send_photo_safe(context, chat_id, photo, caption, reply_markup):
 
 def get_main_menu_keyboard():
     keyboard = [
-        [InlineKeyboardButton(f"{pkg['btn_emoji']} {pkg['name']} • {pkg['price_badge']} 👉", callback_data=key)]
+        [InlineKeyboardButton(f"{pkg['btn_emoji']} {pkg['name']} • {format_price(pkg)} 👉", callback_data=key)]
         for key, pkg in PACKAGES.items()
     ]
     keyboard.append([InlineKeyboardButton("🅵🆁🅴🅴   __   🅳🅴🅼🅾", callback_data="demo_1")])
@@ -104,6 +112,28 @@ async def start(update: Update, context):
         except Exception:
             pass
     await send_main_menu(context, chat_id)
+
+
+async def set_banner_photo(update: Update, context):
+    if not update.message or update.effective_user.id != ADMIN_USER_ID:
+        return
+    if not update.message.photo:
+        await update.message.reply_text("⚠️ Banner set karne ke liye photo ke caption mein `/setbanner` likh kar bhejein.")
+        return
+    banner_file_id = update.message.photo[-1].file_id
+    DYNAMIC_STORAGE["banner_photo"] = banner_file_id
+    await update.message.reply_text(
+        f"✅ **Package Banner Photo update ho gayi!**\n\n`{banner_file_id}`",
+        parse_mode="Markdown",
+    )
+
+
+async def handle_photo_or_banner(update: Update, context):
+    if not update.message or not update.message.photo:
+        return
+    caption_text = (update.message.caption or "").strip().lower()
+    if "/setbanner" in caption_text or "setbanner" in caption_text:
+        await set_banner_photo(update, context)
 
 
 async def handle_video_id(update: Update, context):
@@ -168,17 +198,49 @@ async def callback_handler(update: Update, context):
         await send_photo_safe(context, chat_id, fallback_photo, text, keyboard)
         return
 
-    pkg = PACKAGES.get(data)
-    if pkg:
-        await query.message.reply_text(
-            f"📦 **{pkg['name']}**\n💸 **Offer Price:** {pkg['price_badge']}\n\nDemo menu ready hai! Agle step mein Pay Now aur QR payment add karenge.",
-            parse_mode="Markdown",
+    if data in PACKAGES:
+        pkg = PACKAGES[data]
+        context.user_data["selected_pkg"] = data
+        price_str = format_price(pkg)
+        banner = (
+            DYNAMIC_STORAGE.get("banner_photo")
+            or (pkg["photo"] if pkg.get("photo") and os.path.exists(pkg["photo"]) else "")
+            or DYNAMIC_STORAGE.get("welcome_photo", "")
         )
+        text = (
+            f"🖼️✨ **BANNER & PAYMENT** ✨🖼️\n"
+            f"💳🔥 **Yahan Pay Karna Hai!** 🔥💳\n"
+            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            f"📦💎 **Selected Package:** {pkg['name']}\n"
+            f"💸💰 **Payable Amount:** **{price_str}** (₹{pkg['price']})\n\n"
+            f"👇🔥 **Niche Pay Now button par click karein:** 👇"
+        )
+        keyboard = InlineKeyboardMarkup([
+            [InlineKeyboardButton(f"💳⚡ Pay Now • {price_str} 🔥🚀", callback_data=f"pay_{data}")],
+            [InlineKeyboardButton("🔙🏠 Back to Main Menu", callback_data="main_menu")],
+        ])
+        try:
+            await query.message.delete()
+        except Exception:
+            pass
+        await send_photo_safe(context, chat_id, banner, text, keyboard)
+        return
+
+    if data.startswith("pay_"):
+        file_key = data.replace("pay_", "")
+        pkg = PACKAGES.get(file_key)
+        if pkg:
+            await query.message.reply_text(
+                f"💳⚡ **Pay Now** select ho gaya hai (**{pkg['name']}** — **{format_price(pkg)}**). Agle step mein UPI QR code generate karenge.",
+                parse_mode="Markdown",
+            )
 
 
 telegram_app.add_handler(CommandHandler("start", start))
+telegram_app.add_handler(CommandHandler("setbanner", set_banner_photo))
 telegram_app.add_handler(CallbackQueryHandler(callback_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_video_id))
+telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_photo_or_banner))
 
 render_url = os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com"
 try:
@@ -203,3 +265,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+        
