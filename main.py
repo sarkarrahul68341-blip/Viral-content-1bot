@@ -1,21 +1,26 @@
 import os
 import time
+import uuid
 import asyncio
 import threading
 import urllib.parse
 import qrcode
 from flask import Flask, request
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.error import BadRequest
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "9159391235:AAH0drRUPfTY6OcVE1S1O61ugftdQY9gl70")
+TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN", "").strip()
+if not TELEGRAM_BOT_TOKEN:
+    raise RuntimeError("TELEGRAM_BOT_TOKEN missing hai! Render Environment mein token set karein.")
+
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-ADMIN_USER_ID = 8776203848
+ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "8776203848"))
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
-DEFAULT_PHOTO = "AgACAgUAAxkBAAIKmWr-ocEknsMPFV0Ua2SDhjUpjx8SAAKzEmsbhy35V-O7-QS5ebgsAQADAgADeAADPQQ"
+DEFAULT_PHOTO = os.getenv("DEFAULT_PHOTO", "").strip()
 PACKAGE_PHOTO = "VIP New.jpg"
 SCREENSHOT_VALIDITY_SECONDS = 24 * 60 * 60
 USED_SCREENSHOTS = {}
@@ -125,15 +130,34 @@ async def clear_previous_view(context, chat_id, query_message=None):
             pass
 
 
+async def send_photo_or_text(context, chat_id, photo, caption, reply_markup):
+    if photo:
+        try:
+            if os.path.exists(photo):
+                with open(photo, "rb") as f:
+                    return await context.bot.send_photo(
+                        chat_id=chat_id, photo=f, caption=caption, reply_markup=reply_markup, parse_mode="Markdown"
+                    )
+            return await context.bot.send_photo(
+                chat_id=chat_id, photo=photo, caption=caption, reply_markup=reply_markup, parse_mode="Markdown"
+            )
+        except BadRequest as e:
+            print(f"Photo send fallback to text: {e}")
+    return await context.bot.send_message(
+        chat_id=chat_id, text=caption, reply_markup=reply_markup, parse_mode="Markdown"
+    )
+
+
 def generate_upi_qr(amount, order_id):
+    unique_tag = f"{order_id}_{uuid.uuid4().hex[:6]}"
     encoded_name = urllib.parse.quote(BUSINESS_NAME)
-    encoded_note = urllib.parse.quote(f"Order_{order_id}")
+    encoded_note = urllib.parse.quote(f"Order_{unique_tag}")
     upi_uri = f"upi://pay?pa={UPI_ID}&pn={encoded_name}&am={amount}&cu=INR&tn={encoded_note}"
     qr = qrcode.QRCode(version=1, box_size=10, border=2)
     qr.add_data(upi_uri)
     qr.make(fit=True)
     img = qr.make_image(fill_color="black", back_color="white")
-    filename = f"qr_{order_id}.png"
+    filename = f"qr_{unique_tag}.png"
     img.save(filename)
     return filename
 
@@ -150,17 +174,17 @@ def get_main_menu_keyboard():
 
 async def start(update: Update, context):
     caption = "❤️ **Welcome to All Max Content Bot!** ❤️\n\n🔥 **Special Discount Offer Chal Raha Hai!** Niche diye gaye packages mein se apna pasandida option select karein:\n"
-    photo = DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO)
+    photo = DYNAMIC_STORAGE.get("welcome_photo") or (PACKAGE_PHOTO if os.path.exists(PACKAGE_PHOTO) else "")
     if update.callback_query:
         query = update.callback_query
         chat_id = query.message.chat_id
         await clear_previous_view(context, chat_id, query.message)
-        sent = await context.bot.send_photo(chat_id=chat_id, photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
+        sent = await send_photo_or_text(context, chat_id, photo, caption, get_main_menu_keyboard())
         remember_bot_message(context, sent.message_id)
     else:
         chat_id = update.effective_chat.id
         await clear_previous_view(context, chat_id)
-        sent = await update.message.reply_photo(photo=photo, caption=caption, reply_markup=get_main_menu_keyboard(), parse_mode="Markdown")
+        sent = await send_photo_or_text(context, chat_id, photo, caption, get_main_menu_keyboard())
         remember_bot_message(context, sent.message_id)
 
 
@@ -254,9 +278,13 @@ async def button_handler(update: Update, context):
         await clear_previous_view(context, chat_id, query.message)
         video_file_id = PERMANENT_VIDEOS.get(index)
         if video_file_id:
-            sent = await context.bot.send_video(chat_id=chat_id, video=video_file_id, caption=text, reply_markup=keyboard, parse_mode="Markdown")
+            try:
+                sent = await context.bot.send_video(chat_id=chat_id, video=video_file_id, caption=text, reply_markup=keyboard, parse_mode="Markdown")
+            except BadRequest:
+                sent = await context.bot.send_message(chat_id=chat_id, text=text, reply_markup=keyboard, parse_mode="Markdown")
         else:
-            sent = await context.bot.send_photo(chat_id=chat_id, photo=DYNAMIC_STORAGE.get("welcome_photo", DEFAULT_PHOTO), caption=text, reply_markup=keyboard, parse_mode="Markdown")
+            fallback_photo = DYNAMIC_STORAGE.get("welcome_photo") or (PACKAGE_PHOTO if os.path.exists(PACKAGE_PHOTO) else "")
+            sent = await send_photo_or_text(context, chat_id, fallback_photo, text, keyboard)
         remember_bot_message(context, sent.message_id)
         return
 
@@ -270,11 +298,8 @@ async def button_handler(update: Update, context):
             [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")]
         ])
         await clear_previous_view(context, chat_id, query.message)
-        if pkg["photo"] and os.path.exists(pkg["photo"]):
-            with open(pkg["photo"], "rb") as photo_file:
-                sent = await context.bot.send_photo(chat_id=chat_id, photo=photo_file, caption=text, reply_markup=keyboard, parse_mode="Markdown")
-        else:
-            sent = await context.bot.send_photo(chat_id=chat_id, photo=DEFAULT_PHOTO, caption=text, reply_markup=keyboard, parse_mode="Markdown")
+        pkg_photo = pkg["photo"] if (pkg["photo"] and os.path.exists(pkg["photo"])) else DYNAMIC_STORAGE.get("welcome_photo", "")
+        sent = await send_photo_or_text(context, chat_id, pkg_photo, text, keyboard)
         remember_bot_message(context, sent.message_id)
         return
 
@@ -363,20 +388,24 @@ async def handle_media(update: Update, context):
         print(f"Admin send error: {e}")
 
 
+async def error_handler(update: object, context):
+    print(f"Bot error: {context.error}")
+
+
 telegram_app.add_handler(CommandHandler("start", start))
 telegram_app.add_handler(CommandHandler("setphoto", process_photo_setting))
 telegram_app.add_handler(CallbackQueryHandler(button_handler))
 telegram_app.add_handler(MessageHandler(filters.VIDEO, handle_admin_video))
 telegram_app.add_handler(MessageHandler(filters.PHOTO, handle_media))
+telegram_app.add_error_handler(error_handler)
 
-render_url = os.getenv("RENDER_EXTERNAL_URL")
-if render_url:
-    try:
-        asyncio.run_coroutine_threadsafe(
-            telegram_app.bot.set_webhook(url=f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"), loop
-        ).result(timeout=15)
-    except Exception as e:
-        print(f"Webhook setup error: {e}")
+render_url = os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com"
+try:
+    asyncio.run_coroutine_threadsafe(
+        telegram_app.bot.set_webhook(url=f"{render_url.rstrip('/')}/{TELEGRAM_BOT_TOKEN}"), loop
+    ).result(timeout=15)
+except Exception as e:
+    print(f"Webhook setup error: {e}")
 
 
 @app.route("/")
@@ -387,10 +416,4 @@ def home():
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def webhook():
     update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    asyncio.run_coroutine_threadsafe(telegram_app.process_update(update), loop).result(timeout=30)
-    return "OK", 200
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
+    asyncio.run_coroutine_threadsafe(telegram_app.proce
