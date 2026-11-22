@@ -16,7 +16,6 @@ if not TELEGRAM_BOT_TOKEN:
 UPI_ID = os.getenv("UPI_ID", "Puja6489@ptyes")
 BUSINESS_NAME = os.getenv("BUSINESS_NAME", "All Max Content Bot")
 SUPPORT_LINK = "https://t.me/+T_Rwn6XiNPsyMDg9"
-PAYMENT_PROOF_CHAT_ID = os.getenv("PAYMENT_PROOF_CHAT_ID", "-1003812138504")
 ADMIN_USER_ID = int(os.getenv("ADMIN_USER_ID", "8776203848"))
 PERMANENT_CHANNEL_LINK = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PERMANENT_BUTTON_NAME = "Join Demo 2"
@@ -66,7 +65,14 @@ def _start_loop(target_loop):
 
 
 threading.Thread(target=_start_loop, args=(loop,), daemon=True).start()
-asyncio.run_coroutine_threadsafe(telegram_app.initialize(), loop).result(timeout=30)
+
+
+async def _init_bot():
+    await telegram_app.initialize()
+    await telegram_app.start()
+
+
+asyncio.run_coroutine_threadsafe(_init_bot(), loop).result(timeout=30)
 
 
 def format_price(pkg):
@@ -455,5 +461,8 @@ def home():
 
 @app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
 def webhook():
-    update = Update.de_json(request.get_json(force=True), telegram_app.bot)
-    asyncio.run_coroutine_threadsafe(telegram_app.process_update(u
+    try:
+        payload = request.get_json(force=True, silent=True) or {}
+        if not payload:
+            return "OK", 200
+        upd
