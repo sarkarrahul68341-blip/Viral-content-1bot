@@ -33,9 +33,10 @@ def w_json(p, d):
 
 
 cfg = r_json(CONFIG_FILE)
+PKG_BANNER = (os.getenv("BANNER_PHOTO") or PKG_PHOTO).strip()
 STORAGE = {
     "welcome": cfg.get("welcome") or os.getenv("DEFAULT_PHOTO", "").strip(),
-    "banner": os.getenv("BANNER_PHOTO", PKG_PHOTO).strip(),
+    "banner": PKG_BANNER,
     "demos": {int(k): v for k, v in r_json(DEMOS_FILE).items()},
 }
 
@@ -243,7 +244,7 @@ async def on_photo(update: Update, context):
         if context.user_data.pop("pending_welcome", False) or "setwelcome" in cap.lower():
             fid = msg.photo[-1].file_id
             STORAGE["welcome"] = fid
-            w_json(CONFIG_FILE, {"welcome": fid, "banner": STORAGE.get("banner", "")})
+            w_json(CONFIG_FILE, {"welcome": fid})
             await send_or_edit(context, cid, "", "✅ **Welcome photo save ho gaya!** 🖼️", None, incoming_msg=msg)
             return
         idx = save_demo_entry(context, cap, {"photo": msg.photo[-1].file_id})
@@ -356,3 +357,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+                  
