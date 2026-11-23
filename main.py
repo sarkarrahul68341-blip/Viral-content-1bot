@@ -112,7 +112,10 @@ async def send_safe(context, chat_id, photo, caption, markup, video=None, dur=No
         try:
             sent = await context.bot.send_animation(chat_id, animation, caption=caption, reply_markup=markup, parse_mode="Markdown")
         except BadRequest:
-            pass
+            try:
+                sent = await context.bot.send_video(chat_id, animation, caption=caption, reply_markup=markup, parse_mode="Markdown", supports_streaming=True)
+            except BadRequest:
+                pass
     if not sent and video:
         try:
             sent = await context.bot.send_video(chat_id, video, caption=caption, reply_markup=markup, parse_mode="Markdown", width=W, height=H, duration=dur, supports_streaming=True)
@@ -219,10 +222,11 @@ async def demos_status(update: Update, context):
 
 
 def save_demo_entry(context, caption_text, payload):
-    pending = context.user_data.pop("pending_demo", None)
+    pending = context.user_data.get("pending_demo")
     m = re.match(r"^/setdemo\s+(\d{1,2})(?:\s+(.*))?$", caption_text, flags=re.IGNORECASE | re.DOTALL)
     if not (m or pending):
         return None
+    context.user_data.pop("pending_demo", None)
     idx = max(1, min(10, int(m.group(1)))) if m else int(pending["idx"])
     note = (m.group(2) or "").strip() if m else (caption_text or pending.get("note") or "")
     entry = dict(payload, note=note)
@@ -231,23 +235,46 @@ def save_demo_entry(context, caption_text, payload):
     return idx
 
 
+async def _set_welcome_gif(update: Update, context, file_id: str):
+    STORAGE["welcome_gif"] = file_id
+    STORAGE["welcome"] = ""
+    save_welcome_cfg()
+    await send_safe(context, update.effective_chat.id, "", "✅ **Welcome GIF save ho gaya!** 🎞️ Ab `/start` karke check karein.", None, incoming_msg=update.message)
+
+
 async def on_animation(update: Update, context):
     msg = update.message
     if msg and msg.animation and update.effective_user.id == ADMIN_ID:
         cap = (msg.caption or "").strip()
-        if context.user_data.pop("pending_welcome", False) or "setwelcome" in cap.lower():
-            STORAGE["welcome_gif"] = msg.animation.file_id
-            STORAGE["welcome"] = ""
-            save_welcome_cfg()
-            await send_safe(context, update.effective_chat.id, "", "✅ **Welcome GIF save ho gaya!** 🎞️", None, incoming_msg=msg)
+        if context.user_data.get("pending_welcome") or "setwelcome" in cap.lower():
+            context.user_data.pop("pending_welcome", None)
+            await _set_welcome_gif(update, context, msg.animation.file_id)
+
+
+async def on_document(update: Update, context):
+    msg = update.message
+    if not msg or not msg.document or update.effective_user.id != ADMIN_ID:
+        return
+    doc = msg.document
+    cap = (msg.caption or "").strip()
+    is_gif = (doc.mime_type or "").lower() == "image/gif" or (doc.file_name or "").lower().endswith(".gif")
+    if is_gif and (context.user_data.get("pending_welcome") or "setwelcome" in cap.lower()):
+        context.user_data.pop("pending_welcome", None)
+        await _set_welcome_gif(update, context, doc.file_id)
 
 
 async def on_video(update: Update, context):
     msg = update.message
-    if msg and msg.video and update.effective_user.id == ADMIN_ID:
-        idx = save_demo_entry(context, (msg.caption or "").strip(), {"video": msg.video.file_id, "duration": msg.video.duration})
-        if idx:
-            await send_safe(context, update.effective_chat.id, "", f"✅ **Demo {idx} (Video) save ho gaya!** 🎬", None, incoming_msg=msg)
+    if not msg or not msg.video or update.effective_user.id != ADMIN_ID:
+        return
+    cap = (msg.caption or "").strip()
+    if context.user_data.get("pending_welcome") or "setwelcome" in cap.lower():
+        context.user_data.pop("pending_welcome", None)
+        await _set_welcome_gif(update, context, msg.video.file_id)
+        return
+    idx = save_demo_entry(context, cap, {"video": msg.video.file_id, "duration": msg.video.duration})
+    if idx:
+        await send_safe(context, update.effective_chat.id, "", f"✅ **Demo {idx} (Video) save ho gaya!** 🎬", None, incoming_msg=msg)
 
 
 async def on_photo(update: Update, context):
@@ -257,7 +284,8 @@ async def on_photo(update: Update, context):
     cid = update.effective_chat.id
     cap = (msg.caption or "").strip()
     if update.effective_user.id == ADMIN_ID:
-        if context.user_data.pop("pending_welcome", False) or "setwelcome" in cap.lower():
+        if context.user_data.get("pending_welcome") or "setwelcome" in cap.lower():
+            context.user_data.pop("pending_welcome", None)
             STORAGE["welcome"] = msg.photo[-1].file_id
             STORAGE["welcome_gif"] = ""
             save_welcome_cfg()
@@ -343,6 +371,7 @@ for cmd, fn in [("start", start), ("setwelcome", setwelcome_cmd), ("setdemo", se
     bot_app.add_handler(CommandHandler(cmd, fn))
 bot_app.add_handler(CallbackQueryHandler(on_callback))
 bot_app.add_handler(MessageHandler(filters.ANIMATION, on_animation))
+bot_app.add_handler(MessageHandler(filters.Document.ALL, on_document))
 bot_app.add_handler(MessageHandler(filters.VIDEO, on_video))
 bot_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
 
@@ -366,12 +395,4 @@ def webhook():
         payload = request.get_json(force=True, silent=True)
         if payload:
             fut = run_async(bot_app.process_update(Update.de_json(payload, bot_app.bot)))
-            if fut:
-                fut.result(timeout=15)
-    except Exception as e:
-        print(f"Update err: {e}")
-    return "OK", 200
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    
