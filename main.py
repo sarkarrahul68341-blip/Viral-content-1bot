@@ -35,6 +35,7 @@ def w_json(p, d):
 cfg = r_json(CONFIG_FILE)
 STORAGE = {
     "welcome": cfg.get("welcome") or os.getenv("DEFAULT_PHOTO", "").strip(),
+    "welcome_gif": cfg.get("welcome_gif") or os.getenv("DEFAULT_GIF", "").strip(),
     "banner": (os.getenv("BANNER_PHOTO") or PKG_PHOTO).strip(),
     "demos": {int(k): v for k, v in r_json(DEMOS_FILE).items()},
 }
@@ -82,6 +83,13 @@ def run_async(coro):
     return None
 
 
+def save_welcome_cfg():
+    w_json(CONFIG_FILE, {
+        "welcome": STORAGE.get("welcome", ""),
+        "welcome_gif": STORAGE.get("welcome_gif", ""),
+    })
+
+
 async def try_del(bot, chat_id, msg_id):
     if chat_id and msg_id:
         try:
@@ -97,10 +105,15 @@ async def clear_prev(context, chat_id, incoming_msg=None):
         await try_del(context.bot, chat_id, incoming_msg.message_id)
 
 
-async def send_safe(context, chat_id, photo, caption, markup, video=None, dur=None, incoming_msg=None):
+async def send_safe(context, chat_id, photo, caption, markup, video=None, dur=None, animation=None, incoming_msg=None):
     await clear_prev(context, chat_id, incoming_msg)
     sent = None
-    if video:
+    if animation:
+        try:
+            sent = await context.bot.send_animation(chat_id, animation, caption=caption, reply_markup=markup, parse_mode="Markdown")
+        except BadRequest:
+            pass
+    if not sent and video:
         try:
             sent = await context.bot.send_video(chat_id, video, caption=caption, reply_markup=markup, parse_mode="Markdown", width=W, height=H, duration=dur, supports_streaming=True)
         except BadRequest:
@@ -150,15 +163,16 @@ async def start(update: Update, context):
     if update.callback_query:
         await update.callback_query.answer()
         await try_del(context.bot, cid, update.callback_query.message.message_id)
-    photo = STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
+    gif = STORAGE.get("welcome_gif") or ""
+    photo = "" if gif else (STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else ""))
     cap = "❤️ **Welcome to All Max Content Bot!**\n\n🔥 **Special Discount Offer Chal Raha Hai!**\n✅ Direct UPI QR Payment • Fast Approval • Instant Access\n\n👇 Niche se apna package select karein:"
-    await send_safe(context, cid, photo, cap, menu_kb(), incoming_msg=update.message)
+    await send_safe(context, cid, photo, cap, menu_kb(), animation=gif or None, incoming_msg=update.message)
 
 
 async def setwelcome_cmd(update: Update, context):
     if update.effective_user.id == ADMIN_ID:
         context.user_data["pending_welcome"] = True
-        await send_safe(context, update.effective_chat.id, "", "🖼️ **Welcome Photo Ready!** 📸 Ab sirf welcome ke liye photo bhej dein.", None, incoming_msg=update.message)
+        await send_safe(context, update.effective_chat.id, "", "🖼️ **Welcome Media Ready!** 🎞️📸 Ab sirf welcome ke liye **GIF** ya **Photo** bhej dein.", None, incoming_msg=update.message)
 
 
 async def setdemo_cmd(update: Update, context):
@@ -217,6 +231,17 @@ def save_demo_entry(context, caption_text, payload):
     return idx
 
 
+async def on_animation(update: Update, context):
+    msg = update.message
+    if msg and msg.animation and update.effective_user.id == ADMIN_ID:
+        cap = (msg.caption or "").strip()
+        if context.user_data.pop("pending_welcome", False) or "setwelcome" in cap.lower():
+            STORAGE["welcome_gif"] = msg.animation.file_id
+            STORAGE["welcome"] = ""
+            save_welcome_cfg()
+            await send_safe(context, update.effective_chat.id, "", "✅ **Welcome GIF save ho gaya!** 🎞️", None, incoming_msg=msg)
+
+
 async def on_video(update: Update, context):
     msg = update.message
     if msg and msg.video and update.effective_user.id == ADMIN_ID:
@@ -233,9 +258,9 @@ async def on_photo(update: Update, context):
     cap = (msg.caption or "").strip()
     if update.effective_user.id == ADMIN_ID:
         if context.user_data.pop("pending_welcome", False) or "setwelcome" in cap.lower():
-            fid = msg.photo[-1].file_id
-            STORAGE["welcome"] = fid
-            w_json(CONFIG_FILE, {"welcome": fid})
+            STORAGE["welcome"] = msg.photo[-1].file_id
+            STORAGE["welcome_gif"] = ""
+            save_welcome_cfg()
             await send_safe(context, cid, "", "✅ **Welcome photo save ho gaya!** 🖼️", None, incoming_msg=msg)
             return
         idx = save_demo_entry(context, cap, {"photo": msg.photo[-1].file_id})
@@ -317,6 +342,7 @@ async def on_callback(update: Update, context):
 for cmd, fn in [("start", start), ("setwelcome", setwelcome_cmd), ("setdemo", setdemo_cmd), ("deldemo", deldemo_cmd), ("demos", demos_status)]:
     bot_app.add_handler(CommandHandler(cmd, fn))
 bot_app.add_handler(CallbackQueryHandler(on_callback))
+bot_app.add_handler(MessageHandler(filters.ANIMATION, on_animation))
 bot_app.add_handler(MessageHandler(filters.VIDEO, on_video))
 bot_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
 
@@ -349,4 +375,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
