@@ -28,8 +28,11 @@ def r_json(p):
 
 
 def w_json(p, d):
-    with open(p, "w", encoding="utf-8") as f:
-        json.dump(d, f, ensure_ascii=False, indent=2)
+    try:
+        with open(p, "w", encoding="utf-8") as f:
+            json.dump(d, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Write err ({p}): {e}")
 
 
 cfg = r_json(CONFIG_FILE)
@@ -37,7 +40,7 @@ STORAGE = {
     "welcome": cfg.get("welcome") or os.getenv("DEFAULT_PHOTO", "").strip(),
     "welcome_gif": cfg.get("welcome_gif") or os.getenv("DEFAULT_GIF", "").strip(),
     "banner": (os.getenv("BANNER_PHOTO") or PKG_PHOTO).strip(),
-    "demos": {int(k): v for k, v in r_json(DEMOS_FILE).items()},
+    "demos": {int(k): v for k, v in r_json(DEMOS_FILE).items() if str(k).isdigit()},
 }
 
 PACKAGES = {
@@ -61,14 +64,18 @@ def _run_bg():
     asyncio.set_event_loop(loop)
 
     async def _init():
-        await bot_app.initialize()
-        await bot_app.start()
-        bot_ready.set()
-        url = (os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com").rstrip("/")
         try:
-            await bot_app.bot.set_webhook(f"{url}/{TOKEN}")
+            await bot_app.initialize()
+            await bot_app.start()
+            url = (os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com").rstrip("/")
+            try:
+                await bot_app.bot.set_webhook(f"{url}/{TOKEN}")
+            except Exception as e:
+                print(f"Webhook err: {e}")
         except Exception as e:
-            print(f"Webhook err: {e}")
+            print(f"Bot init err: {e}")
+        finally:
+            bot_ready.set()
 
     loop.run_until_complete(_init())
     loop.run_forever()
@@ -389,10 +396,4 @@ def refresh_hook():
     return "Webhook Refreshed", 200
 
 
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    try:
-        payload = request.get_json(force=True, silent=True)
-        if payload:
-            fut = run_async(bot_app.process_update(Update.de_json(payload, bot_app.bot)))
-    
+@app
