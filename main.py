@@ -85,7 +85,12 @@ def _sync_webhook():
 threading.Thread(target=_sync_webhook, daemon=True).start()
 
 
-async def send_safe(context, chat_id, photo, caption, markup):
+async def send_safe(context, chat_id, photo, caption, markup, video=None):
+    if video:
+        try:
+            return await context.bot.send_video(chat_id, video, caption=caption, reply_markup=markup, parse_mode="Markdown")
+        except BadRequest:
+            pass
     if photo:
         try:
             if os.path.exists(photo):
@@ -149,7 +154,7 @@ async def setdemo_cmd(update: Update, context):
     context.user_data["pending_demo"] = {"idx": idx, "note": note}
     await update.message.reply_text(
         f"🎬 **Demo Clip {idx} Ready!**\n"
-        f"📸 Ab iske liye photo bhej dein.",
+        f"🎥 Ab iske liye **video** ya **photo** bhej dein.",
         parse_mode="Markdown"
     )
 
@@ -159,12 +164,38 @@ async def demos_status(update: Update, context):
         return
     demos = STORAGE.get("demos", {})
     if not demos:
-        await update.message.reply_text("ℹ️ Abhi koi demo set nahi hai. `/setdemo 1` bhej kar photo bhejein.", parse_mode="Markdown")
+        await update.message.reply_text("ℹ️ Abhi koi demo set nahi hai. `/setdemo 1` bhej kar video ya photo bhejein.", parse_mode="Markdown")
         return
     lines = ["🎬 **Saved Permanent Demos:**"]
     for i in sorted(demos.keys()):
-        lines.append(f"• Clip {i}: {demos[i].get('note', '')}")
+        kind = "Video" if demos[i].get("video") else "Photo"
+        lines.append(f"• Clip {i} ({kind}): {demos[i].get('note', '')}")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
+async def on_video(update: Update, context):
+    msg = update.message
+    if not msg or not msg.video or update.effective_user.id != ADMIN_ID:
+        return
+
+    caption_text = (msg.caption or "").strip()
+    pending = context.user_data.pop("pending_demo", None)
+    match = re.match(r"^/setdemo\s+(\d{1,2})(?:\s+(.*))?$", caption_text, flags=re.IGNORECASE | re.DOTALL)
+
+    if match or pending:
+        if match:
+            idx = max(1, min(10, int(match.group(1))))
+            custom_note = (match.group(2) or "").strip()
+        else:
+            idx = int(pending["idx"])
+            custom_note = caption_text or (pending.get("note") or "")
+        demos = STORAGE.setdefault("demos", {})
+        demos[idx] = {
+            "video": msg.video.file_id,
+            "note": custom_note or f"Demo clip number {idx}.",
+        }
+        save_demos(demos)
+        await msg.reply_text(f"✅ **Demo Clip {idx} (Video) permanently save ho gaya!** 🎬", parse_mode="Markdown")
 
 
 async def on_photo(update: Update, context):
@@ -196,7 +227,7 @@ async def on_photo(update: Update, context):
                 "note": custom_note or f"Demo clip number {idx}.",
             }
             save_demos(demos)
-            await msg.reply_text(f"✅ **Demo Clip {idx} permanently save ho gaya!** 💾", parse_mode="Markdown")
+            await msg.reply_text(f"✅ **Demo Clip {idx} (Photo) permanently save ho gaya!** 💾", parse_mode="Markdown")
             return
 
     pkg_key = context.user_data.get("qr_pkg")
@@ -300,9 +331,10 @@ async def on_callback(update: Update, context):
         except Exception:
             pass
         demo_item = STORAGE.get("demos", {}).get(idx, {})
+        video = demo_item.get("video")
         photo = demo_item.get("photo") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
         note = demo_item.get("note") or f"Demo clip number {idx}."
-        await send_safe(context, cid, photo, f"🎬 **Demo Clip {idx} / 10**\n🔥 {note}", InlineKeyboardMarkup(rows))
+        await send_safe(context, cid, photo, f"🎬 **Demo Clip {idx} / 10**\n🔥 {note}", InlineKeyboardMarkup(rows), video=video)
         return
 
     if data in PACKAGES:
@@ -367,6 +399,7 @@ bot_app.add_handler(CommandHandler("start", start))
 bot_app.add_handler(CommandHandler("setdemo", setdemo_cmd))
 bot_app.add_handler(CommandHandler("demos", demos_status))
 bot_app.add_handler(CallbackQueryHandler(on_callback))
+bot_app.add_handler(MessageHandler(filters.VIDEO, on_video))
 bot_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
 
 
@@ -394,4 +427,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-            
