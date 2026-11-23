@@ -208,7 +208,7 @@ async def on_video(update: Update, context):
             "width": DEMO_FRAME_WIDTH,
             "height": DEMO_FRAME_HEIGHT,
             "duration": msg.video.duration,
-            "note": custom_note or "Poore Full Access plan par aapko sab kuch ek saath mil jaayega!",
+            "note": custom_note,
         }
         save_demos(demos)
         await msg.reply_text(f"✅ **Demo {idx} (Video) permanently save ho gaya!** 🎬", parse_mode="Markdown")
@@ -240,7 +240,7 @@ async def on_photo(update: Update, context):
             demos = STORAGE.setdefault("demos", {})
             demos[idx] = {
                 "photo": msg.photo[-1].file_id,
-                "note": custom_note or "Poore Full Access plan par aapko sab kuch ek saath mil jaayega!",
+                "note": custom_note,
             }
             save_demos(demos)
             await msg.reply_text(f"✅ **Demo {idx} (Photo) permanently save ho gaya!** 💾", parse_mode="Markdown")
@@ -354,11 +354,11 @@ async def on_callback(update: Update, context):
             "duration": demo_item.get("duration"),
         }
         photo = demo_item.get("photo") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
-        custom_line = demo_item.get("note")
+        custom_line = (demo_item.get("note") or "").strip()
         demo_caption = (
             f"✨ **Preview ({idx}/10)** ✨\n\n"
-            f"👑 **Poore Full Access Plan par aapko sab kuch ek saath mil jaayega!** 💎\n"
-            f"🔥 {custom_line if custom_line else 'All VIP files, bonus updates aur instant access ek hi plan mein.'} 🚀"
+            f"👑 **Poore Full Access Plan par aapko sab kuch ek saath mil jaayega!** 💎"
+            + (f"\n🔥 {custom_line} 🚀" if custom_line else "")
         )
         await send_safe(context, cid, photo, demo_caption, InlineKeyboardMarkup(rows), video=video, video_meta=video_meta)
         return
@@ -453,4 +453,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
+                                        
