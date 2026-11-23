@@ -21,6 +21,8 @@ DEFAULT_PHOTO = os.getenv("DEFAULT_PHOTO", "").strip()
 PKG_PHOTO = "VIP New.jpg"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEMOS_FILE = os.path.join(BASE_DIR, "demos_store.json")
+DEMO_FRAME_WIDTH = 1280
+DEMO_FRAME_HEIGHT = 720
 USED_SS = {}
 
 
@@ -85,10 +87,21 @@ def _sync_webhook():
 threading.Thread(target=_sync_webhook, daemon=True).start()
 
 
-async def send_safe(context, chat_id, photo, caption, markup, video=None):
+async def send_safe(context, chat_id, photo, caption, markup, video=None, video_meta=None):
     if video:
+        meta = video_meta or {}
         try:
-            return await context.bot.send_video(chat_id, video, caption=caption, reply_markup=markup, parse_mode="Markdown")
+            return await context.bot.send_video(
+                chat_id,
+                video,
+                caption=caption,
+                reply_markup=markup,
+                parse_mode="Markdown",
+                width=DEMO_FRAME_WIDTH,
+                height=DEMO_FRAME_HEIGHT,
+                duration=meta.get("duration"),
+                supports_streaming=True,
+            )
         except BadRequest:
             pass
     if photo:
@@ -153,7 +166,7 @@ async def setdemo_cmd(update: Update, context):
     note = " ".join(args[1:]).strip()
     context.user_data["pending_demo"] = {"idx": idx, "note": note}
     await update.message.reply_text(
-        f"🎬 **Demo Clip {idx} Ready!**\n"
+        f"🎬 **Demo {idx} Ready!**\n"
         f"🎥 Ab iske liye **video** ya **photo** bhej dein.",
         parse_mode="Markdown"
     )
@@ -169,7 +182,7 @@ async def demos_status(update: Update, context):
     lines = ["🎬 **Saved Permanent Demos:**"]
     for i in sorted(demos.keys()):
         kind = "Video" if demos[i].get("video") else "Photo"
-        lines.append(f"• Clip {i} ({kind}): {demos[i].get('note', '')}")
+        lines.append(f"• #{i} ({kind}): {demos[i].get('note', '')}")
     await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
 
 
@@ -192,10 +205,13 @@ async def on_video(update: Update, context):
         demos = STORAGE.setdefault("demos", {})
         demos[idx] = {
             "video": msg.video.file_id,
-            "note": custom_note or f"Demo clip number {idx}.",
+            "width": DEMO_FRAME_WIDTH,
+            "height": DEMO_FRAME_HEIGHT,
+            "duration": msg.video.duration,
+            "note": custom_note or "Poore Full Access plan par aapko sab kuch ek saath mil jaayega!",
         }
         save_demos(demos)
-        await msg.reply_text(f"✅ **Demo Clip {idx} (Video) permanently save ho gaya!** 🎬", parse_mode="Markdown")
+        await msg.reply_text(f"✅ **Demo {idx} (Video) permanently save ho gaya!** 🎬", parse_mode="Markdown")
 
 
 async def on_photo(update: Update, context):
@@ -224,10 +240,10 @@ async def on_photo(update: Update, context):
             demos = STORAGE.setdefault("demos", {})
             demos[idx] = {
                 "photo": msg.photo[-1].file_id,
-                "note": custom_note or f"Demo clip number {idx}.",
+                "note": custom_note or "Poore Full Access plan par aapko sab kuch ek saath mil jaayega!",
             }
             save_demos(demos)
-            await msg.reply_text(f"✅ **Demo Clip {idx} (Photo) permanently save ho gaya!** 💾", parse_mode="Markdown")
+            await msg.reply_text(f"✅ **Demo {idx} (Photo) permanently save ho gaya!** 💾", parse_mode="Markdown")
             return
 
     pkg_key = context.user_data.get("qr_pkg")
@@ -332,9 +348,19 @@ async def on_callback(update: Update, context):
             pass
         demo_item = STORAGE.get("demos", {}).get(idx, {})
         video = demo_item.get("video")
+        video_meta = {
+            "width": DEMO_FRAME_WIDTH,
+            "height": DEMO_FRAME_HEIGHT,
+            "duration": demo_item.get("duration"),
+        }
         photo = demo_item.get("photo") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
-        note = demo_item.get("note") or f"Demo clip number {idx}."
-        await send_safe(context, cid, photo, f"🎬 **Demo Clip {idx} / 10**\n🔥 {note}", InlineKeyboardMarkup(rows), video=video)
+        custom_line = demo_item.get("note")
+        demo_caption = (
+            f"✨ **Preview ({idx}/10)** ✨\n\n"
+            f"👑 **Poore Full Access Plan par aapko sab kuch ek saath mil jaayega!** 💎\n"
+            f"🔥 {custom_line if custom_line else 'All VIP files, bonus updates aur instant access ek hi plan mein.'} 🚀"
+        )
+        await send_safe(context, cid, photo, demo_caption, InlineKeyboardMarkup(rows), video=video, video_meta=video_meta)
         return
 
     if data in PACKAGES:
@@ -427,3 +453,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    
