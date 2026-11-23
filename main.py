@@ -202,6 +202,31 @@ async def setdemo_cmd(update: Update, context):
     )
 
 
+async def deldemo_cmd(update: Update, context):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    args = context.args or []
+    if not args:
+        await update.message.reply_text("⚠️ Sahi format use karein: `/deldemo 1` (ya `/deldemo all`)", parse_mode="Markdown")
+        return
+    demos = STORAGE.setdefault("demos", {})
+    if args[0].lower() == "all":
+        demos.clear()
+        save_demos(demos)
+        await update.message.reply_text("🗑️ **Saare demos delete ho gaye!** Ab aap `/setdemo 1` se naye set kar sakte hain.", parse_mode="Markdown")
+        return
+    if not re.fullmatch(r"\d{1,2}", args[0]):
+        await update.message.reply_text("⚠️ Sahi format use karein: `/deldemo 1` (1 se 10 tak) ya `/deldemo all`", parse_mode="Markdown")
+        return
+    idx = max(1, min(10, int(args[0])))
+    if idx in demos:
+        del demos[idx]
+        save_demos(demos)
+        await update.message.reply_text(f"🗑️ **Demo {idx} delete ho gaya!** Ab aap `/setdemo {idx}` se naya set kar sakte hain.", parse_mode="Markdown")
+    else:
+        await update.message.reply_text(f"ℹ️ Demo {idx} pehle se khali hai.", parse_mode="Markdown")
+
+
 async def demos_status(update: Update, context):
     if update.effective_user.id != ADMIN_ID:
         return
@@ -458,33 +483,6 @@ async def on_callback(update: Update, context):
 bot_app.add_handler(CommandHandler("start", start))
 bot_app.add_handler(CommandHandler("setwelcome", setwelcome_cmd))
 bot_app.add_handler(CommandHandler("setdemo", setdemo_cmd))
+bot_app.add_handler(CommandHandler("deldemo", deldemo_cmd))
 bot_app.add_handler(CommandHandler("demos", demos_status))
-bot_app.add_handler(CallbackQueryHandler(on_callback))
-bot_app.add_handler(MessageHandler(filters.VIDEO, on_video))
-bot_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
-
-
-@app.route("/")
-def home():
-    return "OK", 200
-
-
-@app.route("/refresh")
-def refresh_hook():
-    _sync_webhook()
-    return "Webhook Refreshed", 200
-
-
-@app.route(f"/{TOKEN}", methods=["POST"])
-def webhook():
-    try:
-        payload = request.get_json(force=True, silent=True)
-        if payload:
-            asyncio.run_coroutine_threadsafe(bot_app.process_update(Update.de_json(payload, bot_app.bot)), loop)
-    except Exception as e:
-        print(f"Update err: {e}")
-    return "OK", 200
-
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+bot_app
