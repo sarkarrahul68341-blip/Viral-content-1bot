@@ -152,6 +152,17 @@ async def on_callback(update: Update, context):
         await start(update, context)
         return
 
+    if data == "ss_guide":
+        await context.bot.send_message(
+            cid,
+            "📸✨ **Screenshot Yahin Bhejein!** ✨📸\n\n"
+            "✅ Payment karne ke baad **seedha is bot chat mein** (neeche 📎 / photo icon se) apna screenshot bhej dein.\n"
+            "⏳ Bhejte hi aapka proof admin (`8776203848`) ke paas verification ke liye chala jaayega.\n"
+            "🚀 Approve hote hi **VIP Access Link** yahin mil jaayega.",
+            parse_mode="Markdown"
+        )
+        return
+
     if data.startswith(("approve_", "reject_")) and uid == ADMIN_ID:
         act, target_id, key = data.split("_", 2)
         pkg = PACKAGES.get(key, PACKAGES["file_1"])
@@ -237,14 +248,15 @@ async def on_callback(update: Update, context):
                 f"📦✨ **Package:** {pkg['name']}\n"
                 f"💰💎 **Amount:** {pkg['badge']} (₹{pkg['price']})\n\n"
                 f"1️⃣📷 Upar diye gaye QR code ko scan karke **₹{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣📸 Payment complete hone ke baad yahan **screenshot** bhejein.\n"
-                f"3️⃣⚡ Approval ke baad aapko turant **VIP Link** mil jaayega. 🚀"
+                f"2️⃣📸 Payment ke baad **yahin is chat mein** screenshot bhejein (kisi aur jagah nahi).\n"
+                f"3️⃣⚡ Verification ke baad aapko turant **VIP Link** yahin mil jaayega. 🚀\n\n"
+                f"🔒🛡️ *100% direct UPI payment • Safe & fast verification.*"
             )
             with open(qr_path, "rb") as f:
                 await context.bot.send_photo(
                     cid, f, caption=cap,
                     reply_markup=InlineKeyboardMarkup([
-                        [InlineKeyboardButton("💬 🛡️ Help & Support", url=SUPPORT_URL)],
+                        [InlineKeyboardButton("📸✨ Send Screenshot Here ✅", callback_data="ss_guide")],
                         [InlineKeyboardButton("🔙 🏠 Back to Main Menu", callback_data="main_menu")],
                     ]),
                     parse_mode="Markdown"
@@ -283,3 +295,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+    
