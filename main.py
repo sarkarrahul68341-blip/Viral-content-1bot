@@ -35,7 +35,7 @@ def w_json(p, d):
 cfg = r_json(CONFIG_FILE)
 STORAGE = {
     "welcome": cfg.get("welcome") or os.getenv("DEFAULT_PHOTO", "").strip(),
-    "banner": cfg.get("banner") or os.getenv("BANNER_PHOTO", PKG_PHOTO).strip(),
+    "banner": os.getenv("BANNER_PHOTO", PKG_PHOTO).strip(),
     "demos": {int(k): v for k, v in r_json(DEMOS_FILE).items()},
 }
 
@@ -158,7 +158,7 @@ async def start(update: Update, context):
     if update.callback_query:
         await update.callback_query.answer()
         cb_msg = update.callback_query.message
-    photo = STORAGE.get("welcome") or STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
+    photo = STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
     cap = "❤️ **Welcome to All Max Content Bot!**\n\n🔥 **Special Discount Offer Chal Raha Hai!**\n✅ Direct UPI QR Payment • Fast Approval • Instant Access\n\n👇 Niche se apna package select karein:"
     await send_or_edit(context, cid, photo, cap, menu_kb(), cb_msg=cb_msg, incoming_msg=update.message)
 
@@ -166,7 +166,7 @@ async def start(update: Update, context):
 async def setwelcome_cmd(update: Update, context):
     if update.effective_user.id == ADMIN_ID:
         context.user_data["pending_welcome"] = True
-        await send_or_edit(context, update.effective_chat.id, "", "🖼️ **Welcome Banner Ready!** 📸 Ab photo bhej dein.", None, incoming_msg=update.message)
+        await send_or_edit(context, update.effective_chat.id, "", "🖼️ **Welcome Photo Ready!** 📸 Ab sirf welcome ke liye photo bhej dein.", None, incoming_msg=update.message)
 
 
 async def setdemo_cmd(update: Update, context):
@@ -240,11 +240,11 @@ async def on_photo(update: Update, context):
     cid = update.effective_chat.id
     cap = (msg.caption or "").strip()
     if update.effective_user.id == ADMIN_ID:
-        if context.user_data.pop("pending_welcome", False) or any(w in cap.lower() for w in ("setwelcome", "setbanner")):
+        if context.user_data.pop("pending_welcome", False) or "setwelcome" in cap.lower():
             fid = msg.photo[-1].file_id
-            STORAGE["welcome"] = STORAGE["banner"] = fid
-            w_json(CONFIG_FILE, {"welcome": fid, "banner": fid})
-            await send_or_edit(context, cid, "", "✅ **Welcome banner save ho gaya!** 🖼️", None, incoming_msg=msg)
+            STORAGE["welcome"] = fid
+            w_json(CONFIG_FILE, {"welcome": fid, "banner": STORAGE.get("banner", "")})
+            await send_or_edit(context, cid, "", "✅ **Welcome photo save ho gaya!** 🖼️", None, incoming_msg=msg)
             return
         idx = save_demo_entry(context, cap, {"photo": msg.photo[-1].file_id})
         if idx:
@@ -295,10 +295,10 @@ async def on_callback(update: Update, context):
         item = STORAGE.get("demos", {}).get(idx, {})
         line = (item.get("note") or "").strip()
         cap = f"✨ **Preview ({idx}/10)** ✨\n\n👑 **Poore Full Access Plan par aapko sab kuch ek saath mil jaayega!** 💎" + (f"\n🔥 {line} 🚀" if line else "")
-        await send_or_edit(context, cid, item.get("photo") or STORAGE.get("welcome") or STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else ""), cap, InlineKeyboardMarkup(rows), video=item.get("video"), dur=item.get("duration"), cb_msg=cb_msg)
+        await send_or_edit(context, cid, item.get("photo") or "", cap, InlineKeyboardMarkup(rows), video=item.get("video"), dur=item.get("duration"), cb_msg=cb_msg)
     elif data in PACKAGES:
         pkg = PACKAGES[data]
-        banner = STORAGE.get("banner") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
+        banner = STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
         text = f"💎 **Selected Plan:** {pkg['name']} {pkg['emoji']}\n💰 **Offer Price:** {pkg['badge']}\n\n🛡️ **How it works:**\n1️⃣ ⚡ **Pay Now** dabakar QR code generate karein.\n2️⃣ 📱 UPI se **₹{pkg['price']}** pay karke **screenshot** bhejein.\n3️⃣ 🚀 Verification ke baad **VIP Access Link** yahin mil jaayega."
         kb = InlineKeyboardMarkup([[InlineKeyboardButton(f"⚡ Pay Now • {pkg['badge']}", callback_data=f"pay_{data}")], [InlineKeyboardButton("🏠 Back to Main Menu", callback_data="main_menu")]])
         await send_or_edit(context, cid, banner, text, kb, cb_msg=cb_msg)
@@ -356,4 +356,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
