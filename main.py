@@ -1,4 +1,6 @@
 import os
+import re
+import json
 import time
 import asyncio
 import threading
@@ -17,9 +19,34 @@ SUPPORT_URL = "https://t.me/+T_Rwn6XiNPsyMDg9"
 DEMO_URL = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 DEFAULT_PHOTO = os.getenv("DEFAULT_PHOTO", "").strip()
 PKG_PHOTO = "VIP New.jpg"
+DEMOS_FILE = "demos_store.json"
 USED_SS = {}
 
-STORAGE = {"welcome": DEFAULT_PHOTO, "banner": os.getenv("BANNER_PHOTO", PKG_PHOTO).strip()}
+
+def load_demos():
+    if os.path.exists(DEMOS_FILE):
+        try:
+            with open(DEMOS_FILE, "r", encoding="utf-8") as f:
+                raw = json.load(f)
+                return {int(k): v for k, v in raw.items()}
+        except Exception as e:
+            print(f"Load demos err: {e}")
+    return {}
+
+
+def save_demos(demos_dict):
+    try:
+        with open(DEMOS_FILE, "w", encoding="utf-8") as f:
+            json.dump(demos_dict, f, ensure_ascii=False, indent=2)
+    except Exception as e:
+        print(f"Save demos err: {e}")
+
+
+STORAGE = {
+    "welcome": DEFAULT_PHOTO,
+    "banner": os.getenv("BANNER_PHOTO", PKG_PHOTO).strip(),
+    "demos": load_demos(),
+}
 
 PACKAGES = {
     "file_1": {"name": "01 All mix content VIP Access", "price": 249, "badge": "4̶9̶9̶ ➡️ 💎 ₹249", "emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1"},
@@ -109,14 +136,45 @@ async def start(update: Update, context):
     await send_safe(context, update.effective_chat.id, photo, caption, menu_kb())
 
 
+async def demos_status(update: Update, context):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    demos = STORAGE.get("demos", {})
+    if not demos:
+        await update.message.reply_text("ℹ️ Abhi koi demo set nahi hai. Photo ke caption mein `setdemo1` likh kar bhejein.", parse_mode="Markdown")
+        return
+    lines = ["🎬 **Saved Permanent Demos:**"]
+    for i in sorted(demos.keys()):
+        lines.append(f"• Clip {i}: {demos[i].get('note', '')}")
+    await update.message.reply_text("\n".join(lines), parse_mode="Markdown")
+
+
 async def on_photo(update: Update, context):
     msg = update.message
     if not msg or not msg.photo:
         return
-    if "setbanner" in (msg.caption or "").lower() and update.effective_user.id == ADMIN_ID:
-        STORAGE["banner"] = msg.photo[-1].file_id
-        await msg.reply_text("✅ **Banner update ho gaya!** 🎉", parse_mode="Markdown")
-        return
+
+    caption_text = (msg.caption or "").strip()
+    lower_cap = caption_text.lower()
+
+    if update.effective_user.id == ADMIN_ID:
+        if "setbanner" in lower_cap:
+            STORAGE["banner"] = msg.photo[-1].file_id
+            await msg.reply_text("✅ **Banner update ho gaya!** 🎉", parse_mode="Markdown")
+            return
+
+        match = re.search(r"\bsetdemo\s*(\d{1,2})\b", lower_cap)
+        if match:
+            idx = max(1, min(10, int(match.group(1))))
+            custom_note = re.sub(r"\bsetdemo\s*\d{1,2}\b", "", caption_text, flags=re.IGNORECASE).strip()
+            demos = STORAGE.setdefault("demos", {})
+            demos[idx] = {
+                "photo": msg.photo[-1].file_id,
+                "note": custom_note or f"Demo clip number {idx}.",
+            }
+            save_demos(demos)
+            await msg.reply_text(f"✅ **Demo Clip {idx} permanently save ho gaya!** 💾", parse_mode="Markdown")
+            return
 
     pkg_key = context.user_data.get("qr_pkg")
     uid_obj = msg.photo[-1].file_unique_id
@@ -218,8 +276,10 @@ async def on_callback(update: Update, context):
             await q.message.delete()
         except Exception:
             pass
-        photo = STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
-        await send_safe(context, cid, photo, f"🎬 **Demo Clip {idx} / 10**\n🔥 Demo clip number {idx}.", InlineKeyboardMarkup(rows))
+        demo_item = STORAGE.get("demos", {}).get(idx, {})
+        photo = demo_item.get("photo") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
+        note = demo_item.get("note") or f"Demo clip number {idx}."
+        await send_safe(context, cid, photo, f"🎬 **Demo Clip {idx} / 10**\n🔥 {note}", InlineKeyboardMarkup(rows))
         return
 
     if data in PACKAGES:
@@ -281,6 +341,7 @@ async def on_callback(update: Update, context):
 
 
 bot_app.add_handler(CommandHandler("start", start))
+bot_app.add_handler(CommandHandler("demos", demos_status))
 bot_app.add_handler(CallbackQueryHandler(on_callback))
 bot_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
 
