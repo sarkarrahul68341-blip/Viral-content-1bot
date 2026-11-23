@@ -71,9 +71,17 @@ async def send_safe(context, chat_id, photo, caption, markup):
 
 def make_qr(amount, uid):
     uri = f"upi://pay?pa={UPI_ID}&pn={urllib.parse.quote(BIZ_NAME)}&am={amount}&cu=INR&tn=Order_{uid}"
-    img = qrcode.make(uri)
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=12,
+        border=4,
+    )
+    qr.add_data(uri)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
     path = f"qr_{uid}.png"
-    img.save(path)
+    img.save(path, optimize=True)
     return path
 
 
@@ -107,7 +115,7 @@ async def on_photo(update: Update, context):
         return
     if "setbanner" in (msg.caption or "").lower() and update.effective_user.id == ADMIN_ID:
         STORAGE["banner"] = msg.photo[-1].file_id
-        await msg.reply_text("✅ **Banner update ho gaya!**", parse_mode="Markdown")
+        await msg.reply_text("✅ **Banner update ho gaya!** 🎉", parse_mode="Markdown")
         return
 
     pkg_key = context.user_data.get("qr_pkg")
@@ -117,7 +125,7 @@ async def on_photo(update: Update, context):
         del USED_SS[k]
 
     if not pkg_key or pkg_key not in PACKAGES or uid_obj in USED_SS or getattr(msg, "forward_date", None):
-        await msg.reply_text("⚠️ Kripya pehle package select karke **Pay Now** se payment karein, uske baad payment ka original screenshot bhejein.", parse_mode="Markdown")
+        await msg.reply_text("⚠️ Kripya pehle package select karke **Pay Now** se payment karein, uske baad payment ka original screenshot bhejein. 📸", parse_mode="Markdown")
         return
 
     USED_SS[uid_obj] = now
@@ -129,7 +137,7 @@ async def on_photo(update: Update, context):
         f"⏳ **Payment Screenshot Received!**\n"
         f"📦 **Package:** {pkg['name']}\n"
         f"💰 **Amount:** {pkg['badge']}\n\n"
-        f"✅ Aapka payment verification ke liye bhej diya gaya hai. Approve hote hi aapko **VIP Access Link** yahin mil jaayega.",
+        f"✅ Aapka payment verification ke liye bhej diya gaya hai. Approve hote hi aapko **VIP Access Link** yahin mil jaayega. 🚀",
         parse_mode="Markdown"
     )
     kb = InlineKeyboardMarkup([[
@@ -157,7 +165,7 @@ async def on_callback(update: Update, context):
             cid,
             "📸 **Screenshot Yahin Bhejein!**\n\n"
             "✅ Payment karne ke baad **seedha is bot chat mein** (neeche 📎 / photo icon se) apna screenshot bhej dein.\n"
-            "⏳ Bhejte hi aapka proof admin ke paas verification ke liye chala jaayega.\n"
+            "⏳ Bhejte hi aapka proof verification ke liye chala jaayega.\n"
             "🚀 Approve hote hi **VIP Access Link** yahin mil jaayega.",
             parse_mode="Markdown"
         )
@@ -169,11 +177,11 @@ async def on_callback(update: Update, context):
         if act == "approve":
             await context.bot.send_message(
                 int(target_id),
-                f"✅ **Payment Approved!**\n"
+                f"✅ **Payment Approved!** 🎉\n"
                 f"📦 **Package:** {pkg['name']}\n"
                 f"💰 **Paid:** {pkg['badge']}\n\n"
-                f"🎉 Niche button par click karke apna VIP access open karein:",
-                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔓 Access VIP Link", url=pkg["link"])]]),
+                f"🚀 Niche button par click karke apna VIP access open karein:",
+                reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔓 Access VIP Link 🚀", url=pkg["link"])]]),
                 parse_mode="Markdown"
             )
         else:
@@ -181,7 +189,7 @@ async def on_callback(update: Update, context):
                 int(target_id),
                 f"❌ **Payment Not Verified**\n"
                 f"📦 **Package:** {pkg['name']}\n\n"
-                f"📸 Kripya sahi payment screenshot bhejein ya **Help & Support** se sampark karein.",
+                f"📸 Kripya sahi payment screenshot bhejein ya **Help & Support** se sampark karein. 💬",
                 reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💬 Help & Support", url=SUPPORT_URL)]]),
                 parse_mode="Markdown"
             )
@@ -211,17 +219,16 @@ async def on_callback(update: Update, context):
         pkg = PACKAGES[data]
         banner = STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "") or STORAGE.get("welcome", "")
         text = (
-            f"{pkg['emoji']} **Selected Plan:** {pkg['name']}\n"
+            f"💎 **Selected Plan:** {pkg['name']} {pkg['emoji']}\n"
             f"💰 **Offer Price:** {pkg['badge']}\n\n"
-            f"✅ **How it works:**\n"
-            f"1️⃣ Niche **Pay Now** dabakar QR code generate karein.\n"
-            f"2️⃣ UPI se **₹{pkg['price']}** pay karke payment **screenshot** bhejein.\n"
-            f"3️⃣ Verification ke baad aapko turant **VIP Access Link** mil jaayega.\n\n"
+            f"🛡️ **How it works:**\n"
+            f"1️⃣ ⚡ Niche **Pay Now** dabakar QR code generate karein.\n"
+            f"2️⃣ 📱 UPI se **₹{pkg['price']}** pay karke payment **screenshot** bhejein.\n"
+            f"3️⃣ 🚀 Verification ke baad aapko turant **VIP Access Link** mil jaayega.\n\n"
             f"🔒 *100% direct UPI payment • Safe & fast verification.*"
         )
         kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"💳 Pay Now • {pkg['badge']}", callback_data=f"pay_{data}")],
-            [InlineKeyboardButton("💬 Help & Support", url=SUPPORT_URL)],
+            [InlineKeyboardButton(f"⚡ Pay Now • {pkg['badge']}", callback_data=f"pay_{data}")],
             [InlineKeyboardButton("🏠 Back to Main Menu", callback_data="main_menu")],
         ])
         try:
@@ -244,13 +251,13 @@ async def on_callback(update: Update, context):
             except Exception:
                 pass
             cap = (
-                f"💳 **SCAN & PAY**\n"
-                f"{pkg['emoji']} **Package:** {pkg['name']}\n"
+                f"📱 **SCAN & PAY**\n"
+                f"💎 **Package:** {pkg['name']} {pkg['emoji']}\n"
                 f"💰 **Amount:** {pkg['badge']}\n\n"
-                f"1️⃣ Upar diye gaye QR code ko scan karke **₹{pkg['price']}** pay karein (`{UPI_ID}`).\n"
-                f"2️⃣ Payment ke baad **yahin is chat mein** screenshot bhejein.\n"
-                f"3️⃣ Verification ke baad aapko turant **VIP Link** yahin mil jaayega.\n\n"
-                f"🔒 *100% direct UPI payment • Safe & fast verification.*"
+                f"1️⃣ 📷 Upar diye gaye QR code ko scan karke **₹{pkg['price']}** pay karein (`{UPI_ID}`).\n"
+                f"2️⃣ 📸 Payment ke baad **yahin is chat mein** screenshot bhejein.\n"
+                f"3️⃣ 🚀 Verification ke baad aapko turant **VIP Link** yahin mil jaayega.\n\n"
+                f"🛡️ *100% direct UPI payment • Safe & fast verification.*"
             )
             with open(qr_path, "rb") as f:
                 await context.bot.send_photo(
@@ -295,4 +302,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-        
+    
