@@ -131,6 +131,13 @@ def menu_kb():
     return InlineKeyboardMarkup(rows)
 
 
+def reject_kb():
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("🏠 Back to Main Menu", callback_data="main_menu")],
+        [InlineKeyboardButton("💬 Help & Support", url=SUPPORT_URL)],
+    ])
+
+
 async def start(update: Update, context):
     cid = update.effective_chat.id
     if update.callback_query:
@@ -235,8 +242,8 @@ async def on_photo(update: Update, context):
     for k in [k for k, ts in USED_SS.items() if now - ts >= 86400]:
         del USED_SS[k]
     if not pkg_key or pkg_key not in PACKAGES or uid_obj in USED_SS or getattr(msg, "forward_date", None):
-        kb = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Back to Main Menu", callback_data="main_menu")]])
-        await send_safe(context, cid, "", "❌ **Payment Rejected!**\n\n⚠️ Bina package & **Pay Now** ke direct ya invalid photo accept nahi hogi. Pehle package select karke payment karein.", kb, incoming_msg=msg)
+        pkg_label = f"📦 {PACKAGES[pkg_key]['name']}\n\n" if pkg_key in PACKAGES else ""
+        await send_safe(context, cid, "", f"❌ **Payment Rejected**\n{pkg_label}📸 Sahi QR payment screenshot bhejein ya support se sampark karein. 💬", reject_kb(), incoming_msg=msg)
         return
 
     USED_SS[uid_obj] = now
@@ -264,7 +271,7 @@ async def on_callback(update: Update, context):
         if act == "approve":
             await context.bot.send_message(int(target_id), f"✅ **Payment Approved!** 🎉\n📦 {pkg['name']}\n💰 {pkg['badge']}", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔓 Access VIP Link 🚀", url=pkg["link"])]]), parse_mode="Markdown")
         else:
-            await context.bot.send_message(int(target_id), f"❌ **Payment Rejected**\n📦 {pkg['name']}\n\n📸 Sahi screenshot bhejein ya support se sampark karein. 💬", reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("💬 Help & Support", url=SUPPORT_URL)]]), parse_mode="Markdown")
+            await context.bot.send_message(int(target_id), f"❌ **Payment Rejected**\n📦 {pkg['name']}\n\n📸 Sahi screenshot bhejein ya support se sampark karein. 💬", reply_markup=reject_kb(), parse_mode="Markdown")
     elif data.startswith("demo_"):
         idx = max(1, min(10, int(data.replace("demo_", "") or 1)))
         row = ([InlineKeyboardButton("⬅️ Prev Clip", callback_data=f"demo_{idx - 1}")] if idx > 1 else []) + ([InlineKeyboardButton("Next Clip ➡️", callback_data=f"demo_{idx + 1}")] if idx < 10 else [])
@@ -328,4 +335,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
+            
