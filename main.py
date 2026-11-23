@@ -46,6 +46,17 @@ async def _boot():
 asyncio.run_coroutine_threadsafe(_boot(), loop).result(timeout=30)
 
 
+def _sync_webhook():
+    url = (os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com").rstrip("/")
+    try:
+        asyncio.run_coroutine_threadsafe(bot_app.bot.set_webhook(f"{url}/{TOKEN}"), loop).result(timeout=10)
+    except Exception as e:
+        print(f"Webhook err: {e}")
+
+
+threading.Thread(target=_sync_webhook, daemon=True).start()
+
+
 async def send_safe(context, chat_id, photo, caption, markup):
     if photo:
         try:
@@ -213,20 +224,16 @@ bot_app.add_handler(CallbackQueryHandler(on_callback))
 bot_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
 
 
-def _hook():
-    url = (os.getenv("RENDER_EXTERNAL_URL") or "https://viral-content-1bot-1.onrender.com").rstrip("/")
-    try:
-        asyncio.run_coroutine_threadsafe(bot_app.bot.set_webhook(f"{url}/{TOKEN}"), loop).result(timeout=15)
-    except Exception as e:
-        print(f"Webhook err: {e}")
-
-
-threading.Thread(target=_hook, daemon=True).start()
-
-
 @app.route("/")
 def home():
+    threading.Thread(target=_sync_webhook, daemon=True).start()
     return "OK"
+
+
+@app.route("/refresh")
+def refresh_hook():
+    _sync_webhook()
+    return "Webhook Refreshed", 200
 
 
 @app.route(f"/{TOKEN}", methods=["POST"])
@@ -242,4 +249,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
+            
