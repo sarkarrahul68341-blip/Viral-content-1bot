@@ -1,6 +1,6 @@
 import os, re, json, time, asyncio, threading, urllib.parse, qrcode
 from flask import Flask, request
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, InputMediaPhoto, InputMediaVideo
 from telegram.error import BadRequest
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
@@ -83,15 +83,26 @@ async def try_del(bot, chat_id, msg_id):
             pass
 
 
-async def clear_prev(context, chat_id, incoming_msg=None):
-    prev_id = context.chat_data.pop("last_bot_id", None)
-    await try_del(context.bot, chat_id, prev_id)
+async def send_or_edit(context, chat_id, photo, caption, markup, video=None, dur=None, cb_msg=None, incoming_msg=None):
     if incoming_msg:
         await try_del(context.bot, chat_id, incoming_msg.message_id)
+    prev_id = context.chat_data.get("last_bot_id")
 
+    if cb_msg:
+        try:
+            if video:
+                media = InputMediaVideo(media=video, caption=caption, parse_mode="Markdown", width=W, height=H, duration=dur, supports_streaming=True)
+                edited = await context.bot.edit_message_media(chat_id=chat_id, message_id=cb_msg.message_id, media=media, reply_markup=markup)
+                context.chat_data["last_bot_id"] = edited.message_id
+                return edited
+            if photo and not os.path.exists(photo):
+                media = InputMediaPhoto(media=photo, caption=caption, parse_mode="Markdown")
+                edited = await context.bot.edit_message_media(chat_id=chat_id, message_id=cb_msg.message_id, media=media, reply_markup=markup)
+                context.chat_data["last_bot_id"] = edited.message_id
+                return edited
+        except BadRequest:
+            pass
 
-async def send_safe(context, chat_id, photo, caption, markup, video=None, dur=None, incoming_msg=None):
-    await clear_prev(context, chat_id, incoming_msg)
     sent = None
     if video:
         try:
@@ -109,7 +120,10 @@ async def send_safe(context, chat_id, photo, caption, markup, video=None, dur=No
             pass
     if not sent:
         sent = await context.bot.send_message(chat_id, caption, reply_markup=markup, parse_mode="Markdown")
+
     if sent:
+        if prev_id and prev_id != sent.message_id:
+            await try_del(context.bot, chat_id, prev_id)
         context.chat_data["last_bot_id"] = sent.message_id
     return sent
 
@@ -140,18 +154,19 @@ def reject_kb():
 
 async def start(update: Update, context):
     cid = update.effective_chat.id
+    cb_msg = None
     if update.callback_query:
         await update.callback_query.answer()
-        await try_del(context.bot, cid, update.callback_query.message.message_id)
+        cb_msg = update.callback_query.message
     photo = STORAGE.get("welcome") or STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
     cap = "❤️ **Welcome to All Max Content Bot!**\n\n🔥 **Special Discount Offer Chal Raha Hai!**\n✅ Direct UPI QR Payment • Fast Approval • Instant Access\n\n👇 Niche se apna package select karein:"
-    await send_safe(context, cid, photo, cap, menu_kb(), incoming_msg=update.message)
+    await send_or_edit(context, cid, photo, cap, menu_kb(), cb_msg=cb_msg, incoming_msg=update.message)
 
 
 async def setwelcome_cmd(update: Update, context):
     if update.effective_user.id == ADMIN_ID:
         context.user_data["pending_welcome"] = True
-        await send_safe(context, update.effective_chat.id, "", "🖼️ **Welcome Banner Ready!** 📸 Ab photo bhej dein.", None, incoming_msg=update.message)
+        await send_or_edit(context, update.effective_chat.id, "", "🖼️ **Welcome Banner Ready!** 📸 Ab photo bhej dein.", None, incoming_msg=update.message)
 
 
 async def setdemo_cmd(update: Update, context):
@@ -159,11 +174,11 @@ async def setdemo_cmd(update: Update, context):
         return
     args = context.args or []
     if not args or not re.fullmatch(r"\d{1,2}", args[0]):
-        await send_safe(context, update.effective_chat.id, "", "⚠️ Use: `/setdemo 1` (1-10)", None, incoming_msg=update.message)
+        await send_or_edit(context, update.effective_chat.id, "", "⚠️ Use: `/setdemo 1` (1-10)", None, incoming_msg=update.message)
         return
     idx = max(1, min(10, int(args[0])))
     context.user_data["pending_demo"] = {"idx": idx, "note": " ".join(args[1:]).strip()}
-    await send_safe(context, update.effective_chat.id, "", f"🎬 **Demo {idx} Ready!** 🎥 Ab video ya photo bhej dein.", None, incoming_msg=update.message)
+    await send_or_edit(context, update.effective_chat.id, "", f"🎬 **Demo {idx} Ready!** 🎥 Ab video ya photo bhej dein.", None, incoming_msg=update.message)
 
 
 async def deldemo_cmd(update: Update, context):
@@ -174,16 +189,16 @@ async def deldemo_cmd(update: Update, context):
     if args and args[0].lower() == "all":
         demos.clear()
         w_json(DEMOS_FILE, demos)
-        await send_safe(context, update.effective_chat.id, "", "🗑️ **Saare demos delete ho gaye!**", None, incoming_msg=update.message)
+        await send_or_edit(context, update.effective_chat.id, "", "🗑️ **Saare demos delete ho gaye!**", None, incoming_msg=update.message)
         return
     if not args or not re.fullmatch(r"\d{1,2}", args[0]):
-        await send_safe(context, update.effective_chat.id, "", "⚠️ Use: `/deldemo 1` ya `/deldemo all`", None, incoming_msg=update.message)
+        await send_or_edit(context, update.effective_chat.id, "", "⚠️ Use: `/deldemo 1` ya `/deldemo all`", None, incoming_msg=update.message)
         return
     idx = max(1, min(10, int(args[0])))
     txt = f"🗑️ **Demo {idx} delete ho gaya!**" if demos.pop(idx, None) is not None else f"ℹ️ Demo {idx} khali hai."
     if "delete ho gaya" in txt:
         w_json(DEMOS_FILE, demos)
-    await send_safe(context, update.effective_chat.id, "", txt, None, incoming_msg=update.message)
+    await send_or_edit(context, update.effective_chat.id, "", txt, None, incoming_msg=update.message)
 
 
 async def demos_status(update: Update, context):
@@ -191,10 +206,10 @@ async def demos_status(update: Update, context):
         return
     demos = STORAGE.get("demos", {})
     if not demos:
-        await send_safe(context, update.effective_chat.id, "", "ℹ️ Koi demo set nahi hai. `/setdemo 1` bhejein.", None, incoming_msg=update.message)
+        await send_or_edit(context, update.effective_chat.id, "", "ℹ️ Koi demo set nahi hai. `/setdemo 1` bhejein.", None, incoming_msg=update.message)
         return
     lines = ["🎬 **Saved Demos (1-10):**"] + [f"• #{i} ({'Video' if demos[i].get('video') else 'Photo'}): {demos[i].get('note', '')}" for i in sorted(demos)]
-    await send_safe(context, update.effective_chat.id, "", "\n".join(lines), None, incoming_msg=update.message)
+    await send_or_edit(context, update.effective_chat.id, "", "\n".join(lines), None, incoming_msg=update.message)
 
 
 def save_demo_entry(context, caption_text, payload):
@@ -215,7 +230,7 @@ async def on_video(update: Update, context):
     if msg and msg.video and update.effective_user.id == ADMIN_ID:
         idx = save_demo_entry(context, (msg.caption or "").strip(), {"video": msg.video.file_id, "duration": msg.video.duration})
         if idx:
-            await send_safe(context, update.effective_chat.id, "", f"✅ **Demo {idx} (Video) save ho gaya!** 🎬", None, incoming_msg=msg)
+            await send_or_edit(context, update.effective_chat.id, "", f"✅ **Demo {idx} (Video) save ho gaya!** 🎬", None, incoming_msg=msg)
 
 
 async def on_photo(update: Update, context):
@@ -229,11 +244,11 @@ async def on_photo(update: Update, context):
             fid = msg.photo[-1].file_id
             STORAGE["welcome"] = STORAGE["banner"] = fid
             w_json(CONFIG_FILE, {"welcome": fid, "banner": fid})
-            await send_safe(context, cid, "", "✅ **Welcome banner save ho gaya!** 🖼️", None, incoming_msg=msg)
+            await send_or_edit(context, cid, "", "✅ **Welcome banner save ho gaya!** 🖼️", None, incoming_msg=msg)
             return
         idx = save_demo_entry(context, cap, {"photo": msg.photo[-1].file_id})
         if idx:
-            await send_safe(context, cid, "", f"✅ **Demo {idx} (Photo) save ho gaya!** 💾", None, incoming_msg=msg)
+            await send_or_edit(context, cid, "", f"✅ **Demo {idx} (Photo) save ho gaya!** 💾", None, incoming_msg=msg)
             return
 
     pkg_key = context.user_data.get("qr_pkg")
@@ -243,13 +258,13 @@ async def on_photo(update: Update, context):
         del USED_SS[k]
     if not pkg_key or pkg_key not in PACKAGES or uid_obj in USED_SS or getattr(msg, "forward_date", None):
         pkg_label = f"📦 {PACKAGES[pkg_key]['name']}\n\n" if pkg_key in PACKAGES else ""
-        await send_safe(context, cid, "", f"❌ **Payment Rejected**\n{pkg_label}📸 Sahi QR payment screenshot bhejein ya support se sampark karein. 💬", reject_kb(), incoming_msg=msg)
+        await send_or_edit(context, cid, "", f"❌ **Payment Rejected**\n{pkg_label}📸 Sahi QR payment screenshot bhejein ya support se sampark karein. 💬", reject_kb(), incoming_msg=msg)
         return
 
     USED_SS[uid_obj] = now
     context.user_data.pop("qr_pkg", None)
     pkg, user = PACKAGES[pkg_key], update.effective_user
-    await send_safe(context, cid, "", f"⏳ **Screenshot Received!**\n📦 {pkg['name']}\n💰 {pkg['badge']}\n\n✅ Approve hote hi **VIP Link** yahin mil jaayega. 🚀", None, incoming_msg=msg)
+    await send_or_edit(context, cid, "", f"⏳ **Screenshot Received!**\n📦 {pkg['name']}\n💰 {pkg['badge']}\n\n✅ Approve hote hi **VIP Link** yahin mil jaayega. 🚀", None, incoming_msg=msg)
     kb = InlineKeyboardMarkup([[InlineKeyboardButton("✅ Approve", callback_data=f"approve_{user.id}_{pkg_key}"), InlineKeyboardButton("❌ Reject", callback_data=f"reject_{user.id}_{pkg_key}")]])
     await context.bot.send_photo(ADMIN_ID, msg.photo[-1].file_id, caption=f"📥 **Proof**\n👤 {user.full_name} (`{user.id}`)\n📦 {pkg['name']} • **{pkg['badge']}**", reply_markup=kb, parse_mode="Markdown")
 
@@ -258,13 +273,14 @@ async def on_callback(update: Update, context):
     q = update.callback_query
     await q.answer()
     data, uid, cid = q.data, q.from_user.id, q.message.chat_id
-    await try_del(context.bot, cid, q.message.message_id)
+    cb_msg = q.message
 
     if data == "main_menu":
         await start(update, context)
     elif data == "ss_guide":
+        await try_del(context.bot, cid, cb_msg.message_id)
         kb = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Back to Main Menu", callback_data="main_menu")]])
-        await send_safe(context, cid, "", "📸 **Screenshot Yahin Bhejein!**\n\n✅ Seedha is chat mein photo bhej dein.\n🚀 Approve hote hi **VIP Access Link** yahin mil jaayega.", kb)
+        await send_or_edit(context, cid, "", "📸 **Screenshot Yahin Bhejein!**\n\n✅ Seedha is chat mein photo bhej dein.\n🚀 Approve hote hi **VIP Access Link** yahin mil jaayega.", kb)
     elif data.startswith(("approve_", "reject_")) and uid == ADMIN_ID:
         act, target_id, key = data.split("_", 2)
         pkg = PACKAGES.get(key, PACKAGES["file_1"])
@@ -279,13 +295,13 @@ async def on_callback(update: Update, context):
         item = STORAGE.get("demos", {}).get(idx, {})
         line = (item.get("note") or "").strip()
         cap = f"✨ **Preview ({idx}/10)** ✨\n\n👑 **Poore Full Access Plan par aapko sab kuch ek saath mil jaayega!** 💎" + (f"\n🔥 {line} 🚀" if line else "")
-        await send_safe(context, cid, item.get("photo") or STORAGE.get("welcome") or STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else ""), cap, InlineKeyboardMarkup(rows), video=item.get("video"), dur=item.get("duration"))
+        await send_or_edit(context, cid, item.get("photo") or STORAGE.get("welcome") or STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else ""), cap, InlineKeyboardMarkup(rows), video=item.get("video"), dur=item.get("duration"), cb_msg=cb_msg)
     elif data in PACKAGES:
         pkg = PACKAGES[data]
         banner = STORAGE.get("banner") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
         text = f"💎 **Selected Plan:** {pkg['name']} {pkg['emoji']}\n💰 **Offer Price:** {pkg['badge']}\n\n🛡️ **How it works:**\n1️⃣ ⚡ **Pay Now** dabakar QR code generate karein.\n2️⃣ 📱 UPI se **₹{pkg['price']}** pay karke **screenshot** bhejein.\n3️⃣ 🚀 Verification ke baad **VIP Access Link** yahin mil jaayega."
         kb = InlineKeyboardMarkup([[InlineKeyboardButton(f"⚡ Pay Now • {pkg['badge']}", callback_data=f"pay_{data}")], [InlineKeyboardButton("🏠 Back to Main Menu", callback_data="main_menu")]])
-        await send_safe(context, cid, banner, text, kb)
+        await send_or_edit(context, cid, banner, text, kb, cb_msg=cb_msg)
     elif data.startswith("pay_"):
         pkg = PACKAGES.get(data.replace("pay_", ""))
         if not pkg:
@@ -298,6 +314,11 @@ async def on_callback(update: Update, context):
             with open(qr_path, "rb") as f:
                 sent = await context.bot.send_photo(cid, f, caption=cap, reply_markup=kb, parse_mode="Markdown")
             if sent:
+                prev = context.chat_data.get("last_bot_id")
+                if prev and prev != sent.message_id:
+                    await try_del(context.bot, cid, prev)
+                if cb_msg and cb_msg.message_id != sent.message_id:
+                    await try_del(context.bot, cid, cb_msg.message_id)
                 context.chat_data["last_bot_id"] = sent.message_id
         finally:
             if os.path.exists(qr_path):
@@ -335,4 +356,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-            
+    
