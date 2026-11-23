@@ -126,7 +126,7 @@ async def send_safe(ctx, cid, photo, cap, kb, video=None, dur=None, anim=None, i
             sent = await ctx.bot.send_video(cid, video, caption=cap, reply_markup=kb, parse_mode="Markdown", width=W, height=H, duration=dur, supports_streaming=True)
         except BadRequest:
             pass
-    if not sent and photo:
+    if not sent and photo and not anim:
         try:
             if os.path.exists(photo):
                 with open(photo, "rb") as fp:
@@ -395,4 +395,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-        
