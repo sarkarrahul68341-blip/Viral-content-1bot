@@ -161,12 +161,19 @@ async def on_callback(update: Update, context):
         return
 
     if data == "ss_guide":
+        try:
+            await q.message.delete()
+        except Exception:
+            pass
         await context.bot.send_message(
             cid,
             "📸 **Screenshot Yahin Bhejein!**\n\n"
             "✅ Payment karne ke baad **seedha is bot chat mein** (neeche 📎 / photo icon se) apna screenshot bhej dein.\n"
             "⏳ Bhejte hi aapka proof verification ke liye chala jaayega.\n"
             "🚀 Approve hote hi **VIP Access Link** yahin mil jaayega.",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🏠 Back to Main Menu", callback_data="main_menu")],
+            ]),
             parse_mode="Markdown"
         )
         return
@@ -302,4 +309,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-    
