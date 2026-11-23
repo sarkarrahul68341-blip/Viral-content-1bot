@@ -11,6 +11,8 @@ ADMIN_ID = int(os.getenv("ADMIN_USER_ID", "8776203848"))
 SUPPORT_URL = "https://t.me/+T_Rwn6XiNPsyMDg9"
 DEMO_URL = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 PKG_PHOTO = "VIP New.jpg"
+DEFAULT_WELCOME_PHOTO = os.getenv("DEFAULT_PHOTO", "").strip()
+DEFAULT_WELCOME_GIF = os.getenv("DEFAULT_GIF", "").strip()
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEMOS_FILE = os.path.join(BASE_DIR, "demos_store.json")
 CONFIG_FILE = os.path.join(BASE_DIR, "bot_config.json")
@@ -37,8 +39,8 @@ def w_json(p, d):
 
 cfg = r_json(CONFIG_FILE)
 STORAGE = {
-    "welcome": cfg.get("welcome") or os.getenv("DEFAULT_PHOTO", "").strip(),
-    "welcome_gif": cfg.get("welcome_gif") or os.getenv("DEFAULT_GIF", "").strip(),
+    "welcome": DEFAULT_WELCOME_PHOTO or cfg.get("welcome") or "",
+    "welcome_gif": DEFAULT_WELCOME_GIF or cfg.get("welcome_gif") or "",
     "banner": (os.getenv("BANNER_PHOTO") or PKG_PHOTO).strip(),
     "demos": {int(k): v for k, v in r_json(DEMOS_FILE).items() if str(k).isdigit()},
 }
@@ -110,12 +112,12 @@ async def send_safe(ctx, cid, photo, cap, kb, video=None, dur=None, anim=None, i
     await clear_prev(ctx, cid, inc)
     sent = None
     if anim:
-        for f in (
+        for fn in (
             lambda: ctx.bot.send_animation(cid, anim, caption=cap, reply_markup=kb, parse_mode="Markdown"),
             lambda: ctx.bot.send_video(cid, anim, caption=cap, reply_markup=kb, parse_mode="Markdown", supports_streaming=True),
         ):
             try:
-                sent = await f()
+                sent = await fn()
                 break
             except BadRequest:
                 pass
@@ -238,7 +240,7 @@ def save_demo(ctx, cap, payload):
 async def _save_w_gif(upd: Update, ctx, fid: str):
     STORAGE["welcome_gif"], STORAGE["welcome"] = fid, ""
     save_cfg()
-    await send_safe(ctx, upd.effective_chat.id, "", "✅ **Welcome GIF animation save ho gaya!** 🎞️", None, inc=upd.message)
+    await send_safe(ctx, upd.effective_chat.id, "", f"✅ **Welcome GIF save ho gaya!** 🎞️\n\n`{fid}`", None, anim=fid, inc=upd.message)
 
 
 async def on_animation(upd: Update, ctx):
@@ -280,13 +282,14 @@ async def on_photo(upd: Update, ctx):
         return
     cid, cap = upd.effective_chat.id, (msg.caption or "").strip()
     if upd.effective_user.id == ADMIN_ID:
+        fid = msg.photo[-1].file_id
         if ctx.user_data.get("pending_welcome") or "setwelcome" in cap.lower():
             ctx.user_data.pop("pending_welcome", None)
-            STORAGE["welcome"], STORAGE["welcome_gif"] = msg.photo[-1].file_id, ""
+            STORAGE["welcome"], STORAGE["welcome_gif"] = fid, ""
             save_cfg()
-            await send_safe(ctx, cid, "", "✅ **Welcome photo save ho gaya!** 🖼️", None, inc=msg)
+            await send_safe(ctx, cid, fid, f"✅ **Welcome photo save ho gaya!** 🖼️\n\n`{fid}`", None, inc=msg)
             return
-        idx = save_demo(ctx, cap, {"photo": msg.photo[-1].file_id})
+        idx = save_demo(ctx, cap, {"photo": fid})
         if idx:
             await send_safe(ctx, cid, "", f"✅ **Demo {idx} (Photo) save ho gaya!** 💾", None, inc=msg)
             return
@@ -392,4 +395,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-        
