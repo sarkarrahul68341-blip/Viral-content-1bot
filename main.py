@@ -19,7 +19,8 @@ SUPPORT_URL = "https://t.me/+T_Rwn6XiNPsyMDg9"
 DEMO_URL = "https://t.me/+w4MJrYfZ2zIyMTQ1"
 DEFAULT_PHOTO = os.getenv("DEFAULT_PHOTO", "").strip()
 PKG_PHOTO = "VIP New.jpg"
-DEMOS_FILE = "demos_store.json"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DEMOS_FILE = os.path.join(BASE_DIR, "demos_store.json")
 USED_SS = {}
 
 
@@ -136,12 +137,29 @@ async def start(update: Update, context):
     await send_safe(context, update.effective_chat.id, photo, caption, menu_kb())
 
 
+async def setdemo_cmd(update: Update, context):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    args = context.args or []
+    if not args or not re.fullmatch(r"\d{1,2}", args[0]):
+        await update.message.reply_text("⚠️ Sahi format use karein: `/setdemo 1` (1 se 10 tak)", parse_mode="Markdown")
+        return
+    idx = max(1, min(10, int(args[0])))
+    note = " ".join(args[1:]).strip()
+    context.user_data["pending_demo"] = {"idx": idx, "note": note}
+    await update.message.reply_text(
+        f"🎬 **Demo Clip {idx} Ready!**\n"
+        f"📸 Ab iske liye photo bhej dein.",
+        parse_mode="Markdown"
+    )
+
+
 async def demos_status(update: Update, context):
     if update.effective_user.id != ADMIN_ID:
         return
     demos = STORAGE.get("demos", {})
     if not demos:
-        await update.message.reply_text("ℹ️ Abhi koi demo set nahi hai. Photo ke caption mein `setdemo1` likh kar bhejein.", parse_mode="Markdown")
+        await update.message.reply_text("ℹ️ Abhi koi demo set nahi hai. `/setdemo 1` bhej kar photo bhejein.", parse_mode="Markdown")
         return
     lines = ["🎬 **Saved Permanent Demos:**"]
     for i in sorted(demos.keys()):
@@ -163,10 +181,15 @@ async def on_photo(update: Update, context):
             await msg.reply_text("✅ **Banner update ho gaya!** 🎉", parse_mode="Markdown")
             return
 
-        match = re.search(r"\bsetdemo\s*(\d{1,2})\b", lower_cap)
-        if match:
-            idx = max(1, min(10, int(match.group(1))))
-            custom_note = re.sub(r"\bsetdemo\s*\d{1,2}\b", "", caption_text, flags=re.IGNORECASE).strip()
+        pending = context.user_data.pop("pending_demo", None)
+        match = re.match(r"^/setdemo\s+(\d{1,2})(?:\s+(.*))?$", caption_text, flags=re.IGNORECASE | re.DOTALL)
+        if match or pending:
+            if match:
+                idx = max(1, min(10, int(match.group(1))))
+                custom_note = (match.group(2) or "").strip()
+            else:
+                idx = int(pending["idx"])
+                custom_note = caption_text or (pending.get("note") or "")
             demos = STORAGE.setdefault("demos", {})
             demos[idx] = {
                 "photo": msg.photo[-1].file_id,
@@ -341,6 +364,7 @@ async def on_callback(update: Update, context):
 
 
 bot_app.add_handler(CommandHandler("start", start))
+bot_app.add_handler(CommandHandler("setdemo", setdemo_cmd))
 bot_app.add_handler(CommandHandler("demos", demos_status))
 bot_app.add_handler(CallbackQueryHandler(on_callback))
 bot_app.add_handler(MessageHandler(filters.PHOTO, on_photo))
@@ -370,3 +394,4 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
+            
