@@ -21,35 +21,54 @@ DEFAULT_PHOTO = os.getenv("DEFAULT_PHOTO", "").strip()
 PKG_PHOTO = "VIP New.jpg"
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 DEMOS_FILE = os.path.join(BASE_DIR, "demos_store.json")
+CONFIG_FILE = os.path.join(BASE_DIR, "bot_config.json")
 DEMO_FRAME_WIDTH = 1280
 DEMO_FRAME_HEIGHT = 720
 USED_SS = {}
 
 
-def load_demos():
-    if os.path.exists(DEMOS_FILE):
+def load_json_file(path):
+    if os.path.exists(path):
         try:
-            with open(DEMOS_FILE, "r", encoding="utf-8") as f:
-                raw = json.load(f)
-                return {int(k): v for k, v in raw.items()}
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
         except Exception as e:
-            print(f"Load demos err: {e}")
+            print(f"Load err ({path}): {e}")
     return {}
 
 
-def save_demos(demos_dict):
+def save_json_file(path, data):
     try:
-        with open(DEMOS_FILE, "w", encoding="utf-8") as f:
-            json.dump(demos_dict, f, ensure_ascii=False, indent=2)
+        with open(path, "w", encoding="utf-8") as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception as e:
-        print(f"Save demos err: {e}")
+        print(f"Save err ({path}): {e}")
 
+
+def load_demos():
+    raw = load_json_file(DEMOS_FILE)
+    return {int(k): v for k, v in raw.items()} if isinstance(raw, dict) else {}
+
+
+def save_demos(demos_dict):
+    save_json_file(DEMOS_FILE, demos_dict)
+
+
+saved_cfg = load_json_file(CONFIG_FILE)
 
 STORAGE = {
-    "welcome": DEFAULT_PHOTO,
-    "banner": os.getenv("BANNER_PHOTO", PKG_PHOTO).strip(),
+    "welcome": saved_cfg.get("welcome") or DEFAULT_PHOTO,
+    "banner": saved_cfg.get("banner") or os.getenv("BANNER_PHOTO", PKG_PHOTO).strip(),
     "demos": load_demos(),
 }
+
+
+def save_config():
+    save_json_file(CONFIG_FILE, {
+        "welcome": STORAGE.get("welcome", ""),
+        "banner": STORAGE.get("banner", ""),
+    })
+
 
 PACKAGES = {
     "file_1": {"name": "01 All mix content VIP Access", "price": 249, "badge": "4̶9̶9̶ ➡️ 💎 ₹249", "emoji": "👑", "link": "https://t.me/+s4Zzmwni59diNjU1"},
@@ -145,7 +164,7 @@ async def start(update: Update, context):
             await update.callback_query.message.delete()
         except Exception:
             pass
-    photo = STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
+    photo = STORAGE.get("welcome") or STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
     caption = (
         "❤️ **Welcome to All Max Content Bot!**\n\n"
         "🔥 **Special Discount Offer Chal Raha Hai!**\n"
@@ -153,6 +172,17 @@ async def start(update: Update, context):
         "👇 Niche se apna package select karein:"
     )
     await send_safe(context, update.effective_chat.id, photo, caption, menu_kb())
+
+
+async def setwelcome_cmd(update: Update, context):
+    if update.effective_user.id != ADMIN_ID:
+        return
+    context.user_data["pending_welcome"] = True
+    await update.message.reply_text(
+        "🖼️ **Welcome Banner Ready!**\n"
+        "📸 Ab apna naya **welcome banner photo** bhej dein.",
+        parse_mode="Markdown"
+    )
 
 
 async def setdemo_cmd(update: Update, context):
@@ -179,7 +209,7 @@ async def demos_status(update: Update, context):
     if not demos:
         await update.message.reply_text("ℹ️ Abhi koi demo set nahi hai. `/setdemo 1` bhej kar video ya photo bhejein.", parse_mode="Markdown")
         return
-    lines = ["🎬 **Saved Permanent Demos:**"]
+    lines = ["🎬 **Saved Permanent Demos (1-10):**"]
     for i in sorted(demos.keys()):
         kind = "Video" if demos[i].get("video") else "Photo"
         lines.append(f"• #{i} ({kind}): {demos[i].get('note', '')}")
@@ -223,9 +253,13 @@ async def on_photo(update: Update, context):
     lower_cap = caption_text.lower()
 
     if update.effective_user.id == ADMIN_ID:
-        if "setbanner" in lower_cap:
-            STORAGE["banner"] = msg.photo[-1].file_id
-            await msg.reply_text("✅ **Banner update ho gaya!** 🎉", parse_mode="Markdown")
+        pending_welcome = context.user_data.pop("pending_welcome", False)
+        if pending_welcome or "setwelcome" in lower_cap or "setbanner" in lower_cap:
+            fid = msg.photo[-1].file_id
+            STORAGE["welcome"] = fid
+            STORAGE["banner"] = fid
+            save_config()
+            await msg.reply_text("✅ **Welcome banner permanently save ho gaya!** 🖼️", parse_mode="Markdown")
             return
 
         pending = context.user_data.pop("pending_demo", None)
@@ -353,7 +387,7 @@ async def on_callback(update: Update, context):
             "height": DEMO_FRAME_HEIGHT,
             "duration": demo_item.get("duration"),
         }
-        photo = demo_item.get("photo") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
+        photo = demo_item.get("photo") or STORAGE.get("welcome") or STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
         custom_line = (demo_item.get("note") or "").strip()
         demo_caption = (
             f"✨ **Preview ({idx}/10)** ✨\n\n"
@@ -365,7 +399,7 @@ async def on_callback(update: Update, context):
 
     if data in PACKAGES:
         pkg = PACKAGES[data]
-        banner = STORAGE.get("banner") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "") or STORAGE.get("welcome", "")
+        banner = STORAGE.get("banner") or STORAGE.get("welcome") or (PKG_PHOTO if os.path.exists(PKG_PHOTO) else "")
         text = (
             f"💎 **Selected Plan:** {pkg['name']} {pkg['emoji']}\n"
             f"💰 **Offer Price:** {pkg['badge']}\n\n"
@@ -422,6 +456,7 @@ async def on_callback(update: Update, context):
 
 
 bot_app.add_handler(CommandHandler("start", start))
+bot_app.add_handler(CommandHandler("setwelcome", setwelcome_cmd))
 bot_app.add_handler(CommandHandler("setdemo", setdemo_cmd))
 bot_app.add_handler(CommandHandler("demos", demos_status))
 bot_app.add_handler(CallbackQueryHandler(on_callback))
@@ -453,4 +488,3 @@ def webhook():
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 10000)))
-                                        
